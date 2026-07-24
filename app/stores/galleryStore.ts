@@ -5,6 +5,8 @@ import { apiFetch } from "/utils/api.client";
 import { getLang } from "/utils/lang";
 import { isAppCategory, type AppCategory } from "/utils/app-categories";
 import { apps, loadApps } from "/app/stores/appStore";
+import { applySessionUser, refreshSessionUser } from "/app/stores/userStore";
+import type { LoggedInUser } from "/types/user-types";
 import { precacheInstalledApp, uncacheInstalledApp } from "/utils/offline-apps.client";
 
 export const galleryApps = signal<GalleryAppCard[]>([]);
@@ -78,13 +80,22 @@ export async function installGalleryApp(slug: string): Promise<boolean> {
   galleryBusy.value = true;
   galleryAppError.value = null;
   try {
-    const result = await apiFetch<{ slug: string; installed: boolean }>(
+    const result = await apiFetch<{
+      slug: string;
+      installed: boolean;
+      user?: LoggedInUser;
+    }>(
       `/api/${lang()}/app/install`,
       { method: "POST", body: JSON.stringify({ slug }) },
     );
     if (!result.success) {
       galleryAppError.value = result.error.message ?? result.error.code;
       return false;
+    }
+    if (result.data.user) {
+      applySessionUser(result.data.user);
+    } else {
+      await refreshSessionUser();
     }
     if (galleryApp.value?.slug === slug) {
       galleryApp.value = {

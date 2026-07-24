@@ -5,7 +5,7 @@ import { generateNickname } from "/utils/nickname.server";
 import { checkRateLimit } from "/utils/rate-limit.server";
 import { getClientIP } from "/utils/request.server";
 import { dbGetUserByEmail, dbCreateUser, dbUpdateUserLastLogin, dbExistsUserNickname } from "/server/database/queries/users";
-import { createAuthSession } from "/utils/auth.server";
+import { claimGuestSession } from "/utils/auth.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import type { BunRequest } from "bun";
 
@@ -83,7 +83,7 @@ export default {
     }
 
     dbUpdateUserLastLogin(email);
-    createAuthSession(req, userId);
+    claimGuestSession(req, userId);
 
     return apiSuccess({
       data: {
@@ -94,6 +94,7 @@ export default {
           nickname,
           createdAt: new Date().toISOString(),
           marketingOptIn,
+          isGuest: false,
         },
       },
     });

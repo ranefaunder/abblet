@@ -185,6 +185,35 @@ export const logout = async () => {
 
 export const isLoggedIn = (): boolean => user.value !== null;
 
+export const isGuest = (): boolean => user.value?.isGuest === true;
+
+/** Apply a user payload from an API response (e.g. guest create/install). */
+export function applySessionUser(raw: StoredUser | LoggedInUser): LoggedInUser {
+  const normalized = normalizeStoredUser(raw as StoredUser);
+  user.value = normalized;
+  saveUserToStorage(normalized);
+  return normalized;
+}
+
+/** Sync client user from session cookie (e.g. after guest create/install). */
+export async function refreshSessionUser(): Promise<LoggedInUser | null> {
+  try {
+    const lang = getLang(window.location.pathname) ?? "en";
+    const result = await apiFetch<StoredUser>(`/api/${lang}/user/me`, { method: "GET" });
+    if (!result.success) {
+      if (result.status === 401) {
+        user.value = null;
+        saveUserToStorage(null);
+      }
+      return null;
+    }
+    return applySessionUser(result.data);
+  } catch (error) {
+    console.error("Failed to refresh session user:", error);
+    return null;
+  }
+}
+
 export const verifyAuthStatus = async (): Promise<boolean> => {
   if (!user.value) return false;
   try {

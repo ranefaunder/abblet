@@ -12,7 +12,7 @@ import { appEditUrl, appPageUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { draftLetter, previewGradient } from "/utils/app-preview";
 import { deleteApp } from "/app/stores/appStore";
-import { user } from "/app/stores/userStore";
+import { isGuest } from "/app/stores/userStore";
 import {
   editApp,
   editMessages,
@@ -78,7 +78,7 @@ export default function Edit(_props: EditRouteProps) {
   const lang = params.lang ?? "en";
   const slug = ("slug" in params ? params.slug : undefined) ?? "";
   const isNew = !slug;
-  const loggedIn = !!user.value;
+  const guest = isGuest();
   const deleting = useSignal(false);
 
   useEffect(() => {
@@ -189,15 +189,29 @@ export default function Edit(_props: EditRouteProps) {
                     <div id="edit-topbar-menu" popover="auto" role="menu">
                       ${showReadyTools
                         ? html`
-                          <button
-                            type="button"
-                            role="menuitem"
-                            disabled=${publishing}
-                            onClick=${() => void handlePublishToggle()}
-                          >
-                            <i ui-icon=${isPublished ? "prohibit" : "share"} aria-hidden="true"></i>
-                            ${isPublished ? t("Remove from Gallery") : t("Publish to Gallery")}
-                          </button>
+                          ${guest
+                            ? html`
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick=${() => {
+                                  closeTopbarMenu();
+                                  (document.getElementById("login-dialog") as HTMLDialogElement | null)?.showModal();
+                                }}
+                              >
+                                <i ui-icon="share" aria-hidden="true"></i>
+                                ${t("Sign in to publish")}
+                              </button>`
+                            : html`
+                              <button
+                                type="button"
+                                role="menuitem"
+                                disabled=${publishing}
+                                onClick=${() => void handlePublishToggle()}
+                              >
+                                <i ui-icon=${isPublished ? "prohibit" : "share"} aria-hidden="true"></i>
+                                ${isPublished ? t("Remove from Gallery") : t("Publish to Gallery")}
+                              </button>`}
                           <button
                             type="button"
                             role="menuitem"
@@ -247,39 +261,26 @@ export default function Edit(_props: EditRouteProps) {
         </div>
       </header>
 
-      ${isNew && !loggedIn
-        ? html`
-          <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
-            <p ui-heading="sm">${t("Sign in to apply your ideas")}</p>
-            <button
-              type="button"
-              ui-button="primary"
-              onClick=${() => (document.getElementById("login-dialog") as HTMLDialogElement | null)?.showModal()}
-            >
-              ${t("Login")}
-            </button>
-            <a href=${`/${lang}/`} ui-button="inline sm">${t("My Apps")}</a>
-          </div>`
-        : isNew
-          ? html`<${EditWorkspace} slug="" creating=${true} lang=${lang} />`
-          : loading && !app
+      ${isNew
+        ? html`<${EditWorkspace} slug="" creating=${true} lang=${lang} />`
+        : loading && !app
+          ? html`
+            <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
+              <i ui-icon="spinner lg"></i>
+              <p>${t("Loading…")}</p>
+            </div>`
+          : !app
             ? html`
               <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
-                <i ui-icon="spinner lg"></i>
-                <p>${t("Loading…")}</p>
+                <p>${editError.value ?? t("App not found")}</p>
               </div>`
-            : !app
+            : !app.canEdit
               ? html`
                 <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
-                  <p>${editError.value ?? t("App not found")}</p>
+                  <p ui-heading="sm">${t("You can only edit your own apps.")}</p>
+                  <a href=${appPageUrl(lang, slug)} ui-button="primary">${t("Open app")}</a>
                 </div>`
-              : !app.canEdit
-                ? html`
-                  <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
-                    <p ui-heading="sm">${t("You can only edit your own apps.")}</p>
-                    <a href=${appPageUrl(lang, slug)} ui-button="primary">${t("Open app")}</a>
-                  </div>`
-                : html`<${EditWorkspace} slug=${slug} creating=${creating} lang=${lang} />`}
+              : html`<${EditWorkspace} slug=${slug} creating=${creating} lang=${lang} />`}
     </div>
   `;
 

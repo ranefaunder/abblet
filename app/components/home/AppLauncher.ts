@@ -6,7 +6,7 @@ import type { AppSummary } from "/types/app-types";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import { apps, loadApps, clearApps } from "/app/stores/appStore";
-import { isLoggedIn, user } from "/app/stores/userStore";
+import { isGuest, isLoggedIn, logout, user } from "/app/stores/userStore";
 import AppIcon from "/app/components/home/AppIcon";
 
 function remToPx(value: string): number {
@@ -23,12 +23,18 @@ function chunk<T>(items: T[], size: number): T[][] {
   return out;
 }
 
+function openLoginDialog() {
+  (document.getElementById("login-dialog") as HTMLDialogElement | null)?.showModal();
+}
+
 export default function AppLauncher() {
   const { path } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
   const loggedInUser = user.value;
   const readyApps = apps.value;
   const count = readyApps.length;
+  const loggedIn = isLoggedIn();
+  const guest = isGuest();
 
   const perPage = useSignal(0);
   const pageIndex = useSignal(0);
@@ -61,13 +67,17 @@ export default function AppLauncher() {
 
       const shortcuts = rootEl.querySelector<HTMLElement>(".shortcuts");
       const dots = rootEl.querySelector<HTMLElement>(".page-dots");
+      const footerEl = rootEl.querySelector<HTMLElement>(".account-footer");
       const panel = rootEl.querySelector<HTMLElement>(".home-panel");
+      const signin = rootEl.querySelector<HTMLElement>(".panel-signin");
+      const emptyWrap = rootEl.querySelector<HTMLElement>(".panel-empty-wrap");
       const panelPadY = panel
         ? (parseFloat(getComputedStyle(panel).paddingTop) || 0) +
           (parseFloat(getComputedStyle(panel).paddingBottom) || 0)
         : 40;
 
       const reserved =
+        (footerEl?.offsetHeight ?? 0) +
         (shortcuts?.offsetHeight ?? 0) +
         (dots?.offsetHeight ?? 0) +
         panelPadY +
@@ -85,6 +95,9 @@ export default function AppLauncher() {
       const h = displayRows * cellH + Math.max(0, displayRows - 1) * rowGap;
       if (h !== pageHeightPx.value) pageHeightPx.value = h;
       if (vp) vp.style.height = `${h}px`;
+      // Empty library: one icon row so the panel matches apps width without filling the screen.
+      if (emptyWrap) emptyWrap.style.minHeight = `${h}px`;
+      if (signin) signin.style.minHeight = "";
     }
 
     recompute();
@@ -97,7 +110,7 @@ export default function AppLauncher() {
       window.removeEventListener("resize", recompute);
       window.removeEventListener("orientationchange", recompute);
     };
-  }, [count]);
+  }, [count, loggedIn, guest]);
 
   const pages: AppSummary[][] = perPage.value > 0 ? chunk(readyApps, perPage.value) : [readyApps];
   const pageCount = Math.max(1, pages.length);
@@ -125,6 +138,44 @@ export default function AppLauncher() {
     vp.scrollTo({ left: i * vp.clientWidth, behavior: "smooth" });
   }
 
+  const accountFooter = loggedIn
+    ? guest
+      ? html`
+        <div class="account-footer">
+          <span
+            class="account-footer-text"
+            role="button"
+            tabindex="0"
+            onClick=${openLoginDialog}
+            onKeyDown=${(e: KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                openLoginDialog();
+              }
+            }}
+          >
+            ${t("Sign in / Register")}
+          </span>
+        </div>`
+      : html`
+        <div class="account-footer">
+          <span
+            class="account-footer-text"
+            role="button"
+            tabindex="0"
+            onClick=${() => void logout()}
+            onKeyDown=${(e: KeyboardEvent) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                void logout();
+              }
+            }}
+          >
+            ${t("Log out")}
+          </span>
+        </div>`
+    : "";
+
   const shortcuts = html`
     <div class="shortcuts">
       <a class="shortcut gallery" href=${`/${lang}/gallery`}>
@@ -150,53 +201,55 @@ export default function AppLauncher() {
     </div>
   `;
 
-  const view = html`
-    <div data-scope="AppLauncher" ref=${rootRef}>
-      ${!isLoggedIn()
+  const appsPanel = html`
+    <section class="home-panel">
+      ${!loggedIn
         ? html`
-          <div class="glass-card" ui-column="gap-md x-center">
-            <p class="glass-title">${t("Sign in to open your apps")}</p>
-            <button
-              type="button"
-              ui-button="primary"
-              onClick=${() => (document.getElementById("login-dialog") as HTMLDialogElement | null)?.showModal()}
-            >
+          <div class="panel-signin">
+            <p class="panel-signin-title">${t("Your apps appear here")}</p>
+            <p class="panel-signin-desc">${t("Create one below, or sign in to continue.")}</p>
+            <button type="button" class="panel-signin-btn" onClick=${openLoginDialog}>
               ${t("Login")}
             </button>
           </div>`
-        : html`
-          <section class="home-panel">
-            ${count === 0
-              ? html`<div class="panel-empty-wrap"><p class="panel-empty">${t("Use Create to build your first app.")}</p></div>`
-              : html`
-                <div class="pages-viewport" ref=${viewportRef} onScroll=${onScroll}>
+        : count === 0
+          ? html`<div class="panel-empty-wrap"><p class="panel-empty">${t("Use Create to build your first app.")}</p></div>`
+          : html`
+            <div class="pages-viewport" ref=${viewportRef} onScroll=${onScroll}>
+              ${pages.map(
+                (pageApps) => html`
+                  <div class="page">
+                    <div class="grid">
+                      ${pageApps.map((app) => html`<${AppIcon} app=${app} />`)}
+                    </div>
+                  </div>`,
+              )}
+            </div>
+            ${pageCount > 1
+              ? html`
+                <div class="page-dots" role="tablist">
                   ${pages.map(
-                    (pageApps) => html`
-                      <div class="page">
-                        <div class="grid">
-                          ${pageApps.map((app) => html`<${AppIcon} app=${app} />`)}
-                        </div>
-                      </div>`,
+                    (_, i) => html`
+                      <button
+                        type="button"
+                        class=${`page-dot${i === pageIndex.value ? " active" : ""}`}
+                        aria-label=${`${i + 1}`}
+                        aria-selected=${i === pageIndex.value}
+                        onClick=${() => goToPage(i)}
+                      ></button>`,
                   )}
-                </div>
-                ${pageCount > 1
-                  ? html`
-                    <div class="page-dots" role="tablist">
-                      ${pages.map(
-                        (_, i) => html`
-                          <button
-                            type="button"
-                            class=${`page-dot${i === pageIndex.value ? " active" : ""}`}
-                            aria-label=${`${i + 1}`}
-                            aria-selected=${i === pageIndex.value}
-                            onClick=${() => goToPage(i)}
-                          ></button>`,
-                      )}
-                    </div>`
-                  : ""}`}
-          </section>
+                </div>`
+              : ""}`}
+    </section>
+  `;
 
-          ${shortcuts}`}
+  const view = html`
+    <div data-scope="AppLauncher" ref=${rootRef}>
+      <div class="launcher-main">
+        ${appsPanel}
+        ${shortcuts}
+      </div>
+      ${accountFooter}
     </div>
   `;
 
@@ -208,9 +261,42 @@ export default function AppLauncher() {
         width: 100%;
         display: flex;
         flex-direction: column;
+        align-items: center;
+      }
+
+      .launcher-main {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         gap: 1rem;
+      }
+
+      .account-footer {
+        flex: none;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        padding: 0.35rem 0 0.15rem;
+      }
+
+      .account-footer-text {
+        color: #fff;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+        cursor: pointer;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+      }
+
+      .account-footer-text:active {
+        opacity: 0.75;
       }
 
       .home-panel {
@@ -267,10 +353,21 @@ export default function AppLauncher() {
         align-content: start;
       }
 
-      .panel-empty-wrap {
+      .panel-empty-wrap,
+      .panel-signin {
         display: grid;
         place-items: center;
+        box-sizing: border-box;
+        width: 100%;
         padding: 0.5rem var(--home-inline, 0.85rem) 0.25rem;
+      }
+
+      .panel-signin {
+        align-content: center;
+        justify-items: center;
+        gap: 0.65rem;
+        text-align: center;
+        padding-block: 2.35rem 2.1rem;
       }
 
       .panel-empty {
@@ -282,6 +379,60 @@ export default function AppLauncher() {
         line-height: 1.4;
         color: rgba(255, 255, 255, 0.85);
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+      }
+
+      .panel-signin-title {
+        margin: 0;
+        max-width: 18rem;
+        font-size: 1.125rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.3;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.32);
+      }
+
+      .panel-signin-desc {
+        margin: 0 0 0.55rem;
+        max-width: 18rem;
+        font-size: 0.875rem;
+        font-weight: 450;
+        line-height: 1.4;
+        color: rgba(255, 255, 255, 0.78);
+        text-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.25);
+      }
+
+      .panel-signin-btn {
+        appearance: none;
+        -webkit-appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.34);
+        background:
+          linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.28) 0%,
+            rgba(255, 255, 255, 0.14) 100%
+          );
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        color: #fff;
+        font: inherit;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1;
+        padding: 0.85rem 1.55rem;
+        border-radius: 999px;
+        cursor: pointer;
+        box-shadow:
+          0 8px 24px rgba(0, 0, 0, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        text-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.28);
+        -webkit-tap-highlight-color: transparent;
+        transition: transform 0.16s cubic-bezier(0.2, 0.9, 0.2, 1), background 0.16s ease;
+      }
+
+      .panel-signin-btn:active {
+        transform: scale(0.97);
       }
 
       .page-dots {
@@ -451,30 +602,6 @@ export default function AppLauncher() {
         --ui-icon-size: 1.15rem;
         color: rgba(255, 255, 255, 0.88);
         opacity: 0.92;
-      }
-
-      .glass-card {
-        max-width: 17.5rem;
-        padding: 1.6rem 1.35rem;
-        text-align: center;
-        border-radius: 1.65rem;
-        background: rgba(255, 255, 255, 0.16);
-        backdrop-filter: blur(36px) saturate(170%);
-        -webkit-backdrop-filter: blur(36px) saturate(170%);
-        border: 1px solid rgba(255, 255, 255, 0.28);
-        box-shadow:
-          0 16px 48px rgba(0, 0, 0, 0.22),
-          inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
-      }
-
-      .glass-title {
-        margin: 0;
-        font-size: 0.9375rem;
-        font-weight: 700;
-        line-height: 1.35;
-        letter-spacing: -0.01em;
-        color: #fff;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
       }
     }
   `;

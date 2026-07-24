@@ -17,7 +17,10 @@ export async function apiFetch<T>(
         fetchInit = { ...init, headers };
       }
     }
-    res = await fetch(input, fetchInit);
+    res = await fetch(input, {
+      ...fetchInit,
+      credentials: fetchInit?.credentials ?? "same-origin",
+    });
   } catch {
     return {
       success: false,

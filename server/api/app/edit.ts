@@ -506,7 +506,13 @@ export default {
 
       const row = dbGetAppBySlug(slug);
       if (!row) return apiError({ code: "NOT_FOUND", status: 404 });
-      if (row.owner_id !== user.id) return apiError({ code: "FORBIDDEN", status: 403 });
+      if (row.owner_id !== user.id) {
+        return apiError({
+          code: "FORBIDDEN",
+          message: t("You can only edit your own apps.", language),
+          status: 403,
+        });
+      }
 
       const current = parseAppConfig(row.config_json);
       if (!current) {

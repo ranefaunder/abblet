@@ -6,7 +6,6 @@ import { t } from "/utils/i18n";
 import { appEditUrl, appPageUrl, galleryUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
-import { isLoggedIn } from "/app/stores/userStore";
 import {
   clearGalleryApp,
   installGalleryApp,
@@ -28,7 +27,6 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
   const app = galleryApp.value;
   const loading = galleryAppLoading.value;
   const busy = galleryBusy.value;
-  const loggedIn = isLoggedIn();
 
   useEffect(() => {
     if (slug) void loadGalleryApp(slug);
@@ -36,10 +34,6 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
   }, [slug]);
 
   async function onAddRemove() {
-    if (!loggedIn) {
-      (document.getElementById("login-dialog") as HTMLDialogElement | null)?.showModal();
-      return;
-    }
     if (!app) return;
     if (app.installed) {
       await uninstallGalleryApp(app.slug);

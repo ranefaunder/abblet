@@ -1,5 +1,5 @@
 import type { BunRequest } from "bun";
-import { withAuth } from "/utils/auth.server";
+import { withAuthOrGuest } from "/utils/auth.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { dbCreateApp, dbGenerateAppSlug, dbGetAppBySlug, dbUpdateApp } from "/server/database/queries/apps";
 import { dbAddAppMessage, dbListAppMessages } from "/server/database/queries/app-messages";
@@ -21,35 +21,37 @@ import { getClientIP } from "/utils/request.server";
  */
 export default {
   async POST(req: BunRequest) {
-    return withAuth(req, async (user) => {
-      let body: unknown;
-      try {
-        body = await req.json();
-      } catch {
-        return apiError({ code: "INVALID_JSON" });
-      }
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return apiError({ code: "INVALID_JSON" });
+    }
 
-      const b = body as { message?: string; model?: string };
-      const language = (getLang(req.url) ?? "en") as Language;
-      const message = typeof b.message === "string" ? b.message.trim() : "";
-      const modelKey = b.model == null || b.model === ""
-        ? DEFAULT_EDIT_AI_MODEL
-        : isEditAiModelKey(b.model)
-          ? b.model
-          : null;
+    const b = body as { message?: string; model?: string };
+    const language = (getLang(req.url) ?? "en") as Language;
+    const message = typeof b.message === "string" ? b.message.trim() : "";
+    const modelKey = b.model == null || b.model === ""
+      ? DEFAULT_EDIT_AI_MODEL
+      : isEditAiModelKey(b.model)
+        ? b.model
+        : null;
 
-      if (!modelKey) {
-        return apiError({ code: "INVALID_MODEL", message: t("Invalid AI model.", language) });
-      }
-      if (!message || message.length > 2000) {
-        return apiError({
-          code: "INVALID_PROMPT",
-          message: t("Describe the change you want.", language),
-        });
-      }
+    if (!modelKey) {
+      return apiError({ code: "INVALID_MODEL", message: t("Invalid AI model.", language) });
+    }
+    if (!message || message.length > 2000) {
+      return apiError({
+        code: "INVALID_PROMPT",
+        message: t("Describe the change you want.", language),
+      });
+    }
 
+    // Guest session only after validation — avoids orphan cookies on bad input.
+    return withAuthOrGuest(req, async (user) => {
       const clientIP = getClientIP(req);
-      if (!checkRateLimit(clientIP, "app_generate", 20, 60)) {
+      const generateLimit = user.isGuest ? 8 : 20;
+      if (!checkRateLimit(clientIP, "app_generate", generateLimit, 60)) {
         return apiError({
           code: "RATE_LIMIT_EXCEEDED",
           message: t("Too many requests. Wait a moment before retrying.", language),
@@ -169,6 +171,15 @@ export default {
         data: {
           app: detail,
           messages: dbListAppMessages(id),
+          user: {
+            id: user.id,
+            email: user.email,
+            createdAt: user.createdAt,
+            lastLogin: user.lastLogin,
+            nickname: user.nickname ?? null,
+            marketingOptIn: user.marketingOptIn === true,
+            isGuest: user.isGuest === true,
+          },
         },
         status: 201,
       });

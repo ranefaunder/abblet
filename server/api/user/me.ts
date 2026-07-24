@@ -13,6 +13,7 @@ export default {
           lastLogin: authUser.lastLogin,
           nickname: authUser.nickname ?? null,
           marketingOptIn: authUser.marketingOptIn === true,
+          isGuest: authUser.isGuest === true,
         },
       });
     });

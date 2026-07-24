@@ -8,6 +8,7 @@ export interface User {
 
 export interface LoggedInUser extends User {
   nickname?: string | null;
+  isGuest?: boolean;
 }
 
 export interface AuthenticatedUser {
@@ -17,4 +18,5 @@ export interface AuthenticatedUser {
   lastLogin?: string;
   nickname?: string | null;
   marketingOptIn?: boolean;
+  isGuest?: boolean;
 }

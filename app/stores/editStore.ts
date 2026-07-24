@@ -9,6 +9,8 @@ import {
   type EditAiModelKey,
 } from "/utils/ai-models";
 import { refreshOfflineAppCache } from "/app/stores/appStore";
+import { applySessionUser, refreshSessionUser } from "/app/stores/userStore";
+import type { LoggedInUser } from "/types/user-types";
 
 export type EditMode = "chat" | "code";
 
@@ -152,7 +154,11 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
   editMessages.value = [...editMessages.value, optimistic];
 
   try {
-    const result = await apiFetch<{ app: AppDetail; messages: AppEditMessage[] }>(
+    const result = await apiFetch<{
+      app: AppDetail;
+      messages: AppEditMessage[];
+      user?: LoggedInUser;
+    }>(
       `/api/${lang()}/app/generate`,
       {
         method: "POST",
@@ -163,6 +169,11 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
       editError.value = result.error.message ?? result.error.code;
       editMessages.value = editMessages.value.filter((m) => m.id !== optimistic.id);
       return null;
+    }
+    if (result.data.user) {
+      applySessionUser(result.data.user);
+    } else {
+      await refreshSessionUser();
     }
     editApp.value = result.data.app;
     editMessages.value = result.data.messages;
@@ -225,6 +236,7 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
   try {
     const res = await fetch(`/api/${lang()}/app/edit`, {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slug, message: trimmed, model }),
     });
@@ -245,7 +257,16 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
         data?: { app: AppDetail; messages: AppEditMessage[] };
       };
       if (!body.success) {
-        failAsAssistant(body.error?.message ?? body.error?.code ?? "Request failed");
+        const code = body.error?.code;
+        const msg =
+          body.error?.message ??
+          (code === "UNAUTHORIZED"
+            ? "Sign in to edit this app."
+            : code === "FORBIDDEN"
+              ? "You can only edit your own apps."
+              : code) ??
+          "Request failed";
+        failAsAssistant(msg);
         return true;
       }
       if (body.data) {

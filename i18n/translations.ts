@@ -176,6 +176,12 @@ export const translations = {
   "Sign in to open your apps": {
     fi: "Kirjaudu avataksesi appisi",
   },
+  "Your apps appear here": {
+    fi: "Appisi näkyvät tässä",
+  },
+  "Create one below, or sign in to continue.": {
+    fi: "Luo ensimmäinen alla, tai kirjaudu jatkaaksesi.",
+  },
   "Tap New App to build your first app.": {
     fi: "Napauta Uusi app rakentaaksesi ensimmäisen appisi.",
   },
@@ -349,6 +355,10 @@ export const translations = {
   "Save & run": { fi: "Tallenna ja aja" },
   "Saving…": { fi: "Tallennetaan…" },
   "Account": { fi: "Tili" },
+  "Logged in as:": { fi: "Kirjautuneena:" },
+  "Sign in": { fi: "Kirjaudu" },
+  "Sign in / Register": { fi: "Kirjaudu / Rekisteröidy" },
+  "Sign in to publish": { fi: "Kirjaudu julkaistaksesi" },
   "Log out": { fi: "Kirjaudu ulos" },
   "Back": { fi: "Takaisin" },
   "Cancel": { fi: "Peruuta" },

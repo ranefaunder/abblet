@@ -1,7 +1,7 @@
 import { html, css } from "/utils/markup";
 import { useState, useRef, useEffect } from "preact/hooks";
 import { useLocation } from "preact-iso";
-import { requestLoginCode, user, logout } from "/app/stores/userStore";
+import { requestLoginCode, user, logout, isGuest } from "/app/stores/userStore";
 import { getLang } from "/utils/lang";
 import { t } from "/utils/i18n";
 
@@ -14,6 +14,7 @@ export default function LoginDialog() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [sendingCode, setSendingCode] = useState(false);
+  const registered = Boolean(user.value && !isGuest());
 
   function closeDialog() {
     dialogRef.current?.close();
@@ -42,14 +43,14 @@ export default function LoginDialog() {
     if (saved) setEmail(saved);
   }, []);
 
-  if (user.value) {
+  if (registered) {
     return html`
       <dialog id="login-dialog" data-scope="LoginDialog" ref=${dialogRef} ui-dialog="xs" closedby="any">
         <header ui-row="x-between y-start gap-lg">
-          <h2 ui-heading="sm">Account</h2>
+          <h2 ui-heading="sm">${t("Account")}</h2>
           <button ui-button="square inline" ui-icon="x" onClick=${closeDialog} aria-label="Close"></button>
         </header>
-        <p>Logged in as: <strong>${user.value.email}</strong></p>
+        <p>${t("Logged in as:")} <strong>${user.value!.email}</strong></p>
         <footer>
           <button type="button" onClick=${async () => { await logout(); closeDialog(); }} ui-button="primary">${t("Log out")}</button>
         </footer>
