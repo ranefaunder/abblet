@@ -184,7 +184,6 @@ export default function AppLauncher() {
         </span>
         <span class="shortcut-text">
           <span class="shortcut-title">${t("App Gallery")}</span>
-          <span class="shortcut-desc">${t("Discover apps made by others")}</span>
         </span>
         <i class="shortcut-chevron" ui-icon="chevron-right" aria-hidden="true"></i>
       </a>
@@ -194,7 +193,6 @@ export default function AppLauncher() {
         </span>
         <span class="shortcut-text">
           <span class="shortcut-title">${t("Create New App")}</span>
-          <span class="shortcut-desc">${t("Describe your idea and build it with AI")}</span>
         </span>
         <i class="shortcut-chevron" ui-icon="chevron-right" aria-hidden="true"></i>
       </a>
@@ -577,7 +575,7 @@ export default function AppLauncher() {
         min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 0.18rem;
+        justify-content: center;
       }
 
       .shortcut-title {
@@ -587,14 +585,6 @@ export default function AppLauncher() {
         line-height: 1.15;
         color: #fff;
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
-      }
-
-      .shortcut-desc {
-        font-size: 0.8125rem;
-        font-weight: 450;
-        line-height: 1.25;
-        color: rgba(255, 255, 255, 0.78);
-        text-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.22);
       }
 
       .shortcut-chevron {
