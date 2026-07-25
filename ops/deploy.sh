@@ -7,12 +7,22 @@ echo "🔗 Deploying Abblet to server..."
 ssh faunder@faunder.fi << 'EOF'
   set -e
   export PATH="/home/faunder/.bun/bin:$PATH"
+  APP="/home/faunder/apps/abblet"
+  OLD_APP="/home/faunder/apps/applet"
 
   mkdir -p /home/faunder/apps
 
-  if [ ! -d "/home/faunder/apps/applet/.git" ]; then
-    echo "📦 Cloning applet repository..."
-    bash -lc "cd /home/faunder/apps && git clone git@github.com:ranefaunder/applet.git applet"
+  # Migrate old applet install → abblet (one-time)
+  if [ -d "$OLD_APP" ] && [ ! -d "$APP" ]; then
+    echo "📦 Renaming apps/applet → apps/abblet..."
+    sudo -n systemctl stop applet.service 2>/dev/null || true
+    sudo -n systemctl stop appliet.service 2>/dev/null || true
+    mv "$OLD_APP" "$APP"
+  fi
+
+  if [ ! -d "$APP/.git" ]; then
+    echo "📦 Cloning abblet repository..."
+    bash -lc "cd /home/faunder/apps && git clone git@github.com:ranefaunder/abblet.git abblet"
   fi
 
   if [ ! -x "/home/faunder/.bun/bin/bun" ]; then
@@ -20,24 +30,27 @@ ssh faunder@faunder.fi << 'EOF'
     bash -lc "curl -fsSL https://bun.sh/install | bash"
   fi
 
-  if [ ! -f "/home/faunder/apps/applet/.env" ]; then
-    echo "❌ Missing /home/faunder/apps/applet/.env"
+  if [ ! -f "$APP/.env" ]; then
+    echo "❌ Missing $APP/.env"
     echo "Create it on the server before deploying (see .env.example)."
     exit 1
   fi
 
-  bash -lc "cd /home/faunder/apps/applet && git remote set-url origin git@github.com:ranefaunder/applet.git && git fetch origin && git checkout main && git reset --hard origin/main && /home/faunder/.bun/bin/bun install"
-  sudo -n install -m 644 /home/faunder/apps/applet/ops/applet.service /etc/systemd/system/applet.service
+  bash -lc "cd $APP && git remote set-url origin git@github.com:ranefaunder/abblet.git && git fetch origin && git checkout main && git reset --hard origin/main && /home/faunder/.bun/bin/bun install"
+  sudo -n install -m 644 "$APP/ops/abblet.service" /etc/systemd/system/abblet.service
   sudo -n systemctl daemon-reload
+  sudo -n systemctl disable --now applet.service 2>/dev/null || true
   sudo -n systemctl disable --now appliet.service 2>/dev/null || true
-  sudo -n systemctl enable --now applet.service
-  sudo -n systemctl restart applet.service
+  sudo -n rm -f /etc/systemd/system/applet.service /etc/systemd/system/appliet.service
+  sudo -n systemctl daemon-reload
+  sudo -n systemctl enable --now abblet.service
+  sudo -n systemctl restart abblet.service
 
-  if sudo -n systemctl status applet.service > /dev/null 2>&1; then
+  if sudo -n systemctl status abblet.service > /dev/null 2>&1; then
     echo "✅ Abblet deploy complete! (systemd service)"
   else
     echo "❌ Abblet service failed to start"
-    echo "Check logs with: journalctl -u applet.service -f"
+    echo "Check logs with: journalctl -u abblet.service -f"
     exit 1
   fi
 EOF

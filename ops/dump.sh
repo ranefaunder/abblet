@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Sama kohde kuin ops/deploy.sh (faunder@faunder.fi, repo apps/applet)
+# Sama kohde kuin ops/deploy.sh (faunder@faunder.fi, repo apps/abblet)
 REMOTE="faunder@faunder.fi"
-APP="/home/faunder/apps/applet"
+APP="/home/faunder/apps/abblet"
 REMOTE_DB="${APP}/server/database/app.db"
 LOCAL_DB_DIR="server/database"
 LOCAL_DB="${LOCAL_DB_DIR}/app.db"
@@ -26,8 +26,7 @@ fi
 
 echo "🎨 Downloading app icons..."
 mkdir -p static/app-icons
-rsync -avz --ignore-existing "${REMOTE}:${APP}/static/app-icons/"*.webp static/app-icons/ 2>/dev/null
-rsync -avz --ignore-existing "${REMOTE}:${APP}/static/app-icons/"*.svg static/app-icons/ 2>/dev/null || {
+rsync -avz --ignore-existing "${REMOTE}:${APP}/static/app-icons/"*.webp static/app-icons/ || {
   echo "⚠️  Warning: Failed to download app icons"
 }
 

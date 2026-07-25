@@ -3,7 +3,7 @@ name: deploy
 description: >-
   Commit all relevant changes, push to origin/main, and run ./ops/deploy.sh to
   production (abblet.com). Use when the user says Deploy, deploy, commit and
-  deploy, or asks to push and deploy this applet project.
+  deploy, or asks to push and deploy this abblet project.
 ---
 
 # Deploy (commit → push → production)
@@ -39,10 +39,10 @@ When the user says **Deploy** (or equivalent), do this end-to-end without asking
 
 ## Deploy script behavior
 
-`./ops/deploy.sh` SSHs to the server, `git fetch` + `reset --hard origin/main`, `bun install`, restarts `applet.service`.
+`./ops/deploy.sh` SSHs to the server, `git fetch` + `reset --hard origin/main`, `bun install`, restarts `abblet.service`.
 
 Production: https://abblet.com  
-Server path: `/home/faunder/apps/applet`
+Server path: `/home/faunder/apps/abblet`
 
 ## Do not
 

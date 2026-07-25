@@ -13,7 +13,7 @@ bun dev
 
 Runs at http://localhost:8090
 
-Production: https://abblet.com — deploy with `./ops/deploy.sh` (server path `/home/faunder/apps/applet`).
+Production: https://abblet.com — deploy with `./ops/deploy.sh` (server path `/home/faunder/apps/abblet`).
 
 ## Features
 
