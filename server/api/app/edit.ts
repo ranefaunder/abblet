@@ -13,9 +13,9 @@ import {
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
 import { resolveEditAiModel } from "/utils/ai-core.server";
+import { assertHasCredits, debitOpenRouterUsage, sumOpenRouterCosts } from "/utils/credits.server";
 import {
   DEFAULT_EDIT_AI_MODEL,
-  isEditAiModelKey,
   resolveStoredModelRef,
   type EditAiModelKey,
 } from "/utils/ai-models";
@@ -191,6 +191,7 @@ async function runEditTurn(opts: {
   slug: string;
   usage: AppEditToolUsage[];
   persist: PersistCtx;
+  userId: string;
 }): Promise<void> {
   const {
     send,
@@ -205,6 +206,7 @@ async function runEditTurn(opts: {
     slug,
     usage,
     persist,
+    userId,
   } = opts;
 
   const fail = (code: string, msg: string, status = 500) =>
@@ -462,6 +464,14 @@ async function runEditTurn(opts: {
     usage,
   });
 
+  debitOpenRouterUsage({
+    userId,
+    costUsd: sumOpenRouterCosts(usage.map((u) => u.costUsd)),
+    floorKind: "edit",
+    reason: "ai_edit",
+    meta: { appId: row.id, slug },
+  });
+
   const updated = dbGetAppBySlug(slug)!;
   send({
     type: "done",
@@ -482,18 +492,11 @@ export default {
         return apiError({ code: "INVALID_JSON" });
       }
 
-      const b = body as { slug?: string; message?: string; model?: string };
+      const b = body as { slug?: string; message?: string };
       const slug = typeof b.slug === "string" ? b.slug.trim() : "";
       const message = typeof b.message === "string" ? b.message.trim() : "";
       const language = (getLang(req.url) ?? "en") as Language;
-      const modelKey = b.model == null || b.model === ""
-        ? DEFAULT_EDIT_AI_MODEL
-        : isEditAiModelKey(b.model)
-          ? b.model
-          : null;
-      if (!modelKey) {
-        return apiError({ code: "INVALID_MODEL", message: t("Invalid AI model.", language) });
-      }
+      const modelKey = DEFAULT_EDIT_AI_MODEL;
       const model = resolveEditAiModel(modelKey);
 
       if (!slug) return apiError({ code: "SLUG_REQUIRED" });
@@ -529,6 +532,14 @@ export default {
         });
       }
 
+      try {
+        assertHasCredits(user.id);
+      } catch (err) {
+        const aiError = apiErrorFromAi(err, language);
+        if (aiError) return aiError;
+        throw err;
+      }
+
       return ndjsonResponse(async (send) => {
         const usage: AppEditToolUsage[] = [];
         const persist: PersistCtx = { appId: row.id, userMessage: message, usage };
@@ -546,6 +557,7 @@ export default {
             slug,
             usage,
             persist,
+            userId: user.id,
           });
         } catch (err) {
           console.error("Edit turn failed:", err);

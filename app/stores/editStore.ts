@@ -3,18 +3,11 @@ import type { AppDetail, AppEditMessage } from "/types/app-config-types";
 import { ssrContext } from "/utils/ssr.client";
 import { apiFetch } from "/utils/api.client";
 import { getLang } from "/utils/lang";
-import {
-  DEFAULT_EDIT_AI_MODEL,
-  isEditAiModelKey,
-  type EditAiModelKey,
-} from "/utils/ai-models";
 import { refreshOfflineAppCache } from "/app/stores/appStore";
 import { applySessionUser, refreshSessionUser } from "/app/stores/userStore";
 import type { LoggedInUser } from "/types/user-types";
 
 export type EditMode = "chat" | "code";
-
-const EDIT_AI_MODEL_STORAGE_KEY = "abblet.editAiModel";
 
 export const editApp = signal<AppDetail | null>(null);
 export const editMessages = signal<AppEditMessage[]>([]);
@@ -28,26 +21,24 @@ export const editSavingCode = signal(false);
 export const editError = signal<string | null>(null);
 export const editMode = signal<EditMode>("chat");
 export const codeDraft = signal<string>("");
-/** Persists across sends and page loads — never reset after send. */
-export const editAiModel = signal<EditAiModelKey>(DEFAULT_EDIT_AI_MODEL);
 export const editRegeneratingIcon = signal(false);
 export const editPublishing = signal(false);
+/** User AI wallet (EUR), refreshed after grant/debit. */
+export const editCreditBalanceEur = signal<number | null>(null);
 
-export function setEditAiModel(key: EditAiModelKey): void {
-  editAiModel.value = key;
+export async function refreshEditCredits(): Promise<void> {
   try {
-    localStorage.setItem(EDIT_AI_MODEL_STORAGE_KEY, key);
+    const result = await apiFetch<{
+      balanceEur: number;
+      balanceUsdMicros: number;
+      periodYm: string;
+      freeGrantEur: number;
+    }>(`/api/${lang()}/credits`);
+    if (result.success && result.data) {
+      editCreditBalanceEur.value = result.data.balanceEur;
+    }
   } catch {
-    // ignore quota / private mode
-  }
-}
-
-function restoreEditAiModelFromStorage(): void {
-  try {
-    const stored = localStorage.getItem(EDIT_AI_MODEL_STORAGE_KEY);
-    if (isEditAiModelKey(stored)) editAiModel.value = stored;
-  } catch {
-    // ignore
+    // ignore — balance is non-critical UI
   }
 }
 
@@ -68,7 +59,6 @@ function resetEditRequestFlags(): void {
 /** Seed from the SSR snapshot so a direct page load renders without a flash. */
 export function initEditStore(): void {
   resetEditRequestFlags();
-  restoreEditAiModelFromStorage();
   const { initialApp } = ssrContext();
   if (initialApp && initialApp.canEdit) {
     editApp.value = initialApp;
@@ -116,6 +106,7 @@ export async function loadEdit(slug: string): Promise<void> {
   } finally {
     editLoading.value = false;
   }
+  void refreshEditCredits();
 }
 
 /** Clear editor state for a fresh /{lang}/edit (new app) session. */
@@ -127,6 +118,7 @@ export function startNewEdit(): void {
   codeDraft.value = "";
   editMessages.value = [];
   editMode.value = "chat";
+  void refreshEditCredits();
 }
 
 /**
@@ -138,7 +130,6 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
   if (!trimmed) return null;
   if (editSending.value) return null;
 
-  const model = editAiModel.value;
   editError.value = null;
   editSending.value = true;
   editStatusText.value = null;
@@ -162,7 +153,7 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
       `/api/${lang()}/app/generate`,
       {
         method: "POST",
-        body: JSON.stringify({ message: trimmed, model }),
+        body: JSON.stringify({ message: trimmed }),
       },
     );
     if (!result.success) {
@@ -179,6 +170,7 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
     editMessages.value = result.data.messages;
     codeDraft.value = result.data.app.config.code;
     refreshOfflineAppCache(result.data.app);
+    void refreshEditCredits();
     return result.data.app.slug;
   } catch (err) {
     console.error("Create app request failed:", err);
@@ -199,7 +191,6 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
   if (!trimmed) return false;
   if (editSending.value) return false;
 
-  const model = editAiModel.value;
   editError.value = null;
   editSending.value = true;
   editStatusText.value = null;
@@ -238,7 +229,7 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug, message: trimmed, model }),
+      body: JSON.stringify({ slug, message: trimmed }),
     });
 
     const contentType = res.headers.get("Content-Type") ?? "";
@@ -329,6 +320,7 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
           codeDraft.value = event.data.app.config.code;
           editMessages.value = event.data.messages;
           refreshOfflineAppCache(event.data.app);
+          void refreshEditCredits();
         } else if (event.type === "error") {
           failAsAssistant(
             event.error?.message ?? event.error?.code ?? "Request failed",
@@ -402,6 +394,7 @@ export async function regenerateIcon(slug: string): Promise<boolean> {
     editApp.value = result.data.app;
     editMessages.value = result.data.messages;
     refreshOfflineAppCache(result.data.app);
+    void refreshEditCredits();
     return true;
   } finally {
     editRegeneratingIcon.value = false;

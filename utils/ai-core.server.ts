@@ -150,10 +150,16 @@ async function fetchOpenRouterCompletion(
   return fetchOpenRouterCompletionForModel(messages, model ?? getPrimaryAiModel());
 }
 
+export type AiTextResult = {
+  text: string;
+  costUsd: number | null;
+  model: string;
+};
+
 /**
  * Plain-text completion (no JSON parsing). Same transport as requestJsonFromAi.
  */
-export async function requestTextFromAi(input: RequestTextFromAiInput): Promise<string> {
+export async function requestTextFromAi(input: RequestTextFromAiInput): Promise<AiTextResult> {
   const { systemPrompt, userPrompt, imageBase64, model } = input;
   let userContent: AiChatMessageContent;
   if (imageBase64 != null && imageBase64 !== "") {
@@ -169,8 +175,8 @@ export async function requestTextFromAi(input: RequestTextFromAiInput): Promise<
     { role: "system", content: systemPrompt },
     { role: "user", content: userContent },
   ];
-  const { content } = await fetchOpenRouterCompletion(messages, model);
-  return content.trim();
+  const { content, costUsd, model: usedModel } = await fetchOpenRouterCompletion(messages, model);
+  return { text: content.trim(), costUsd, model: usedModel };
 }
 
 export type AiJsonResult<T> = {

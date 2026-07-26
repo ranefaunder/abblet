@@ -276,8 +276,14 @@ export const translations = {
   "Page not found": { fi: "Sivua ei löydy" },
   "Go home": { fi: "Etusivulle" },
   "Could not create app. Try again.": { fi: "Appia ei voitu luoda. Yritä uudelleen." },
-  "AI credits insufficient. Add credits to OpenRouter or switch to a cheaper model.": {
-    fi: "Tämän mallin krediitit eivät riitä. Vaihda halvempaan malliin tai lisää saldoa OpenRouteriin.",
+  "Your monthly free AI credit ran out. Try again next month.": {
+    fi: "Kuukauden ilmainen AI-saldo loppui. Kokeile uudelleen ensi kuussa.",
+  },
+  "AI credit": {
+    fi: "AI-saldo",
+  },
+  "AI credit ≈ $amount": {
+    fi: "AI-saldo ≈ $amount",
   },
   "AI service misconfigured. Try again later.": {
     fi: "Tekoälypalvelu on väärin konfiguroitu. Yritä myöhemmin uudelleen.",
@@ -325,9 +331,7 @@ export const translations = {
   "e.g. add a dark mode toggle": { fi: "esim. lisää tumman tilan kytkin" },
   "Sending…": { fi: "Lähetetään…" },
   "Send": { fi: "Lähetä" },
-  "AI model": { fi: "Tekoälymalli" },
   "Total": { fi: "Yhteensä" },
-  "Total AI cost": { fi: "Tekoälyn kokonaishinta" },
   "AI response": { fi: "Tekoälyn vastaus" },
   "No response saved": { fi: "Vastausta ei tallennettu" },
   "Copy": { fi: "Kopioi" },
@@ -342,7 +346,6 @@ export const translations = {
   "Could not generate the app icon. Try again.": {
     fi: "App-kuvakkeen luonti epäonnistui. Yritä uudelleen.",
   },
-  "Invalid AI model.": { fi: "Virheellinen tekoälymalli." },
   "Building": { fi: "Rakenteilla" },
   "Describe your app": { fi: "Kuvaile appisi" },
   "Tell Abblet what you need — it builds a working app in minutes.": {

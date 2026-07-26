@@ -2,6 +2,7 @@ import type { BunRequest } from "bun";
 import { AiRequestError, requestTextFromAi } from "/utils/ai-core.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { isOriginForAppSlug } from "/utils/app-host";
+import { assertHasCredits, debitOpenRouterUsage } from "/utils/credits.server";
 import { checkRateLimit } from "/utils/rate-limit.server";
 import { parseBearerToken, resolveRuntimeToken } from "/utils/sdk-auth.server";
 import { sdkCorsOptions, withSdkCors } from "/utils/sdk-cors.server";
@@ -69,10 +70,26 @@ export default {
     }
 
     try {
-      const text = await requestTextFromAi({
+      assertHasCredits(userId);
+    } catch (err) {
+      if (err instanceof AiRequestError && err.code === "INSUFFICIENT_CREDITS") {
+        return withSdkCors(apiError({ code: "INSUFFICIENT_CREDITS", status: 402 }), origin);
+      }
+      throw err;
+    }
+
+    try {
+      const { text, costUsd } = await requestTextFromAi({
         systemPrompt: system ?? DEFAULT_SYSTEM,
         userPrompt: prompt,
         model: getRuntimeAiModel(),
+      });
+      debitOpenRouterUsage({
+        userId,
+        costUsd,
+        floorKind: "runtime",
+        reason: "ai_runtime",
+        meta: { appSlug },
       });
       return withSdkCors(apiSuccess({ data: { text } }), origin);
     } catch (err) {

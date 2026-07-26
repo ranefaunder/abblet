@@ -10,7 +10,7 @@ export function apiErrorFromAi(err: unknown, language: Language): Response | nul
     case "INSUFFICIENT_CREDITS":
       return apiError({
         code: "INSUFFICIENT_CREDITS",
-        message: t("AI credits insufficient. Add credits to OpenRouter or switch to a cheaper model.", language),
+        message: t("Your monthly free AI credit ran out. Try again next month.", language),
         status: 402,
       });
     case "RATE_LIMIT_EXCEEDED":

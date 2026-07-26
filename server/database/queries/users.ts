@@ -8,6 +8,8 @@ export type UserInDatabase = {
   nickname?: string | null;
   marketing_opt_in?: number;
   is_guest?: number;
+  credit_balance_usd_micros?: number;
+  credit_period_ym?: string | null;
 };
 
 export const dbGetUserByEmail = (email: string): UserInDatabase | null =>

@@ -4,6 +4,8 @@ import { apiError, apiSuccess } from "/utils/api.server";
 import { dbGetAppBySlug, dbUpdateApp } from "/server/database/queries/apps";
 import { dbAddAppMessage, dbListAppMessages } from "/server/database/queries/app-messages";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
+import { apiErrorFromAi } from "/utils/ai-api.server";
+import { assertHasCredits, debitOpenRouterUsage } from "/utils/credits.server";
 import { isDraftConfig, parseAppConfig, type AppDetail } from "/types/app-config-types";
 import type { Language } from "/types/i18n-types";
 import { getLang } from "/utils/lang";
@@ -37,6 +39,14 @@ export default {
         return apiError({ code: "APP_NOT_READY", status: 409 });
       }
 
+      try {
+        assertHasCredits(user.id);
+      } catch (err) {
+        const aiError = apiErrorFromAi(err, language);
+        if (aiError) return aiError;
+        throw err;
+      }
+
       const iconResult = await generateAppIcon({
         title: config.title,
         description: config.description,
@@ -49,6 +59,14 @@ export default {
           status: 502,
         });
       }
+
+      debitOpenRouterUsage({
+        userId: user.id,
+        costUsd: iconResult.costUsd,
+        floorKind: "edit",
+        reason: "ai_icon",
+        meta: { appId: row.id, slug },
+      });
 
       dbUpdateApp(row.id, { iconId: iconResult.iconId });
 

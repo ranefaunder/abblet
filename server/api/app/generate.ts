@@ -7,7 +7,8 @@ import { generateAppConfig } from "/utils/ai-apps.server";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
 import { resolveEditAiModel } from "/utils/ai-core.server";
-import { DEFAULT_EDIT_AI_MODEL, isEditAiModelKey, resolveStoredModelRef } from "/utils/ai-models";
+import { assertHasCredits, debitOpenRouterUsage, sumOpenRouterCosts } from "/utils/credits.server";
+import { DEFAULT_EDIT_AI_MODEL, resolveStoredModelRef } from "/utils/ai-models";
 import type { AppDetail } from "/types/app-config-types";
 import type { Language } from "/types/i18n-types";
 import { getLang } from "/utils/lang";
@@ -28,18 +29,11 @@ export default {
       return apiError({ code: "INVALID_JSON" });
     }
 
-    const b = body as { message?: string; model?: string };
+    const b = body as { message?: string };
     const language = (getLang(req.url) ?? "en") as Language;
     const message = typeof b.message === "string" ? b.message.trim() : "";
-    const modelKey = b.model == null || b.model === ""
-      ? DEFAULT_EDIT_AI_MODEL
-      : isEditAiModelKey(b.model)
-        ? b.model
-        : null;
+    const modelKey = DEFAULT_EDIT_AI_MODEL;
 
-    if (!modelKey) {
-      return apiError({ code: "INVALID_MODEL", message: t("Invalid AI model.", language) });
-    }
     if (!message || message.length > 2000) {
       return apiError({
         code: "INVALID_PROMPT",
@@ -57,6 +51,14 @@ export default {
           message: t("Too many requests. Wait a moment before retrying.", language),
           status: 429,
         });
+      }
+
+      try {
+        assertHasCredits(user.id);
+      } catch (err) {
+        const aiError = apiErrorFromAi(err, language);
+        if (aiError) return aiError;
+        throw err;
       }
 
       const model = resolveEditAiModel(modelKey);
@@ -105,6 +107,14 @@ export default {
       if (iconResult) {
         dbUpdateApp(id, { iconId: iconResult.iconId });
       }
+
+      debitOpenRouterUsage({
+        userId: user.id,
+        costUsd: sumOpenRouterCosts([generated.costUsd, iconResult?.costUsd]),
+        floorKind: "edit",
+        reason: "ai_generate",
+        meta: { appId: id, slug },
+      });
 
       let assistantReply = t("I built \"$title\" for you. Open the app or tell me what to change.", {
         title: generated.config.title,
@@ -181,7 +191,6 @@ export default {
             isGuest: user.isGuest === true,
           },
         },
-        status: 201,
       });
     });
   },

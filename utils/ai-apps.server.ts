@@ -149,6 +149,10 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
       out.textContent = text;
     } catch (e) {
       if (e && (e.code === "CONNECT_REQUIRED" || e.code === "CONNECT_CANCELLED")) return;
+      if (e && e.code === "INSUFFICIENT_CREDITS") {
+        out.textContent = "AI credit ran out for this month.";
+        return;
+      }
       out.textContent = "Something went wrong. Try again.";
     } finally {
       btn.removeAttribute("aria-busy");

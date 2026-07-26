@@ -12,6 +12,7 @@ import { appPage, appRunRedirect, appModule, shortAppModule, appSubdomainModule 
 import connectRoute from "./routes/connect";
 import sdkExchange from "./api/sdk/exchange";
 import sdkAi from "./api/sdk/ai";
+import credits from "./api/credits";
 
 import authLogout from "./api/auth/logout";
 import authRegister from "./api/auth/register";
@@ -65,6 +66,7 @@ const server = Bun.serve({
     "/api/:lang/app/remix": appRemix,
     "/api/:lang/user/me": userMe,
     "/api/:lang/user/marketing": userMarketing,
+    "/api/:lang/credits": credits,
     "/api/:lang/auth/logout": authLogout,
     "/api/:lang/auth/register": authRegister,
     "/api/:lang/auth/request-login-code": authRequestLoginCode,

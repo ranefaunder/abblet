@@ -24,8 +24,6 @@ import {
   editSavingCode,
   editError,
   editMode,
-  editAiModel,
-  setEditAiModel,
   editRegeneratingIcon,
   codeDraft,
   loadEdit,
@@ -36,13 +34,9 @@ import {
   regenerateIcon,
   editPublishing,
   setAppPublished,
+  editCreditBalanceEur,
 } from "/app/stores/editStore";
-import {
-  EDIT_AI_MODELS,
-  formatAiCostUsd,
-  formatAiRequestStats,
-  type EditAiModelKey,
-} from "/utils/ai-models";
+import { formatAiRequestStats } from "/utils/ai-models";
 
 function toolUsageLabel(tool: AppEditToolUsage["tool"]): string {
   switch (tool) {
@@ -359,14 +353,6 @@ function ChatPanel({
             ]
           : [];
 
-  const sessionCostUsd = displayMessages.reduce((sum, m) => {
-    if (m.role !== "assistant" || !m.usage) return sum;
-    for (const u of m.usage) {
-      if (typeof u.costUsd === "number") sum = (sum ?? 0) + u.costUsd;
-    }
-    return sum;
-  }, null as number | null);
-
   useEffect(() => {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -492,7 +478,6 @@ function ChatPanel({
                             const stats = formatAiRequestStats({
                               modelKey: u.modelKey,
                               durationMs: u.durationMs,
-                              costUsd: u.costUsd,
                             });
                             return stats
                               ? { usage: u, label: toolUsageLabel(u.tool), stats }
@@ -503,13 +488,6 @@ function ChatPanel({
                               line != null,
                           )
                       : [];
-                  const turnCost =
-                    m.role === "assistant" && m.usage && m.usage.length > 0
-                      ? m.usage.reduce((sum, u) => {
-                          if (typeof u.costUsd !== "number") return sum;
-                          return (sum ?? 0) + u.costUsd;
-                        }, null as number | null)
-                      : null;
                   return html`
                   <div
                     class=${`msg ${m.role === "user" ? "user" : "assistant"}`}
@@ -531,9 +509,6 @@ function ChatPanel({
                         </button>
                       `,
                     )}
-                    ${typeof turnCost === "number"
-                      ? html`<p class="msg-stats msg-stats-total">${t("Total")} · ${formatAiCostUsd(turnCost)}</p>`
-                      : ""}
                   </div>`;
                 },
               )}
@@ -599,42 +574,25 @@ function ChatPanel({
                 }
               }}
             ></textarea>
-            <div ui-row="x-between y-center gap-sm">
-              <label class="model-picker">
-                <span class="sr-only">${t("AI model")}</span>
-                <select
-                  ui-input="sm"
-                  aria-label=${t("AI model")}
-                  disabled=${sending}
-                  value=${editAiModel.value}
-                  onChange=${(e: Event) => {
-                    const next = (e.target as HTMLSelectElement).value;
-                    if (next) setEditAiModel(next as EditAiModelKey);
-                  }}
-                >
-                  ${EDIT_AI_MODELS.map(
-                    (m) => html`
-                      <option value=${m.key} selected=${m.key === editAiModel.value}>
-                        ${m.label}
-                      </option>`,
-                  )}
-                </select>
-              </label>
-              <div ui-row="y-center gap-sm">
-                ${typeof sessionCostUsd === "number"
-                  ? html`
-                    <span class="composer-cost" title=${t("Total AI cost")}>
-                      ${t("Total")} · ${formatAiCostUsd(sessionCostUsd)}
-                    </span>`
-                  : ""}
-                <button
-                  type="submit"
-                  ui-button="primary square sm"
-                  ui-icon="arrow-up"
-                  disabled=${!canSend}
-                  aria-label=${creating ? t("Apply It") : t("Send")}
-                ></button>
-              </div>
+            <div ui-row="x-end y-center gap-sm">
+              ${typeof editCreditBalanceEur.value === "number"
+                ? html`
+                  <span
+                    class="composer-cost"
+                    title=${t("AI credit")}
+                  >
+                    ${t("AI credit ≈ $amount", {
+                      amount: `€${editCreditBalanceEur.value.toFixed(2)}`,
+                    })}
+                  </span>`
+                : ""}
+              <button
+                type="submit"
+                ui-button="primary square sm"
+                ui-icon="arrow-up"
+                disabled=${!canSend}
+                aria-label=${creating ? t("Apply It") : t("Send")}
+              ></button>
             </div>
           </div>
         </form>
@@ -1202,28 +1160,6 @@ function style() {
 
       .composer-input:disabled {
         opacity: 0.65;
-      }
-
-      .model-picker {
-        flex: 1 1 auto;
-        min-width: 0;
-        max-width: calc(100% - 2.75rem);
-      }
-
-      .model-picker select {
-        width: 100%;
-        max-width: 100%;
-        font-size: 0.75rem;
-      }
-
-      .composer-hint {
-        margin: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.75rem;
-        font-size: 0.6875rem;
-        color: var(--neutral-400);
       }
 
       .composer-cost {
