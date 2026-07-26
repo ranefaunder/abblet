@@ -1,4 +1,6 @@
 import type { BunRequest } from "bun";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 import type { Language } from "/i18n/languages";
 import { dbGetAppBySlug, isNumericAppSlug } from "/server/database/queries/apps";
@@ -9,6 +11,18 @@ import { isDraftConfig, parseAppConfig } from "/types/app-config-types";
 import { appOrigin, connectUrl, getPlatformOrigin, getRequestHost, parseAppSubdomain } from "/utils/app-host";
 import { appRuntimeModulePath } from "/utils/app-url";
 import { appIconMimeType, appIconPngSrc, appIconSrc } from "/utils/app-icon";
+
+const ABBLET_SDK_PATH = join(import.meta.dir, "../sdk/abblet-sdk.js");
+let abbletSdkCache: string | null = null;
+
+function loadAbbletSdkSource(): string {
+  if (process.env.NODE_ENV === "production" && abbletSdkCache != null) {
+    return abbletSdkCache;
+  }
+  const source = readFileSync(ABBLET_SDK_PATH, "utf8");
+  if (process.env.NODE_ENV === "production") abbletSdkCache = source;
+  return source;
+}
 
 type LangAppRequest = BunRequest<"/:lang/app/:slug">;
 type ShortAppRequest = BunRequest<"/:appId">;
@@ -212,6 +226,15 @@ function renderAppPage(access: AppAccess): Response {
   const moduleUrl = appRuntimeModulePath();
   const platformOrigin = getPlatformOrigin();
   const connectHref = connectUrl(access.slug);
+  const abbletConfig = {
+    appSlug: access.slug,
+    platformOrigin,
+    connectHref,
+    tagName: access.tagName,
+    moduleUrl,
+    lang: access.lang,
+  };
+  const sdkSource = loadAbbletSdkSource();
 
   const html = `<!doctype html>
 <html lang="${escapeHtmlAttribute(access.lang)}">
@@ -225,110 +248,8 @@ function renderAppPage(access: AppAccess): Response {
   <body>
     <main class="main" id="mount"></main>
     <script type="module">
-      const appSlug = ${JSON.stringify(access.slug)};
-      const platformOrigin = ${JSON.stringify(platformOrigin)};
-      const TOKEN_KEY = "abblet.token";
-      const TOKEN_EXP_KEY = "abblet.tokenExpiresAt";
-
-      function readStoredToken() {
-        try {
-          const token = sessionStorage.getItem(TOKEN_KEY);
-          const expiresAt = sessionStorage.getItem(TOKEN_EXP_KEY);
-          if (!token || !expiresAt) return null;
-          if (Date.parse(expiresAt) <= Date.now()) {
-            sessionStorage.removeItem(TOKEN_KEY);
-            sessionStorage.removeItem(TOKEN_EXP_KEY);
-            return null;
-          }
-          return { accessToken: token, expiresAt };
-        } catch {
-          return null;
-        }
-      }
-
-      function storeToken(accessToken, expiresAt) {
-        sessionStorage.setItem(TOKEN_KEY, accessToken);
-        sessionStorage.setItem(TOKEN_EXP_KEY, expiresAt);
-      }
-
-      window.Abblet = {
-        appSlug,
-        platformOrigin,
-        connect() {
-          location.href = ${JSON.stringify(connectHref)};
-        },
-        getToken() {
-          return readStoredToken()?.accessToken ?? null;
-        },
-        getTokenExpiresAt() {
-          return readStoredToken()?.expiresAt ?? null;
-        },
-        async ai(opts) {
-          if (!opts || typeof opts !== "object" || typeof opts.prompt !== "string" || !opts.prompt.trim()) {
-            const err = new Error("MISSING_PROMPT");
-            err.code = "MISSING_PROMPT";
-            throw err;
-          }
-          const token = this.getToken();
-          if (!token) {
-            this.connect();
-            const err = new Error("CONNECT_REQUIRED");
-            err.code = "CONNECT_REQUIRED";
-            throw err;
-          }
-          const body = { prompt: opts.prompt.trim() };
-          if (typeof opts.system === "string" && opts.system.trim()) {
-            body.system = opts.system.trim();
-          }
-          const res = await fetch(platformOrigin + "/api/sdk/ai", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + token,
-            },
-            body: JSON.stringify(body),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (res.status === 401 || data.error?.code === "TOKEN_EXPIRED" || data.error?.code === "UNAUTHORIZED") {
-            try {
-              sessionStorage.removeItem(TOKEN_KEY);
-              sessionStorage.removeItem(TOKEN_EXP_KEY);
-            } catch {}
-          }
-          if (!data.success) {
-            const err = new Error(data.error?.code || "AI_ERROR");
-            err.code = data.error?.code || "AI_ERROR";
-            throw err;
-          }
-          return data.data.text;
-        },
-      };
-
-      const params = new URLSearchParams(location.search);
-      const code = params.get("code");
-      if (code) {
-        params.delete("code");
-        const clean = location.pathname + (params.toString() ? "?" + params.toString() : "") + location.hash;
-        history.replaceState(null, "", clean);
-        try {
-          const res = await fetch(platformOrigin + "/api/sdk/exchange", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code }),
-          });
-          const data = await res.json();
-          if (data.success && data.data?.accessToken) {
-            storeToken(data.data.accessToken, data.data.expiresAt);
-          }
-        } catch {
-          // Connect exchange failed — app still loads without token.
-        }
-      }
-
-      const tag = ${JSON.stringify(access.tagName)};
-      const mount = document.getElementById("mount");
-      await import(${JSON.stringify(moduleUrl)});
-      mount.appendChild(document.createElement(tag));
+      window.__ABBLET__ = ${JSON.stringify(abbletConfig)};
+${sdkSource}
     </script>
   </body>
 </html>`;

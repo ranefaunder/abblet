@@ -148,7 +148,7 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
       const text = await Abblet.ai({ prompt: input.value.trim() });
       out.textContent = text;
     } catch (e) {
-      if (e && e.code === "CONNECT_REQUIRED") return; // redirect in progress
+      if (e && (e.code === "CONNECT_REQUIRED" || e.code === "CONNECT_CANCELLED")) return;
       out.textContent = "Something went wrong. Try again.";
     } finally {
       btn.removeAttribute("aria-busy");
