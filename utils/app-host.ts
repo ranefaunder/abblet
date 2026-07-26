@@ -87,3 +87,33 @@ export function redirectToPlatformFromRequest(req: { url: string }): Response {
   const url = new URL(req.url);
   return Response.redirect(`${getPlatformOrigin()}/${url.search}`, 302);
 }
+
+/** Platform URL that issues a connect code for an app slug. */
+export function connectUrl(slug: string): string {
+  return `${getPlatformOrigin()}/connect/${slug}`;
+}
+
+/**
+ * True if Origin is exactly the canonical app origin for `slug`
+ * (e.g. https://34211.abblet.app or http://34211.app.localhost:8090).
+ */
+export function isOriginForAppSlug(originHeader: string | null, slug: string): boolean {
+  if (!originHeader) return false;
+  try {
+    const origin = new URL(originHeader).origin;
+    return origin === appOrigin(slug);
+  } catch {
+    return false;
+  }
+}
+
+/** True if Origin is any numeric app subdomain of APP_RUNTIME_HOST. */
+export function isAppRuntimeOrigin(originHeader: string | null): string | null {
+  if (!originHeader) return null;
+  try {
+    const host = stripHostPort(new URL(originHeader).host);
+    return parseAppSubdomain(host);
+  } catch {
+    return null;
+  }
+}

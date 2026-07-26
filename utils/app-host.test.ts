@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
   appOrigin,
+  connectUrl,
   isAppRuntimeApex,
   isAppRuntimeHost,
+  isAppRuntimeOrigin,
+  isOriginForAppSlug,
   parseAppSubdomain,
   stripHostPort,
 } from "/utils/app-host";
@@ -32,6 +35,15 @@ describe("app-host", () => {
 
   test("appOrigin includes port from PLATFORM_ORIGIN", () => {
     expect(appOrigin("34211")).toBe("http://34211.app.localhost:8090");
+  });
+  test("connectUrl points at platform", () => {
+    expect(connectUrl("34211")).toBe("http://localhost:8090/connect/34211");
+  });
+
+  test("isOriginForAppSlug", () => {
+    expect(isOriginForAppSlug("http://34211.app.localhost:8090", "34211")).toBe(true);
+    expect(isOriginForAppSlug("http://99999.app.localhost:8090", "34211")).toBe(false);
+    expect(isAppRuntimeOrigin("http://34211.app.localhost:8090")).toBe("34211");
   });
 });
 

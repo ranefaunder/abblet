@@ -134,7 +134,28 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
 ## Code rules for "code"
 
 - Must call customElements.define("<tagName>", class extends HTMLElement { ... }) with the exact tagName you chose.
-- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN links, NO network requests (no fetch/XMLHttpRequest/WebSocket).
+- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN links.
+- Network: do NOT use fetch, XMLHttpRequest, WebSocket, or any direct HTTP. The ONLY allowed network APIs are the host-injected global Abblet SDK:
+  - await Abblet.ai({ prompt: "…" }) — optional system: await Abblet.ai({ prompt: "…", system: "…" })
+  - Abblet.connect() — links the user session (redirect); call only when needed
+  - Abblet.getToken() — optional; usually unnecessary because Abblet.ai handles connect
+  Use Abblet.ai ONLY when the user's idea needs AI (summarize, rewrite, classify, generate text). Most apps need zero AI.
+  Example:
+  \`\`\`
+  btn.addEventListener("click", async () => {
+    btn.setAttribute("aria-busy", "true");
+    try {
+      const text = await Abblet.ai({ prompt: input.value.trim() });
+      out.textContent = text;
+    } catch (e) {
+      if (e && e.code === "CONNECT_REQUIRED") return; // redirect in progress
+      out.textContent = "Something went wrong. Try again.";
+    } finally {
+      btn.removeAttribute("aria-busy");
+    }
+  });
+  \`\`\`
+  Never alert(). Never send entire localStorage dumps as the prompt — only the text the user needs processed.
 - Use Shadow DOM (this.attachShadow({ mode: "open" })) and put ALL markup and CSS inside the shadow root so styles never leak.
 - The component is fully interactive and complete: it builds its own UI, handles input, and renders results.
 - Persist structured app state (lists, settings, text fields) with localStorage. Key every storage entry with a unique prefix: "appstudo:<tagName>:data". Load in connectedCallback; save after meaningful changes (debounce rapid input saves by ~300ms if needed).
@@ -145,9 +166,9 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
   4. Read: const file = await (await dir.getFileHandle(filename)).getFile(); then URL.createObjectURL(file) for <img> / download.
   5. Keep only file names / ids in localStorage state; the binary bytes live in OPFS.
   6. Guard with try/catch; if OPFS is unavailable, show a friendly inline error (never alert()).
-  7. Still NO network requests — OPFS is local-only, same origin privacy model.
+  7. OPFS is local-only — do not upload binaries; still no raw fetch/XHR.
 - Guard JSON.parse with try/catch; fall back to sensible defaults on corrupt data.
-- Do NOT rely on external CSS, fonts, or global variables. Everything self-contained.
+- Do NOT rely on external CSS, fonts, or global variables except the injected Abblet SDK when using AI. Everything else self-contained.
 
 ## Visual design system — design like a native iOS app (PRIMARY GOAL)
 
@@ -493,7 +514,7 @@ export async function editAppConfig(opts: {
 - Keep the EXACT same custom element tagName: "${current.tagName}". The code must still call customElements.define("${current.tagName}", ...). Do NOT rename it.
 - Preserve existing user data compatibility: keep the same localStorage keys and data shape unless the request explicitly requires changing them.
 - Make the smallest change that fully satisfies the request; do not rewrite unrelated parts or regress existing features.
-- Vanilla JavaScript only. NO imports, NO external libraries, NO network requests. Everything inside the Shadow DOM.
+- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Abblet.ai({ prompt }) / Abblet.connect() only when the request needs AI. Everything inside the Shadow DOM (except the host-injected Abblet global).
 - Do NOT change the home-screen title, description, or launcher icon — those are handled by other tools.
 
 ${designGuidelines(langName)}`;

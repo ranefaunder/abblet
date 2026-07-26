@@ -1,4 +1,4 @@
-import { appOrigin } from "/utils/app-host";
+import { appOrigin, connectUrl as platformConnectUrl } from "/utils/app-host";
 
 export function appPageUrl(_lang: string, slug: string): string {
   return `${appOrigin(slug)}/`;
@@ -11,6 +11,10 @@ export function appModuleUrl(_lang: string, slug: string): string {
 /** Same-origin module path for the app runtime document (subdomain). */
 export function appRuntimeModulePath(): string {
   return "/module.js";
+}
+
+export function connectUrl(slug: string): string {
+  return platformConnectUrl(slug);
 }
 
 export function appEditUrl(lang: string, slug?: string): string {

@@ -9,6 +9,9 @@ import robotsTxt from "./routes/robots-txt";
 import sitemapXml from "./routes/sitemap-xml";
 import siteWebmanifest from "./routes/site-webmanifest";
 import { appPage, appRunRedirect, appModule, shortAppModule, appSubdomainModule } from "./routes/app-page";
+import connectRoute from "./routes/connect";
+import sdkExchange from "./api/sdk/exchange";
+import sdkAi from "./api/sdk/ai";
 
 import authLogout from "./api/auth/logout";
 import authRegister from "./api/auth/register";
@@ -66,10 +69,13 @@ const server = Bun.serve({
     "/api/:lang/auth/register": authRegister,
     "/api/:lang/auth/request-login-code": authRequestLoginCode,
     "/api/:lang/auth/verify-login-code": authVerifyLoginCode,
+    "/api/sdk/exchange": sdkExchange,
+    "/api/sdk/ai": sdkAi,
 
     "/static/*": staticRoute,
     "/app.js": clientJsRoute,
     "/module.js": appSubdomainModule,
+    "/connect/:appId": connectRoute,
     "/:appId/module.js": shortAppModule,
     "/:lang/app/:slug/module.js": appModule,
     "/:lang/app/:slug/run.js": appModule,
