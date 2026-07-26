@@ -71,21 +71,12 @@ export default async function (req: BunRequest<"/:lang/"> | BunRequest<"/:lang/*
             /* Disables double-tap zoom; pinch zoom still possible where supported. */
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            user-select: none;
-            -webkit-user-select: none;
           }
           #app {
             height: 100%;
             height: 100dvh;
             overflow: hidden;
             overscroll-behavior: none;
-          }
-          /* Allow selecting/editing real content fields. */
-          input, textarea, select, [contenteditable="true"] {
-            user-select: text;
-            -webkit-user-select: text;
-            -webkit-touch-callout: default;
           }
           a, button, [role="button"], [ui-button], summary {
             -webkit-tap-highlight-color: transparent;

@@ -4,6 +4,7 @@ import { useLocation } from "preact-iso";
 import { useEffect } from "preact/hooks";
 import { t } from "/utils/i18n";
 import { user, logout, updateMarketingOptIn } from "/app/stores/userStore";
+import { aboutUrl } from "/utils/app-url";
 
 export const SettingsPath = "/:lang/settings" as const;
 
@@ -57,6 +58,10 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
           />
           <span>${t("Email me about Abblet updates")}</span>
         </label>
+      </section>
+
+      <section ui-card ui-padding="lg">
+        <a href=${aboutUrl(lang)} ui-link>${t("About Abblet")}</a>
       </section>
       </div>
     </div>

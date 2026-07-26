@@ -25,6 +25,10 @@ export function galleryUrl(lang: string): string {
   return `/${lang}/gallery`;
 }
 
+export function aboutUrl(lang: string): string {
+  return `/${lang}/about`;
+}
+
 export function galleryAppUrl(lang: string, slug: string): string {
   return `/${lang}/gallery/${slug}`;
 }

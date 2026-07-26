@@ -14,6 +14,11 @@ function isLauncherPath(path: string, lang: string): boolean {
   return normalized === `/${lang}`;
 }
 
+function isAboutPath(path: string, lang: string): boolean {
+  const normalized = path.replace(/\/+$/, "") || "/";
+  return normalized === `/${lang}/about`;
+}
+
 /**
  * App shell: full viewport, flex column, page owns scrolling.
  * Home (launcher) is the only exception — it has its own overflow rules.
@@ -22,7 +27,8 @@ export default function Layout({ children }: LayoutProps) {
   const { path } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
   const home = isLauncherPath(path ?? "", lang);
-  const layoutClass = home ? "home" : "shell";
+  const about = isAboutPath(path ?? "", lang);
+  const layoutClass = home ? "home" : about ? "shell about" : "shell";
   const mainClass = home ? "layout-main home" : "layout-main shell";
 
   const view = html`
@@ -56,6 +62,10 @@ export default function Layout({ children }: LayoutProps) {
 
       &.shell {
         background-color: var(--neutral-50);
+      }
+
+      &.shell.about {
+        background-color: #0f1419;
       }
 
       .layout-main {

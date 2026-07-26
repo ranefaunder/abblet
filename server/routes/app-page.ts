@@ -36,7 +36,15 @@ type AppModuleRequest =
 type AppRunRedirectRequest = BunRequest<"/:lang/app/:slug/run">;
 
 type AppAccess =
-  | { kind: "ready"; lang: Language; slug: string; title: string; tagName: string; iconId: string | null }
+  | {
+      kind: "ready";
+      lang: Language;
+      slug: string;
+      title: string;
+      tagName: string;
+      iconId: string | null;
+      published: boolean;
+    }
   | { kind: "building"; lang: Language; slug: string; title: string; iconId: string | null }
   | { kind: "error"; status: number };
 
@@ -115,6 +123,7 @@ function resolveAppAccess(
     title: row.title,
     tagName: config.tagName,
     iconId,
+    published: row.visibility === "public",
   };
 }
 
@@ -233,6 +242,8 @@ function renderAppPage(access: AppAccess): Response {
     tagName: access.tagName,
     moduleUrl,
     lang: access.lang,
+    published: access.published,
+    title: access.title,
   };
   const sdkSource = loadAbbletSdkSource();
 

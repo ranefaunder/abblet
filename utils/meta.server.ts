@@ -15,16 +15,34 @@ function ogLocale(lang: Language): string {
   return map[lang];
 }
 
+function isAboutPath(pathname: string): boolean {
+  return /\/[^/]+\/about\/?$/.test(pathname);
+}
+
+function metaCopy(lang: Language, pathname: string): { title: string; description: string } {
+  if (isAboutPath(pathname)) {
+    return {
+      title: metaPlainForTitleElement(t("Abblet — About", lang)),
+      description: metaPlainForHtmlAttribute(
+        t("Personal apps, built in conversation — no code required.", lang),
+      ),
+    };
+  }
+  return {
+    title: metaPlainForTitleElement(t("Abblet — Your apps evolve with your needs.", lang)),
+    description: metaPlainForHtmlAttribute(
+      t("Your apps evolve with your needs.", lang),
+    ),
+  };
+}
+
 export async function getMeta(req: BunRequest): Promise<string> {
   const lang = getLang(req.url) ?? DEFAULT_LANGUAGE;
   const { origin, pathname } = new URL(req.url);
   const staticRoot = resolveStaticRootFromUrl(req.url);
-
-  const title = metaPlainForTitleElement(t("Abblet — Your apps evolve with your needs.", lang));
-  const description = metaPlainForHtmlAttribute(
-    t("Your apps evolve with your needs.", lang),
-  );
+  const { title, description } = metaCopy(lang, pathname);
   const ogImage = `${staticRoot}/favicons/android-chrome-512x512.png`;
+  const themeColor = isAboutPath(pathname) ? "#0f1419" : "#1a1848";
 
   return /*html*/ `
     <meta charset="utf-8" />
@@ -51,8 +69,8 @@ export async function getMeta(req: BunRequest): Promise<string> {
     <link rel="icon" type="image/png" sizes="16x16" href="${escapeHtmlAttribute(`${staticRoot}/favicons/favicon-16x16.png`)}" />
     <link rel="apple-touch-icon" sizes="180x180" href="${escapeHtmlAttribute(`${staticRoot}/favicons/apple-touch-icon.png`)}" />
     <link rel="manifest" href="${escapeHtmlAttribute(`/${lang}/site.webmanifest`)}" />
-    <meta name="theme-color" content="#1a1848" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1a1848" />
+    <meta name="theme-color" content="${themeColor}" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="${themeColor}" />
     ${Object.keys(AVAILABLE_LANGUAGES).map((code) => {
       const rest = pathname.replace(/^\/[^/]+/, "") || "/";
       return `<link rel="alternate" hreflang="${code}" href="${escapeHtmlAttribute(`${origin}/${code}${rest === "/" ? "/" : rest}`)}" />`;
@@ -65,10 +83,8 @@ export type ClientMeta = Record<string, string>;
 
 export async function getClientMeta(req: Pick<Request, "url">): Promise<ClientMeta> {
   const lang = getLang(req.url) ?? DEFAULT_LANGUAGE;
-  const title = metaPlainForTitleElement(t("Abblet — Your apps evolve with your needs.", lang));
-  const description = metaPlainForHtmlAttribute(
-    t("Your apps evolve with your needs.", lang),
-  );
+  const { pathname } = new URL(req.url);
+  const { title, description } = metaCopy(lang, pathname);
   return {
     title,
     description,

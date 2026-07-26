@@ -215,6 +215,9 @@ export const translations = {
   "Apply it": {
     fi: "Toteuta se",
   },
+  "Apply it.": {
+    fi: "Toteuta se.",
+  },
   "Abblet applies your idea into a working app you can use right away.": {
     fi: "Abblet toteuttaa ideasi toimivana sovelluksena, jota voit käyttää heti.",
   },
@@ -412,6 +415,40 @@ export const translations = {
   },
   "Abblet is a platform for creating personal apps. By using the service you accept these terms.": {
     fi: "Abblet on alusta henkilökohtaisten appien luomiseen. Käyttämällä palvelua hyväksyt nämä ehdot.",
+  },
+  "About Abblet": { fi: "Tietoa Abbletista" },
+  "Abblet — About": { fi: "Abblet — Tietoa" },
+  "Create an app": { fi: "Luo appi" },
+  "Browse the Gallery": { fi: "Selaa galleriaa" },
+  "What Abblet is": { fi: "Mikä Abblet on" },
+  "Abblet is a place to make small personal apps for your own life — lists, trackers, tools, and little helpers that fit how you actually work.": {
+    fi: "Abblet on paikka tehdä pieniä henkilökohtaisia appeja omaan elämään — listoja, seurantaa, työkaluja ja apureita, jotka sopivat siihen miten sinä oikeasti toimit.",
+  },
+  "You talk to Abblet like a person. It designs and builds a working app you can open on your phone and keep improving.": {
+    fi: "Puhut Abbletille kuin ihmiselle. Se suunnittelee ja rakentaa toimivan appin, jonka avaat puhelimessa ja jota voit parantaa.",
+  },
+  "Describe": { fi: "Kuvaile" },
+  "Write what you need in everyday words — a shopping list, habit tracker, workout log, or something only you would invent.": {
+    fi: "Kirjoita tarpeesi arkikielellä — ostoslista, tapaseuranta, treenipäiväkirja tai jotain mitä vain sinä keksit.",
+  },
+  "Abblet builds": { fi: "Abblet rakentaa" },
+  "In minutes you get a finished mini-app with its own look and icon — ready to open, not a mockup.": {
+    fi: "Muutamassa minuutissa saat valmiin miniappin omalla ilmeellä ja kuvakkeella — avattavaksi, ei mockupiksi.",
+  },
+  "Use and evolve": { fi: "Käytä ja kehitä" },
+  "Ask for changes anytime. Publish to the Gallery if you want, or keep it private for yourself.": {
+    fi: "Pyydä muutoksia milloin tahansa. Julkaise galleriaan jos haluat, tai pidä appi yksityisenä.",
+  },
+  "Who it's for": { fi: "Kenelle se on" },
+  "Abblet is for anyone who wants software that fits their life — without learning to code, waiting on a developer, or forcing a generic app to behave.": {
+    fi: "Abblet on kaikille, jotka haluavat ohjelmiston joka sopii omaan elämään — ilman koodaamista, kehittäjän odottelua tai geneerisen appin väkisin sovittamista.",
+  },
+  "Start with one idea": { fi: "Aloita yhdellä idealla" },
+  "Your first app can be tiny. The important part is that it's yours.": {
+    fi: "Ensimmäinen appisi voi olla pieni. Tärkeintä on, että se on sinun.",
+  },
+  "Personal apps, built in conversation — no code required.": {
+    fi: "Henkilökohtaisia appeja keskustellen — ilman koodia.",
   },
 } as const;
 

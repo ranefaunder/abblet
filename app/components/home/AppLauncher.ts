@@ -5,6 +5,7 @@ import { useLocation } from "preact-iso";
 import type { AppSummary } from "/types/app-types";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
+import { aboutUrl } from "/utils/app-url";
 import { apps, loadApps, clearApps } from "/app/stores/appStore";
 import { isGuest, isLoggedIn, logout, user } from "/app/stores/userStore";
 import AppIcon from "/app/components/home/AppIcon";
@@ -142,6 +143,8 @@ export default function AppLauncher() {
     ? guest
       ? html`
         <div class="account-footer">
+          <a class="account-footer-text" href=${aboutUrl(lang)}>${t("About")}</a>
+          <span class="account-footer-sep" aria-hidden="true">·</span>
           <span
             class="account-footer-text"
             role="button"
@@ -159,6 +162,8 @@ export default function AppLauncher() {
         </div>`
       : html`
         <div class="account-footer">
+          <a class="account-footer-text" href=${aboutUrl(lang)}>${t("About")}</a>
+          <span class="account-footer-sep" aria-hidden="true">·</span>
           <span
             class="account-footer-text"
             role="button"
@@ -174,7 +179,10 @@ export default function AppLauncher() {
             ${t("Log out")}
           </span>
         </div>`
-    : "";
+    : html`
+        <div class="account-footer">
+          <a class="account-footer-text" href=${aboutUrl(lang)}>${t("About")}</a>
+        </div>`;
 
   const shortcuts = html`
     <div class="shortcuts">
@@ -277,6 +285,8 @@ export default function AppLauncher() {
         flex: none;
         display: flex;
         justify-content: center;
+        align-items: center;
+        gap: 0.45rem;
         width: 100%;
         padding: 0.35rem 0 0.15rem;
       }
@@ -288,8 +298,18 @@ export default function AppLauncher() {
         letter-spacing: -0.01em;
         line-height: 1.2;
         cursor: pointer;
+        text-decoration: none;
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
         -webkit-tap-highlight-color: transparent;
+        user-select: none;
+      }
+
+      .account-footer-sep {
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 0.8125rem;
+        font-weight: 700;
+        line-height: 1.2;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
         user-select: none;
       }
 
