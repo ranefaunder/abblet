@@ -6,7 +6,8 @@ import { getAuthenticatedUser } from "/utils/auth.server";
 import { canViewApp } from "/utils/app-access.server";
 import { escapeHtmlAttribute, escapeHtmlTextContent } from "/utils/sanitize.server";
 import { isDraftConfig, parseAppConfig } from "/types/app-config-types";
-import { appModuleUrl } from "/utils/app-url";
+import { appOrigin, getRequestHost, parseAppSubdomain } from "/utils/app-host";
+import { appRuntimeModulePath } from "/utils/app-url";
 import { appIconMimeType, appIconPngSrc, appIconSrc } from "/utils/app-icon";
 
 type LangAppRequest = BunRequest<"/:lang/app/:slug">;
@@ -45,7 +46,11 @@ function buildingCopy(lang: Language) {
   return BUILDING_COPY[lang] ?? BUILDING_COPY.en;
 }
 
-function resolveRequestLang(req: { params?: { lang?: string }; cookies?: { get(name: string): string | undefined }; headers: Headers }): Language {
+function resolveRequestLang(req: {
+  params?: { lang?: string };
+  cookies?: { get(name: string): string | undefined };
+  headers: Headers;
+}): Language {
   const paramLang = req.params?.lang;
   if (paramLang && paramLang in AVAILABLE_LANGUAGES) return paramLang as Language;
 
@@ -63,22 +68,31 @@ function resolveRequestLang(req: { params?: { lang?: string }; cookies?: { get(n
   return DEFAULT_LANGUAGE;
 }
 
-function resolveAppAccess(lang: Language, slug: string, req: BunRequest): AppAccess {
+function resolveAppAccess(
+  lang: Language,
+  slug: string,
+  req: BunRequest,
+  opts?: { allowDraftBySlug?: boolean },
+): AppAccess {
   if (!slug) return { kind: "error", status: 404 };
 
   const row = dbGetAppBySlug(slug);
   if (!row) return { kind: "error", status: 404 };
 
   const user = getAuthenticatedUser(req);
-  if (!canViewApp(row, user?.id ?? null)) return { kind: "error", status: 403 };
-
   const config = parseAppConfig(row.config_json);
   const isOwner = user?.id === row.owner_id;
   const iconId = row.icon_id ?? null;
-  if (!config || isDraftConfig(config)) {
-    if (!isOwner) return { kind: "error", status: 404 };
-    return { kind: "building", lang, slug, title: row.title, iconId };
+  const isDraft = !config || isDraftConfig(config);
+
+  if (isDraft) {
+    if (isOwner || opts?.allowDraftBySlug) {
+      return { kind: "building", lang, slug, title: row.title, iconId };
+    }
+    return { kind: "error", status: 404 };
   }
+
+  if (!canViewApp(row, user?.id ?? null)) return { kind: "error", status: 403 };
 
   return {
     kind: "ready",
@@ -195,7 +209,7 @@ function renderAppPage(access: AppAccess): Response {
     return htmlResponse(html);
   }
 
-  const moduleUrl = appModuleUrl(access.lang, access.slug);
+  const moduleUrl = appRuntimeModulePath();
 
   const html = `<!doctype html>
 <html lang="${escapeHtmlAttribute(access.lang)}">
@@ -229,25 +243,26 @@ function htmlResponse(html: string): Response {
   });
 }
 
-/** Canonical short URL: /452352 */
-export function shortAppPage(req: ShortAppRequest | BunRequest<"/:lang">): Response {
-  const params = req.params as { appId?: string; lang?: string };
-  const appId = (params.appId ?? params.lang)?.trim() ?? "";
-  if (!isNumericAppSlug(appId)) {
-    return new Response("Not Found", { status: 404 });
-  }
-  const lang = resolveRequestLang(req);
-  return renderAppPage(resolveAppAccess(lang, appId, req));
+function redirectToAppSubdomain(slug: string, search = ""): Response {
+  return Response.redirect(`${appOrigin(slug)}/${search}`, 302);
 }
 
-/** Short module URL: /452352/module.js */
-export function shortAppModule(req: ShortModuleRequest): Response {
-  const appId = req.params.appId?.trim() ?? "";
-  if (!isNumericAppSlug(appId)) {
+/** App runtime on `{slug}.{APP_RUNTIME_HOST}/`. */
+export function appSubdomainPage(req: BunRequest): Response {
+  const slug = parseAppSubdomain(getRequestHost(req));
+  if (!slug) return new Response("Not Found", { status: 404 });
+  const lang = resolveRequestLang(req);
+  return renderAppPage(resolveAppAccess(lang, slug, req, { allowDraftBySlug: true }));
+}
+
+/** App module on `{slug}.{APP_RUNTIME_HOST}/module.js`. */
+export function appSubdomainModule(req: BunRequest): Response {
+  const slug = parseAppSubdomain(getRequestHost(req));
+  if (!slug) {
     return new Response("// Not found", { status: 404 });
   }
   const lang = resolveRequestLang(req);
-  const result = getReadyApp(lang, appId, req);
+  const result = getReadyApp(lang, slug, req);
   if ("error" in result) {
     return new Response("// Not found", { status: result.error });
   }
@@ -259,7 +274,27 @@ export function shortAppModule(req: ShortModuleRequest): Response {
   });
 }
 
-/** Legacy /:lang/app/:slug — redirects to short URL when slug is numeric. */
+/** Platform path /452352 → redirect to app subdomain. */
+export function shortAppPage(req: ShortAppRequest | BunRequest<"/:lang">): Response {
+  const params = req.params as { appId?: string; lang?: string };
+  const appId = (params.appId ?? params.lang)?.trim() ?? "";
+  if (!isNumericAppSlug(appId)) {
+    return new Response("Not Found", { status: 404 });
+  }
+  const url = new URL(req.url);
+  return redirectToAppSubdomain(appId, url.search);
+}
+
+/** Platform path /452352/module.js → redirect to subdomain module. */
+export function shortAppModule(req: ShortModuleRequest): Response {
+  const appId = req.params.appId?.trim() ?? "";
+  if (!isNumericAppSlug(appId)) {
+    return new Response("// Not found", { status: 404 });
+  }
+  return Response.redirect(`${appOrigin(appId)}/module.js`, 302);
+}
+
+/** Legacy /:lang/app/:slug — redirects to app subdomain when slug is numeric. */
 export function appPage(req: LangAppRequest): Response {
   const lang = req.params.lang as Language;
   const slug = req.params.slug?.trim() ?? "";
@@ -267,9 +302,9 @@ export function appPage(req: LangAppRequest): Response {
     return new Response("Not Found", { status: 404 });
   }
 
+  const url = new URL(req.url);
   if (isNumericAppSlug(slug)) {
-    const url = new URL(req.url);
-    return Response.redirect(`${url.origin}/${slug}${url.search}`, 302);
+    return redirectToAppSubdomain(slug, url.search);
   }
 
   return renderAppPage(resolveAppAccess(lang, slug, req));
@@ -282,8 +317,10 @@ export function appRunRedirect(req: AppRunRedirectRequest): Response {
     return new Response("Not Found", { status: 404 });
   }
   const url = new URL(req.url);
-  const target = isNumericAppSlug(slug) ? `/${slug}` : `/${lang}/app/${slug}`;
-  return Response.redirect(`${url.origin}${target}${url.search}`, 302);
+  if (isNumericAppSlug(slug)) {
+    return redirectToAppSubdomain(slug, url.search);
+  }
+  return Response.redirect(`${url.origin}/${lang}/app/${slug}${url.search}`, 302);
 }
 
 export function appModule(req: AppModuleRequest): Response {
@@ -297,6 +334,10 @@ export function appModule(req: AppModuleRequest): Response {
 
   if (params.lang && !(params.lang in AVAILABLE_LANGUAGES)) {
     return new Response("// Not found", { status: 404 });
+  }
+
+  if (isNumericAppSlug(slug)) {
+    return Response.redirect(`${appOrigin(slug)}/module.js`, 302);
   }
 
   const result = getReadyApp(lang, slug, req);

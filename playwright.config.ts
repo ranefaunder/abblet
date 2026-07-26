@@ -20,6 +20,8 @@ export default defineConfig({
       ...process.env,
       PORT: "8766",
       APPSTUDO_E2E_SKIP_EMAIL: "1",
+      APP_RUNTIME_HOST: "app.localhost",
+      PLATFORM_ORIGIN: "http://127.0.0.1:8766",
     },
     url: "http://127.0.0.1:8766/en/",
     reuseExistingServer: !process.env.CI,

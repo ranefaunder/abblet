@@ -1,9 +1,16 @@
+import { appOrigin } from "/utils/app-host";
+
 export function appPageUrl(_lang: string, slug: string): string {
-  return `/${slug}`;
+  return `${appOrigin(slug)}/`;
 }
 
 export function appModuleUrl(_lang: string, slug: string): string {
-  return `/${slug}/module.js`;
+  return `${appOrigin(slug)}/module.js`;
+}
+
+/** Same-origin module path for the app runtime document (subdomain). */
+export function appRuntimeModulePath(): string {
+  return "/module.js";
 }
 
 export function appEditUrl(lang: string, slug?: string): string {

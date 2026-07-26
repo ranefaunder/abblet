@@ -1,6 +1,14 @@
 import type { Language } from "/types/i18n-types";
 import type { BunRequest } from "bun";
 import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
+import {
+  getRequestHost,
+  isAppRuntimeApex,
+  isAppRuntimeHost,
+  parseAppSubdomain,
+  redirectToPlatformFromRequest,
+} from "/utils/app-host";
+import { appSubdomainPage } from "/server/routes/app-page";
 
 const SUPPORTED = new Set<string>(Object.keys(AVAILABLE_LANGUAGES));
 
@@ -21,6 +29,16 @@ function getLangFromAcceptLanguage(header: string | null): Language | null {
 }
 
 export default async function (req: BunRequest): Promise<Response> {
+  const host = getRequestHost(req);
+
+  if (parseAppSubdomain(host)) {
+    return appSubdomainPage(req);
+  }
+
+  if (isAppRuntimeApex(host) || isAppRuntimeHost(host)) {
+    return redirectToPlatformFromRequest(req);
+  }
+
   const pathParts = new URL(req.url).pathname.split("/").filter(Boolean);
   const firstSegment = pathParts[0];
   const lang: Language =

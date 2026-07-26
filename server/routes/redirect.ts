@@ -2,13 +2,27 @@ import type { BunRequest } from "bun";
 import { AVAILABLE_LANGUAGES } from "/i18n/languages";
 import { isNumericAppSlug } from "/server/database/queries/apps";
 import { shortAppPage } from "/server/routes/app-page";
+import { getRequestHost, isAppRuntimeHost, parseAppSubdomain } from "/utils/app-host";
 
 /**
  * Single-segment path:
- * - /452352 → app runtime (numeric public id)
+ * - /452352 on platform → redirect to app subdomain
  * - /fi → /fi/ (language redirect)
+ * - on app subdomain → runtime at /
  */
 export default function redirectRoute(req: BunRequest<"/:lang">) {
+  const host = getRequestHost(req);
+  const slug = parseAppSubdomain(host);
+
+  if (slug) {
+    // /anything on app host → canonical runtime
+    return Response.redirect(`/${new URL(req.url).search}`, 302);
+  }
+
+  if (isAppRuntimeHost(host)) {
+    return new Response("Not Found", { status: 404 });
+  }
+
   const segment = req.params.lang;
 
   if (segment && isNumericAppSlug(segment)) {

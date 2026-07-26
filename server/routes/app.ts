@@ -5,11 +5,17 @@ import { serverSideRender } from "/utils/ssr.server";
 import { createSsrContext } from "/server/ssr";
 import { AVAILABLE_LANGUAGES } from "/i18n/languages";
 import { escapeHtmlAttribute } from "/utils/sanitize.server";
+import { getRequestHost, isAppRuntimeHost } from "/utils/app-host";
 import App from "/app/App";
 
 const LANGUAGE_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 
 export default async function (req: BunRequest<"/:lang/"> | BunRequest<"/:lang/*">): Promise<Response> {
+  if (isAppRuntimeHost(getRequestHost(req))) {
+    const url = new URL(req.url);
+    return Response.redirect(`/${url.search}`, 302);
+  }
+
   if (req.params.lang && !(req.params.lang in AVAILABLE_LANGUAGES)) {
     return Response.redirect("/", 302);
   }
