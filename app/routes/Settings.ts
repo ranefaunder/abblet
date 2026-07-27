@@ -12,12 +12,12 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
   const { route } = useLocation();
   const { lang } = params;
 
-  function redirectIfGuest() {
+  function redirectIfLoggedOut() {
     if (!user.value) {
       route(`/${lang}/login?next=${encodeURIComponent(`/${lang}/settings`)}`, true);
     }
   }
-  useEffect(() => redirectIfGuest(), [lang, route]);
+  useEffect(() => redirectIfLoggedOut(), [lang, route]);
 
   if (!user.value) return null;
 
@@ -56,12 +56,12 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
             checked=${user.value.marketingOptIn === true}
             onChange=${handleMarketingChange}
           />
-          <span>${t("Email me about Abblet updates")}</span>
+          <span>${t("Email me about Rmix updates")}</span>
         </label>
       </section>
 
       <section ui-card ui-padding="lg">
-        <a href=${aboutUrl(lang)} ui-link>${t("About Abblet")}</a>
+        <a href=${aboutUrl(lang)} ui-link>${t("About Rmix")}</a>
       </section>
       </div>
     </div>

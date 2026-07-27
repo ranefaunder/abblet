@@ -4,6 +4,11 @@ export function appPageUrl(_lang: string, slug: string): string {
   return `${appOrigin(slug)}/`;
 }
 
+/** App subdomain install UI (PWA Add to Home Screen). */
+export function appInstallUrl(_lang: string, slug: string): string {
+  return `${appOrigin(slug)}/?mode=install`;
+}
+
 export function appModuleUrl(_lang: string, slug: string): string {
   return `${appOrigin(slug)}/module.js`;
 }
@@ -22,7 +27,7 @@ export function appEditUrl(lang: string, slug?: string): string {
 }
 
 export function galleryUrl(lang: string): string {
-  return `/${lang}/gallery`;
+  return `/${lang}/`;
 }
 
 export function aboutUrl(lang: string): string {

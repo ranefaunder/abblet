@@ -15,7 +15,7 @@ import { appIconMimeType, appIconPngSrc, appIconSrc } from "/utils/app-icon";
 const ABBLET_SDK_PATH = join(import.meta.dir, "../sdk/abblet-sdk.js");
 let abbletSdkCache: string | null = null;
 
-function loadAbbletSdkSource(): string {
+function loadRmixSdkSource(): string {
   if (process.env.NODE_ENV === "production" && abbletSdkCache != null) {
     return abbletSdkCache;
   }
@@ -187,7 +187,481 @@ function iconHeadTags(iconId: string | null): string {
   ].join("\n    ");
 }
 
-function renderAppPage(access: AppAccess): Response {
+function pwaHeadTags(): string {
+  return [
+    `<link rel="manifest" href="/manifest.webmanifest" />`,
+    `<meta name="mobile-web-app-capable" content="yes" />`,
+    `<meta name="apple-mobile-web-app-capable" content="yes" />`,
+    `<meta name="theme-color" content="#f2f2f7" />`,
+  ].join("\n    ");
+}
+
+const INSTALL_COPY: Record<
+  Language,
+  {
+    back: string;
+    install: string;
+    installing: string;
+    installed: string;
+    ready: string;
+    offlineReady?: string;
+    preparingOffline?: string;
+    manualTitle: string;
+    iosSteps: string;
+    androidSteps: string;
+    desktopSteps: string;
+    openApp: string;
+  }
+> = {
+  en: {
+    back: "Back",
+    install: "Install",
+    installing: "Installing…",
+    installed: "Installed",
+    ready: "Add this app to your home screen.",
+    offlineReady: "Ready for offline use.",
+    preparingOffline: "Preparing offline…",
+    manualTitle: "How to install",
+    iosSteps:
+      "Tap Share, then Add to Home Screen. Confirm Add.",
+    androidSteps: "Open the browser menu (⋮) and tap Install app or Add to Home screen.",
+    desktopSteps: "Use the install icon in the address bar, or the browser menu → Install app.",
+    openApp: "Open app",
+  },
+  fi: {
+    back: "Takaisin",
+    install: "Asenna",
+    installing: "Asennetaan…",
+    installed: "Asennettu",
+    ready: "Lisää tämä appi kotinäytölle.",
+    offlineReady: "Valmis offline-käyttöön.",
+    preparingOffline: "Valmistellaan offlinea…",
+    manualTitle: "Näin asennat",
+    iosSteps: "Napauta Jaa, sitten Lisää Kotinäyttöön. Vahvista Lisää.",
+    androidSteps: "Avaa selaimen valikko (⋮) ja valitse Asenna sovellus tai Lisää aloitusnäytölle.",
+    desktopSteps: "Käytä asennuskuvaketta osoitekentässä tai selaimen valikkoa → Asenna sovellus.",
+    openApp: "Avaa appi",
+  },
+  sv: {
+    back: "Tillbaka",
+    install: "Installera",
+    installing: "Installerar…",
+    installed: "Installerad",
+    ready: "Lägg till appen på hemskärmen.",
+    manualTitle: "Så här installerar du",
+    iosSteps: "Tryck på Dela, sedan Lägg till på hemskärmen.",
+    androidSteps: "Öppna menyn (⋮) och välj Installera app.",
+    desktopSteps: "Använd installationsikonen i adressfältet eller menyn → Installera app.",
+    openApp: "Öppna app",
+  },
+  zh: {
+    back: "Back",
+    install: "Install",
+    installing: "Installing…",
+    installed: "Installed",
+    ready: "Add this app to your home screen.",
+    manualTitle: "How to install",
+    iosSteps: "Tap Share, then Add to Home Screen.",
+    androidSteps: "Open the browser menu and tap Install app.",
+    desktopSteps: "Use the install icon in the address bar.",
+    openApp: "Open app",
+  },
+  es: {
+    back: "Atrás",
+    install: "Instalar",
+    installing: "Instalando…",
+    installed: "Instalada",
+    ready: "Añade esta app a tu pantalla de inicio.",
+    manualTitle: "Cómo instalar",
+    iosSteps: "Toca Compartir y luego Añadir a pantalla de inicio.",
+    androidSteps: "Abre el menú del navegador e Instalar app.",
+    desktopSteps: "Usa el icono de instalación en la barra de direcciones.",
+    openApp: "Abrir app",
+  },
+  ja: {
+    back: "Back",
+    install: "Install",
+    installing: "Installing…",
+    installed: "Installed",
+    ready: "Add this app to your home screen.",
+    manualTitle: "How to install",
+    iosSteps: "Tap Share, then Add to Home Screen.",
+    androidSteps: "Open the browser menu and tap Install app.",
+    desktopSteps: "Use the install icon in the address bar.",
+    openApp: "Open app",
+  },
+  de: {
+    back: "Zurück",
+    install: "Installieren",
+    installing: "Wird installiert…",
+    installed: "Installiert",
+    ready: "App zum Startbildschirm hinzufügen.",
+    manualTitle: "So installierst du",
+    iosSteps: "Tippe auf Teilen, dann Zum Home-Bildschirm.",
+    androidSteps: "Öffne das Menü (⋮) und wähle App installieren.",
+    desktopSteps: "Nutze das Installationssymbol in der Adressleiste.",
+    openApp: "App öffnen",
+  },
+  fr: {
+    back: "Retour",
+    install: "Installer",
+    installing: "Installation…",
+    installed: "Installée",
+    ready: "Ajoutez cette app à l’écran d’accueil.",
+    manualTitle: "Comment installer",
+    iosSteps: "Touchez Partager, puis Sur l’écran d’accueil.",
+    androidSteps: "Ouvrez le menu (⋮) puis Installer l’application.",
+    desktopSteps: "Utilisez l’icône d’installation dans la barre d’adresse.",
+    openApp: "Ouvrir l’app",
+  },
+  hi: {
+    back: "Back",
+    install: "Install",
+    installing: "Installing…",
+    installed: "Installed",
+    ready: "Add this app to your home screen.",
+    manualTitle: "How to install",
+    iosSteps: "Tap Share, then Add to Home Screen.",
+    androidSteps: "Open the browser menu and tap Install app.",
+    desktopSteps: "Use the install icon in the address bar.",
+    openApp: "Open app",
+  },
+  ko: {
+    back: "Back",
+    install: "Install",
+    installing: "Installing…",
+    installed: "Installed",
+    ready: "Add this app to your home screen.",
+    manualTitle: "How to install",
+    iosSteps: "Tap Share, then Add to Home Screen.",
+    androidSteps: "Open the browser menu and tap Install app.",
+    desktopSteps: "Use the install icon in the address bar.",
+    openApp: "Open app",
+  },
+  it: {
+    back: "Indietro",
+    install: "Installa",
+    installing: "Installazione…",
+    installed: "Installata",
+    ready: "Aggiungi questa app alla schermata Home.",
+    manualTitle: "Come installare",
+    iosSteps: "Tocca Condividi, poi Aggiungi a Home.",
+    androidSteps: "Apri il menu (⋮) e Installa app.",
+    desktopSteps: "Usa l’icona di installazione nella barra degli indirizzi.",
+    openApp: "Apri app",
+  },
+  pt: {
+    back: "Voltar",
+    install: "Instalar",
+    installing: "A instalar…",
+    installed: "Instalada",
+    ready: "Adicione esta app ao ecrã inicial.",
+    manualTitle: "Como instalar",
+    iosSteps: "Toque em Partilhar e depois Adicionar ao Ecrã Principal.",
+    androidSteps: "Abra o menu (⋮) e Instalar aplicação.",
+    desktopSteps: "Use o ícone de instalação na barra de endereço.",
+    openApp: "Abrir app",
+  },
+  nl: {
+    back: "Terug",
+    install: "Installeren",
+    installing: "Bezig met installeren…",
+    installed: "Geïnstalleerd",
+    ready: "Voeg deze app toe aan je beginscherm.",
+    manualTitle: "Zo installeer je",
+    iosSteps: "Tik op Delen, daarna Zet op beginscherm.",
+    androidSteps: "Open het menu (⋮) en kies App installeren.",
+    desktopSteps: "Gebruik het installatiepictogram in de adresbalk.",
+    openApp: "App openen",
+  },
+};
+
+function installCopy(lang: Language) {
+  const c = INSTALL_COPY[lang] ?? INSTALL_COPY.en;
+  const en = INSTALL_COPY.en;
+  return {
+    ...c,
+    offlineReady: c.offlineReady ?? en.offlineReady!,
+    preparingOffline: c.preparingOffline ?? en.preparingOffline!,
+  };
+}
+
+const INSTALL_PAGE_STYLES = `
+  ${PAGE_STYLES}
+  .install {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    padding: 2rem 1.5rem calc(2rem + env(safe-area-inset-bottom, 0px));
+    text-align: center;
+  }
+  .install .icon {
+    width: 96px;
+    height: 96px;
+    border-radius: 22%;
+    overflow: hidden;
+    background: #e5e5ea;
+    display: grid;
+    place-items: center;
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: #1c1c1e;
+  }
+  .install .icon img { width: 100%; height: 100%; object-fit: cover; }
+  .install h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .install .lede {
+    margin: 0;
+    max-width: 22rem;
+    color: #6e6e73;
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+  .install .status {
+    margin: 0;
+    min-height: 1.25rem;
+    color: #6e6e73;
+    font-size: 0.9375rem;
+  }
+  .install .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+  }
+  .install button, .install a.btn {
+    appearance: none;
+    border: 0;
+    border-radius: 980px;
+    padding: 0.75rem 1.25rem;
+    font: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .install button.primary, .install a.btn.primary {
+    background: #007aff;
+    color: #fff;
+  }
+  .install button.primary:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+  .install button.secondary, .install a.btn.secondary {
+    background: #e5e5ea;
+    color: #1c1c1e;
+  }
+  .install .manual {
+    margin: 0;
+    max-width: 22rem;
+    padding: 1rem;
+    border-radius: 12px;
+    background: #fff;
+    text-align: left;
+    color: #1c1c1e;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+  }
+  .install .manual h2 {
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6e6e73;
+  }
+  .install .manual[hidden] { display: none; }
+`;
+
+function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Response {
+  const copy = installCopy(access.lang);
+  const iconSrc = appIconPngSrc(access.iconId) ?? appIconSrc(access.iconId);
+  const iconSvg = appIconSrc(access.iconId);
+  const letter = (access.title.trim().charAt(0) || "?").toUpperCase();
+  const platformOrigin = getPlatformOrigin();
+  const backHref = `${platformOrigin}/${access.lang}/gallery/${encodeURIComponent(access.slug)}`;
+  const precacheUrls = ["/", "/module.js", "/manifest.webmanifest"];
+  if (iconSrc) precacheUrls.push(iconSrc);
+  if (iconSvg && iconSvg !== iconSrc) precacheUrls.push(iconSvg);
+
+  const html = `<!doctype html>
+<html lang="${escapeHtmlAttribute(access.lang)}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>${escapeHtmlTextContent(access.title)}</title>
+    ${iconHeadTags(access.iconId)}
+    ${pwaHeadTags()}
+    <style>${INSTALL_PAGE_STYLES}</style>
+  </head>
+  <body>
+    <main class="install" data-lang="${escapeHtmlAttribute(access.lang)}">
+      <span class="icon" aria-hidden="true">
+        ${
+          iconSrc
+            ? `<img src="${escapeHtmlAttribute(iconSrc)}" alt="" width="96" height="96" />`
+            : escapeHtmlTextContent(letter)
+        }
+      </span>
+      <h1>${escapeHtmlTextContent(access.title)}</h1>
+      <p class="lede" id="lede">${escapeHtmlTextContent(copy.ready)}</p>
+      <p class="status" id="status" role="status"></p>
+      <div class="actions">
+        <a class="btn secondary" id="back" href="${escapeHtmlAttribute(backHref)}">${escapeHtmlTextContent(copy.back)}</a>
+        <button type="button" class="primary" id="install">${escapeHtmlTextContent(copy.install)}</button>
+      </div>
+      <div class="manual" id="manual" hidden>
+        <h2>${escapeHtmlTextContent(copy.manualTitle)}</h2>
+        <p id="manual-body"></p>
+      </div>
+    </main>
+    <script>
+      (function () {
+        var copy = ${JSON.stringify(copy)};
+        var precacheUrls = ${JSON.stringify(precacheUrls)};
+        var CACHE = "rmix-app-runtime-v3";
+        var installBtn = document.getElementById("install");
+        var statusEl = document.getElementById("status");
+        var manual = document.getElementById("manual");
+        var manualBody = document.getElementById("manual-body");
+        var backBtn = document.getElementById("back");
+        var deferredPrompt = null;
+        var promptAvailable = false;
+        var offlineReady = false;
+
+        if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
+          location.replace("/");
+          return;
+        }
+
+        if (backBtn && history.length > 1) {
+          backBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            history.back();
+          });
+        }
+
+        function isIos() {
+          return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        }
+        function isAndroid() {
+          return /Android/i.test(navigator.userAgent);
+        }
+        function manualText() {
+          if (isIos()) return copy.iosSteps;
+          if (isAndroid()) return copy.androidSteps;
+          return copy.desktopSteps;
+        }
+        function showManual() {
+          manual.hidden = false;
+          manualBody.textContent = manualText();
+        }
+
+        async function precacheViaCacheApi(urls) {
+          if (!("caches" in window)) return;
+          var cache = await caches.open(CACHE);
+          await Promise.all(urls.map(async function (url) {
+            try {
+              if (String(url).indexOf("mode=install") !== -1) return;
+              var res = await fetch(url, { cache: "reload", credentials: "same-origin" });
+              if (!res.ok) return;
+              var path = new URL(url, location.origin).pathname;
+              await cache.put(path === "/" ? "/" : url, res);
+            } catch (e) {}
+          }));
+        }
+
+        async function prepareOffline() {
+          statusEl.textContent = copy.preparingOffline;
+          try {
+            if (navigator.storage && navigator.storage.persist) {
+              await navigator.storage.persist().catch(function () {});
+            }
+            if ("serviceWorker" in navigator) {
+              var reg = await navigator.serviceWorker.register("/static/app-runtime-sw.js", { scope: "/" });
+              await navigator.serviceWorker.ready;
+              var worker = reg.active || navigator.serviceWorker.controller;
+              if (worker) worker.postMessage({ type: "PRECACHE", urls: precacheUrls });
+            }
+            await precacheViaCacheApi(precacheUrls);
+            offlineReady = true;
+            if (!statusEl.textContent || statusEl.textContent === copy.preparingOffline) {
+              statusEl.textContent = copy.offlineReady;
+            }
+          } catch (e) {
+            statusEl.textContent = "";
+          }
+        }
+
+        window.addEventListener("beforeinstallprompt", function (e) {
+          e.preventDefault();
+          deferredPrompt = e;
+          promptAvailable = true;
+          manual.hidden = true;
+          installBtn.disabled = false;
+          if (offlineReady) statusEl.textContent = copy.offlineReady;
+          else statusEl.textContent = "";
+        });
+
+        window.addEventListener("appinstalled", function () {
+          statusEl.textContent = copy.installed;
+          installBtn.disabled = true;
+          void prepareOffline().then(function () {
+            setTimeout(function () { location.href = "/"; }, 500);
+          });
+        });
+
+        installBtn.addEventListener("click", async function () {
+          if (deferredPrompt) {
+            statusEl.textContent = copy.installing;
+            installBtn.disabled = true;
+            try {
+              deferredPrompt.prompt();
+              var choice = await deferredPrompt.userChoice;
+              deferredPrompt = null;
+              if (choice && choice.outcome === "accepted") {
+                statusEl.textContent = copy.installing;
+                await prepareOffline();
+              } else {
+                statusEl.textContent = offlineReady ? copy.offlineReady : "";
+                installBtn.disabled = false;
+                showManual();
+              }
+            } catch (err) {
+              statusEl.textContent = offlineReady ? copy.offlineReady : "";
+              installBtn.disabled = false;
+              showManual();
+            }
+            return;
+          }
+          showManual();
+          void prepareOffline();
+        });
+
+        void prepareOffline();
+
+        setTimeout(function () {
+          if (!promptAvailable) showManual();
+        }, 2000);
+      })();
+    </script>
+  </body>
+</html>`;
+
+  return htmlResponse(html);
+}
+
+function renderAppPage(
+  access: AppAccess,
+  opts?: { mode?: string | null },
+): Response {
   if (access.kind === "error") {
     return new Response("Not Found", { status: access.status });
   }
@@ -232,6 +706,10 @@ function renderAppPage(access: AppAccess): Response {
     return htmlResponse(html);
   }
 
+  if (opts?.mode === "install") {
+    return renderInstallPage(access);
+  }
+
   const moduleUrl = appRuntimeModulePath();
   const platformOrigin = getPlatformOrigin();
   const connectHref = connectUrl(access.slug);
@@ -245,7 +723,12 @@ function renderAppPage(access: AppAccess): Response {
     published: access.published,
     title: access.title,
   };
-  const sdkSource = loadAbbletSdkSource();
+  const sdkSource = loadRmixSdkSource();
+  const runtimeIcon = appIconPngSrc(access.iconId) ?? appIconSrc(access.iconId);
+  const runtimeIconSvg = appIconSrc(access.iconId);
+  const runtimePrecache = ["/", "/module.js", "/manifest.webmanifest"];
+  if (runtimeIcon) runtimePrecache.push(runtimeIcon);
+  if (runtimeIconSvg && runtimeIconSvg !== runtimeIcon) runtimePrecache.push(runtimeIconSvg);
 
   const html = `<!doctype html>
 <html lang="${escapeHtmlAttribute(access.lang)}">
@@ -254,10 +737,42 @@ function renderAppPage(access: AppAccess): Response {
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>${escapeHtmlTextContent(access.title)}</title>
     ${iconHeadTags(access.iconId)}
+    ${pwaHeadTags()}
     <style>${PAGE_STYLES}</style>
   </head>
   <body>
     <main class="main" id="mount"></main>
+    <script>
+      (function () {
+        var urls = ${JSON.stringify(runtimePrecache)};
+        var CACHE = "rmix-app-runtime-v3";
+        async function warm() {
+          try {
+            if (navigator.storage && navigator.storage.persist) {
+              await navigator.storage.persist().catch(function () {});
+            }
+            if ("serviceWorker" in navigator) {
+              var reg = await navigator.serviceWorker.register("/static/app-runtime-sw.js", { scope: "/" });
+              await navigator.serviceWorker.ready;
+              var worker = reg.active || navigator.serviceWorker.controller;
+              if (worker) worker.postMessage({ type: "PRECACHE", urls: urls });
+            }
+            if ("caches" in window) {
+              var cache = await caches.open(CACHE);
+              await Promise.all(urls.map(async function (url) {
+                try {
+                  var res = await fetch(url, { cache: "reload", credentials: "same-origin" });
+                  if (!res.ok) return;
+                  var path = new URL(url, location.origin).pathname;
+                  await cache.put(path === "/" ? "/" : url, res);
+                } catch (e) {}
+              }));
+            }
+          } catch (e) {}
+        }
+        void warm();
+      })();
+    </script>
     <script type="module">
       window.__ABBLET__ = ${JSON.stringify(abbletConfig)};
 ${sdkSource}
@@ -286,7 +801,8 @@ export function appSubdomainPage(req: BunRequest): Response {
   const slug = parseAppSubdomain(getRequestHost(req));
   if (!slug) return new Response("Not Found", { status: 404 });
   const lang = resolveRequestLang(req);
-  return renderAppPage(resolveAppAccess(lang, slug, req, { allowDraftBySlug: true }));
+  const mode = new URL(req.url).searchParams.get("mode");
+  return renderAppPage(resolveAppAccess(lang, slug, req, { allowDraftBySlug: true }), { mode });
 }
 
 /** App module on `{slug}.{APP_RUNTIME_HOST}/module.js`. */
@@ -341,7 +857,9 @@ export function appPage(req: LangAppRequest): Response {
     return redirectToAppSubdomain(slug, url.search);
   }
 
-  return renderAppPage(resolveAppAccess(lang, slug, req));
+  return renderAppPage(resolveAppAccess(lang, slug, req), {
+    mode: url.searchParams.get("mode"),
+  });
 }
 
 export function appRunRedirect(req: AppRunRedirectRequest): Response {

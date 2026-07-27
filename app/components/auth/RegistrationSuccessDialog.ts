@@ -20,9 +20,9 @@ export default function RegistrationSuccessDialog() {
   const view = html`
     <dialog id="registration-success-dialog" ref=${dialogRef} ui-dialog="xs" closedby="any">
       <header>
-        <h2>${t("Welcome to Abblet!")}</h2>
+        <h2>${t("Welcome to Rmix!")}</h2>
       </header>
-      <p>${t("Thank you for joining Abblet. Describe what you need and Abblet applies it — your first app in minutes.")}</p>
+      <p>${t("Thank you for joining Rmix. Describe what you need and Rmix applies it — your first app in minutes.")}</p>
       <footer>
         <button
           type="button"

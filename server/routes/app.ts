@@ -60,10 +60,8 @@ export default async function (req: BunRequest<"/:lang/"> | BunRequest<"/:lang/*
 
           /* App shell: feel native, not like a zoomable website. */
           html, body {
-            height: 100%;
-            height: 100dvh;
-            overflow: hidden;
-            overscroll-behavior: none;
+            min-height: 100%;
+            min-height: 100dvh;
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
           }
@@ -71,12 +69,7 @@ export default async function (req: BunRequest<"/:lang/"> | BunRequest<"/:lang/*
             /* Disables double-tap zoom; pinch zoom still possible where supported. */
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
-          }
-          #app {
-            height: 100%;
-            height: 100dvh;
-            overflow: hidden;
-            overscroll-behavior: none;
+            margin: 0;
           }
           a, button, [role="button"], [ui-button], summary {
             -webkit-tap-highlight-color: transparent;

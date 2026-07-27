@@ -8,6 +8,7 @@ import redirectRoute from "./routes/redirect";
 import robotsTxt from "./routes/robots-txt";
 import sitemapXml from "./routes/sitemap-xml";
 import siteWebmanifest from "./routes/site-webmanifest";
+import appManifest from "./routes/app-manifest";
 import { appPage, appRunRedirect, appModule, shortAppModule, appSubdomainModule } from "./routes/app-page";
 import connectRoute from "./routes/connect";
 import sdkExchange from "./api/sdk/exchange";
@@ -31,6 +32,7 @@ import appDelete from "./api/app/delete";
 import appGallery from "./api/app/gallery";
 import appGalleryGet from "./api/app/gallery-get";
 import appInstall from "./api/app/install";
+import appInstallHistory from "./api/app/install-history";
 import appUninstall from "./api/app/uninstall";
 import appPublish from "./api/app/publish";
 import appUnpublish from "./api/app/unpublish";
@@ -47,6 +49,7 @@ const server = Bun.serve({
     "/robots.txt": robotsTxt,
     "/sitemap.xml": sitemapXml,
     "/:lang/site.webmanifest": siteWebmanifest,
+    "/manifest.webmanifest": appManifest,
     "/.well-known/*": () => new Response(null, { status: 404 }),
     "/api/:lang/meta": meta,
     "/api/:lang/app/generate": appGenerate,
@@ -60,6 +63,7 @@ const server = Bun.serve({
     "/api/:lang/app/gallery": appGallery,
     "/api/:lang/app/gallery-get": appGalleryGet,
     "/api/:lang/app/install": appInstall,
+    "/api/:lang/app/install-history": appInstallHistory,
     "/api/:lang/app/uninstall": appUninstall,
     "/api/:lang/app/publish": appPublish,
     "/api/:lang/app/unpublish": appUnpublish,
@@ -90,4 +94,4 @@ const server = Bun.serve({
   },
 });
 
-console.log(`🚀 Abblet running at http://localhost:${server.port}`);
+console.log(`🚀 Rmix running at http://localhost:${server.port}`);

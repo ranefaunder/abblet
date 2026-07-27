@@ -1,20 +1,20 @@
 import { html, css } from "/utils/markup";
 import type { RoutePropsForPath } from "preact-iso";
 import { useEffect } from "preact/hooks";
-import { useRoute } from "preact-iso";
+import { useLocation, useRoute } from "preact-iso";
 import { t } from "/utils/i18n";
 import { appEditUrl, appPageUrl, galleryUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import {
   clearGalleryApp,
-  installGalleryApp,
+  openAppInstall,
   loadGalleryApp,
   galleryApp,
   galleryBusy,
   galleryAppError,
   galleryAppLoading,
-  uninstallGalleryApp,
+  remixGalleryApp,
 } from "/app/stores/galleryStore";
 import type { AppCategory } from "/utils/app-categories";
 
@@ -22,6 +22,7 @@ export const GalleryAppPath = "/:lang/gallery/:slug" as const;
 
 export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPath>) {
   const { params } = useRoute();
+  const { route } = useLocation();
   const lang = params.lang ?? "en";
   const slug = params.slug ?? "";
   const app = galleryApp.value;
@@ -33,13 +34,17 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
     return () => clearGalleryApp();
   }, [slug]);
 
-  async function onAddRemove() {
+  function onInstall() {
     if (!app) return;
-    if (app.installed) {
-      await uninstallGalleryApp(app.slug);
-      return;
+    openAppInstall(app.slug);
+  }
+
+  async function onRemix() {
+    if (!app) return;
+    const cloned = await remixGalleryApp(app.slug);
+    if (cloned?.slug) {
+      route(appEditUrl(lang, cloned.slug));
     }
-    await installGalleryApp(app.slug);
   }
 
   const iconSrc = appIconSrc(app?.iconId);
@@ -59,7 +64,7 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
             ></a>
           </div>
           <div class="top-center">
-            <h1 ui-heading="sm">${t("Gallery")}</h1>
+            <h1 ui-heading="sm">${t("Store")}</h1>
           </div>
           <div class="top-end" aria-hidden="true"></div>
         </div>
@@ -75,7 +80,7 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
           ? html`
             <div ui-column="gap-md x-center y-center" ui-padding="xl" class="state">
               <p>${galleryAppError.value ?? t("App not found")}</p>
-              <a href=${galleryUrl(lang)} ui-button="primary sm">${t("Gallery")}</a>
+              <a href=${galleryUrl(lang)} ui-button="primary sm">${t("Store")}</a>
             </div>`
           : html`
             <div class="content" ui-column="gap-lg x-center">
@@ -93,39 +98,28 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
               </div>
 
               <div ui-row="gap-sm x-center wrap">
-                ${app.installed
-                  ? html`
-                    <a ui-button="primary" href=${appPageUrl(lang, app.slug)}>
-                      ${t("Open")}
-                    </a>
-                    ${app.isOwner
-                      ? html`
-                        <a ui-button href=${appEditUrl(lang, app.slug)}>
-                          ${t("Edit")}
-                        </a>`
-                      : ""}
+                <button
+                  type="button"
+                  ui-button="primary"
+                  disabled=${busy}
+                  aria-busy=${busy}
+                  onClick=${() => onInstall()}
+                >
+                  ${t("Install")}
+                </button>
+                ${app.isOwner
+                  ? html`<a ui-button href=${appEditUrl(lang, app.slug)}>${t("Edit")}</a>`
+                  : html`
                     <button
                       type="button"
                       ui-button
                       disabled=${busy}
                       aria-busy=${busy}
-                      onClick=${() => void onAddRemove()}
+                      onClick=${() => void onRemix()}
                     >
-                      ${t("Remove")}
-                    </button>`
-                  : html`
-                    <button
-                      type="button"
-                      ui-button="primary"
-                      disabled=${busy}
-                      aria-busy=${busy}
-                      onClick=${() => void onAddRemove()}
-                    >
-                      ${t("Add")}
-                    </button>
-                    <a ui-button href=${appPageUrl(lang, app.slug)}>
-                      ${t("Try")}
-                    </a>`}
+                      ${t("Remix")}
+                    </button>`}
+                <a ui-button href=${appPageUrl(lang, app.slug)}>${t("Preview")}</a>
               </div>
 
               ${galleryAppError.value
@@ -136,7 +130,7 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
                 <div ui-row="gap-lg x-around">
                   <div ui-column="gap-xs x-center">
                     <strong>${app.installCount}</strong>
-                    <small>${t("Adds")}</small>
+                    <small>${t("Installs")}</small>
                   </div>
                   ${app.category
                     ? html`

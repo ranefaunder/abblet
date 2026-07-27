@@ -135,17 +135,18 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
 
 - Must call customElements.define("<tagName>", class extends HTMLElement { ... }) with the exact tagName you chose.
 - Vanilla JavaScript only. NO imports, NO external libraries, NO CDN links.
-- Network: do NOT use fetch, XMLHttpRequest, WebSocket, or any direct HTTP. The ONLY allowed network APIs are the host-injected global Abblet SDK:
-  - await Abblet.ai({ prompt: "…" }) — optional system: await Abblet.ai({ prompt: "…", system: "…" })
-  - Abblet.connect() — links the user session (redirect); call only when needed
-  - Abblet.getToken() — optional; usually unnecessary because Abblet.ai handles connect
-  Use Abblet.ai ONLY when the user's idea needs AI (summarize, rewrite, classify, generate text). Most apps need zero AI.
+- Network: do NOT use fetch, XMLHttpRequest, WebSocket, or any direct HTTP. The ONLY allowed network APIs are the host-injected global Rmix SDK:
+  - await Rmix.ai({ prompt: "…" }) — optional system: await Rmix.ai({ prompt: "…", system: "…" })
+  - Rmix.connect() — links the user session (redirect); call only when needed
+  - Rmix.getToken() — optional; usually unnecessary because Rmix.ai handles connect
+  Use Rmix.ai ONLY when the user's idea needs AI (summarize, rewrite, classify, generate text). Most apps need zero AI.
+  Compatibility: Abblet.ai / Abblet.connect are aliases for Rmix (do not use Abblet in new code).
   Example:
   \`\`\`
   btn.addEventListener("click", async () => {
     btn.setAttribute("aria-busy", "true");
     try {
-      const text = await Abblet.ai({ prompt: input.value.trim() });
+      const text = await Rmix.ai({ prompt: input.value.trim() });
       out.textContent = text;
     } catch (e) {
       if (e && (e.code === "CONNECT_REQUIRED" || e.code === "CONNECT_CANCELLED")) return;
@@ -172,7 +173,7 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
   6. Guard with try/catch; if OPFS is unavailable, show a friendly inline error (never alert()).
   7. OPFS is local-only — do not upload binaries; still no raw fetch/XHR.
 - Guard JSON.parse with try/catch; fall back to sensible defaults on corrupt data.
-- Do NOT rely on external CSS, fonts, or global variables except the injected Abblet SDK when using AI. Everything else self-contained.
+- Do NOT rely on external CSS, fonts, or global variables except the injected Rmix SDK when using AI. Everything else self-contained.
 
 ## Visual design system — design like a native iOS app (PRIMARY GOAL)
 
@@ -244,7 +245,7 @@ Responsiveness & safe areas:
 - Perfect on iPhone widths (375–430px) first; scales to a centered column on desktop. Only add multi-column layouts on ≥760px if it truly helps.
 - Respect the notch/home indicator: use env(safe-area-inset-*) — sticky headers add padding-top: env(safe-area-inset-top); sticky bottom bars add padding-bottom: max(var(--space), env(safe-area-inset-bottom)).
 - Support Dynamic-Type feel by using rem/relative sizing where reasonable.
-- Light-first (matches Abblet). Optionally add a @media (prefers-color-scheme: dark) block reusing the same token names with iOS dark values (--bg:#000; --surface:#1c1c1e; --text:#fff; --separator:#54545899; keep systemBlue accent).
+- Light-first (matches Rmix). Optionally add a @media (prefers-color-scheme: dark) block reusing the same token names with iOS dark values (--bg:#000; --surface:#1c1c1e; --text:#fff; --separator:#54545899; keep systemBlue accent).
 
 Quality bar:
 - Accessible: <label> tied to inputs, aria-label on icon-only buttons, role="switch" for toggles, visible focus, semantic <button>/<form>.
@@ -284,7 +285,7 @@ export async function generateAppConfig(
 } | null> {
   const langName = AVAILABLE_LANGUAGES[language]?.name ?? "English";
 
-  const systemPrompt = `You build small personal apps for Abblet. Each app is a single, self-contained Web Component (custom element) written in vanilla JavaScript.
+  const systemPrompt = `You build small personal apps for Rmix. Each app is a single, self-contained Web Component (custom element) written in vanilla JavaScript.
 
 Return one JSON object with:
 - title: short app name, MAXIMUM 12 characters (including spaces). Must fit under a phone home-screen icon — prefer 1–2 words (e.g. "Budget", "Ostoslista", "Run Log"). Never use the raw user prompt if it is longer than 12 chars; invent a short label instead.
@@ -346,7 +347,7 @@ export async function classifyEditIntent(opts: {
   const { current, history, instruction, language, model } = opts;
   const langName = AVAILABLE_LANGUAGES[language]?.name ?? "English";
 
-  const systemPrompt = `You route Abblet app-edit chat messages to tools. You do NOT edit code or icons yourself — you only choose tools, write a short chat reply, and status lines for the loading UI.
+  const systemPrompt = `You route Rmix app-edit chat messages to tools. You do NOT edit code or icons yourself — you only choose tools, write a short chat reply, and status lines for the loading UI.
 
 Available tools:
 - updateCode: change the app's features, UI, behavior, bugfixes, layout, text inside the app, or anything that requires modifying the Web Component source.
@@ -431,7 +432,7 @@ export async function generateAppName(opts: {
   const { current, instruction, language, model } = opts;
   const langName = AVAILABLE_LANGUAGES[language]?.name ?? "English";
 
-  const systemPrompt = `You name Abblet apps for a phone home screen and Gallery listing.
+  const systemPrompt = `You name Rmix apps for a phone home screen and Gallery listing.
 
 Return JSON:
 - title: short app name, MAXIMUM 12 characters (including spaces). Prefer 1–2 words. Must fit under an icon.
@@ -518,7 +519,7 @@ export async function editAppConfig(opts: {
 - Keep the EXACT same custom element tagName: "${current.tagName}". The code must still call customElements.define("${current.tagName}", ...). Do NOT rename it.
 - Preserve existing user data compatibility: keep the same localStorage keys and data shape unless the request explicitly requires changing them.
 - Make the smallest change that fully satisfies the request; do not rewrite unrelated parts or regress existing features.
-- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Abblet.ai({ prompt }) / Abblet.connect() only when the request needs AI. Everything inside the Shadow DOM (except the host-injected Abblet global).
+- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Rmix.ai({ prompt }) / Rmix.connect() only when the request needs AI. Everything inside the Shadow DOM (except the host-injected Rmix global).
 - Do NOT change the home-screen title, description, or launcher icon — those are handled by other tools.
 
 ${designGuidelines(langName)}`;
@@ -545,7 +546,7 @@ ${instruction}`;
     modelUsed: string | null;
   } | null> {
     const started = Date.now();
-    const systemPrompt = `You are iterating on an existing Abblet app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
+    const systemPrompt = `You are iterating on an existing Rmix app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
 
 ${reason}
 
@@ -603,7 +604,7 @@ Return the complete updated code and a short summary of what you changed.`,
   }
 
   const patchStarted = Date.now();
-  const systemPrompt = `You are iterating on an existing Abblet app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
+  const systemPrompt = `You are iterating on an existing Rmix app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
 
 You will receive the current full source code and a conversation of change requests. Choose the smallest reliable edit mode:
 

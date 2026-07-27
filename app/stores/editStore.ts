@@ -4,8 +4,7 @@ import { ssrContext } from "/utils/ssr.client";
 import { apiFetch } from "/utils/api.client";
 import { getLang } from "/utils/lang";
 import { refreshOfflineAppCache } from "/app/stores/appStore";
-import { applySessionUser, refreshSessionUser } from "/app/stores/userStore";
-import type { LoggedInUser } from "/types/user-types";
+import { isLoggedIn, openLoginDialog } from "/app/stores/userStore";
 
 export type EditMode = "chat" | "code";
 
@@ -27,6 +26,10 @@ export const editPublishing = signal(false);
 export const editCreditBalanceEur = signal<number | null>(null);
 
 export async function refreshEditCredits(): Promise<void> {
+  if (!isLoggedIn()) {
+    editCreditBalanceEur.value = null;
+    return;
+  }
   try {
     const result = await apiFetch<{
       balanceEur: number;
@@ -128,6 +131,10 @@ export function startNewEdit(): void {
 export async function createAppFromPrompt(text: string): Promise<string | null> {
   const trimmed = text.trim();
   if (!trimmed) return null;
+  if (!isLoggedIn()) {
+    openLoginDialog();
+    return null;
+  }
   if (editSending.value) return null;
 
   editError.value = null;
@@ -148,7 +155,6 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
     const result = await apiFetch<{
       app: AppDetail;
       messages: AppEditMessage[];
-      user?: LoggedInUser;
     }>(
       `/api/${lang()}/app/generate`,
       {
@@ -157,14 +163,10 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
       },
     );
     if (!result.success) {
+      if (result.status === 401) openLoginDialog();
       editError.value = result.error.message ?? result.error.code;
       editMessages.value = editMessages.value.filter((m) => m.id !== optimistic.id);
       return null;
-    }
-    if (result.data.user) {
-      applySessionUser(result.data.user);
-    } else {
-      await refreshSessionUser();
     }
     editApp.value = result.data.app;
     editMessages.value = result.data.messages;
@@ -189,6 +191,10 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
 export async function sendChatMessage(slug: string, text: string): Promise<boolean> {
   const trimmed = text.trim();
   if (!trimmed) return false;
+  if (!isLoggedIn()) {
+    openLoginDialog();
+    return false;
+  }
   if (editSending.value) return false;
 
   editError.value = null;

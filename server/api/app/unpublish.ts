@@ -1,12 +1,12 @@
 import type { BunRequest } from "bun";
-import { withRegisteredAuth } from "/utils/auth.server";
+import { withAuth } from "/utils/auth.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { dbGetAppBySlug, dbUnpublishApp } from "/server/database/queries/apps";
 import { parseAppConfig, type AppDetail } from "/types/app-config-types";
 
 export default {
   async POST(req: BunRequest) {
-    return withRegisteredAuth(req, async (user) => {
+    return withAuth(req, async (user) => {
       let body: unknown;
       try {
         body = await req.json();

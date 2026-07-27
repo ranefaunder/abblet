@@ -4,6 +4,7 @@ import { useLocation } from "preact-iso";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import { appEditUrl, galleryUrl } from "/utils/app-url";
+import { requireLogin } from "/app/stores/userStore";
 
 export const AboutPath = "/:lang/about" as const;
 
@@ -25,25 +26,34 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
 
         <section class="hero">
           <div class="hero-inner" ui-container="sm" ui-column="gap-lg">
-            <p class="brand">Abblet</p>
+            <p class="brand">
+              <img src="/static/rmix.svg" alt="Rmix" width="200" height="47" />
+            </p>
             <h1 class="headline">${t("Apply it.")}</h1>
             <p class="lede">
-              ${t("Describe what you need in plain language. Abblet builds your app in minutes — no code required.")}
+              ${t("Describe what you need in plain language. Rmix builds your app in minutes — no code required.")}
             </p>
             <div class="cta" ui-row="gap-sm wrap y-center">
-              <a href=${appEditUrl(lang)} ui-button="primary">${t("Create an app")}</a>
+              <a
+                href=${appEditUrl(lang)}
+                ui-button="primary"
+                onClick=${(e: Event) => {
+                  if (requireLogin()) return;
+                  e.preventDefault();
+                }}
+              >${t("Create an app")}</a>
               <a href=${galleryUrl(lang)} ui-button="tertiary">${t("Browse the Gallery")}</a>
             </div>
           </div>
         </section>
 
         <section class="section" ui-container="sm" ui-column="gap-md">
-          <h2 ui-heading="lg">${t("What Abblet is")}</h2>
+          <h2 ui-heading="lg">${t("What Rmix is")}</h2>
           <p class="body">
-            ${t("Abblet is a place to make small personal apps for your own life — lists, trackers, tools, and little helpers that fit how you actually work.")}
+            ${t("Rmix is a place to make small personal apps for your own life — lists, trackers, tools, and little helpers that fit how you actually work.")}
           </p>
           <p class="body">
-            ${t("You talk to Abblet like a person. It designs and builds a working app you can open on your phone and keep improving.")}
+            ${t("You talk to Rmix like a person. It designs and builds a working app you can open on your phone and keep improving.")}
           </p>
         </section>
 
@@ -60,7 +70,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
             <li>
               <span class="step-num" aria-hidden="true">2</span>
               <div ui-column="gap-xs">
-                <h3 ui-heading="sm">${t("Abblet builds")}</h3>
+                <h3 ui-heading="sm">${t("Rmix builds")}</h3>
                 <p class="body">${t("In minutes you get a finished mini-app with its own look and icon — ready to open, not a mockup.")}</p>
               </div>
             </li>
@@ -77,7 +87,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
         <section class="section" ui-container="sm" ui-column="gap-md">
           <h2 ui-heading="lg">${t("Who it's for")}</h2>
           <p class="body">
-            ${t("Abblet is for anyone who wants software that fits their life — without learning to code, waiting on a developer, or forcing a generic app to behave.")}
+            ${t("Rmix is for anyone who wants software that fits their life — without learning to code, waiting on a developer, or forcing a generic app to behave.")}
           </p>
         </section>
 
@@ -87,12 +97,19 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
             ${t("Your first app can be tiny. The important part is that it's yours.")}
           </p>
           <div class="cta">
-            <a href=${appEditUrl(lang)} ui-button="primary">${t("Create an app")}</a>
+            <a
+              href=${appEditUrl(lang)}
+              ui-button="primary"
+              onClick=${(e: Event) => {
+                if (requireLogin()) return;
+                e.preventDefault();
+              }}
+            >${t("Create an app")}</a>
           </div>
         </section>
 
         <footer class="foot" ui-container="sm">
-          <p class="foot-brand">Abblet</p>
+          <p class="foot-brand">Rmix</p>
         </footer>
       </div>
     </div>
@@ -193,12 +210,13 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
 
       .brand {
         margin: 0;
-        font-family: var(--about-display);
-        font-size: clamp(3.25rem, 14vw, 5.5rem);
-        font-weight: 700;
-        letter-spacing: -0.03em;
-        line-height: 0.95;
         color: var(--about-paper);
+      }
+
+      .brand img {
+        display: block;
+        height: clamp(2.5rem, 10vw, 3.5rem);
+        width: auto;
       }
 
       .headline {

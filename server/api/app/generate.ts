@@ -1,5 +1,5 @@
 import type { BunRequest } from "bun";
-import { withAuthOrGuest } from "/utils/auth.server";
+import { withAuth } from "/utils/auth.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { dbCreateApp, dbGenerateAppSlug, dbGetAppBySlug, dbUpdateApp } from "/server/database/queries/apps";
 import { dbAddAppMessage, dbListAppMessages } from "/server/database/queries/app-messages";
@@ -41,11 +41,9 @@ export default {
       });
     }
 
-    // Guest session only after validation — avoids orphan cookies on bad input.
-    return withAuthOrGuest(req, async (user) => {
+    return withAuth(req, async (user) => {
       const clientIP = getClientIP(req);
-      const generateLimit = user.isGuest ? 8 : 20;
-      if (!checkRateLimit(clientIP, "app_generate", generateLimit, 60)) {
+      if (!checkRateLimit(clientIP, "app_generate", 20, 60)) {
         return apiError({
           code: "RATE_LIMIT_EXCEEDED",
           message: t("Too many requests. Wait a moment before retrying.", language),
@@ -181,15 +179,6 @@ export default {
         data: {
           app: detail,
           messages: dbListAppMessages(id),
-          user: {
-            id: user.id,
-            email: user.email,
-            createdAt: user.createdAt,
-            lastLogin: user.lastLogin,
-            nickname: user.nickname ?? null,
-            marketingOptIn: user.marketingOptIn === true,
-            isGuest: user.isGuest === true,
-          },
         },
       });
     });

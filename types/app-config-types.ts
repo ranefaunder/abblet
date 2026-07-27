@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Abblet-app on kokonainen Web Component (custom element).
+ * Rmix-app on kokonainen Web Component (custom element).
  * Tekoäly tuottaa `code`-kentässä täyden JS:n, joka rekisteröi elementin
  * `customElements.define(tagName, ...)` -kutsulla. Komponentti hoitaa oman
  * tilansa ja tallennuksensa itse (localStorage / IndexedDB).

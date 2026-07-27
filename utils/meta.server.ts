@@ -22,14 +22,14 @@ function isAboutPath(pathname: string): boolean {
 function metaCopy(lang: Language, pathname: string): { title: string; description: string } {
   if (isAboutPath(pathname)) {
     return {
-      title: metaPlainForTitleElement(t("Abblet — About", lang)),
+      title: metaPlainForTitleElement(t("Rmix — About", lang)),
       description: metaPlainForHtmlAttribute(
         t("Personal apps, built in conversation — no code required.", lang),
       ),
     };
   }
   return {
-    title: metaPlainForTitleElement(t("Abblet — Your apps evolve with your needs.", lang)),
+    title: metaPlainForTitleElement(t("Rmix — Your apps evolve with your needs.", lang)),
     description: metaPlainForHtmlAttribute(
       t("Your apps evolve with your needs.", lang),
     ),
@@ -50,7 +50,7 @@ export async function getMeta(req: BunRequest): Promise<string> {
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Abblet" />
+    <meta name="apple-mobile-web-app-title" content="Rmix" />
     <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
     <meta name="color-scheme" content="light" />
     <title>${title}</title>
@@ -64,9 +64,9 @@ export async function getMeta(req: BunRequest): Promise<string> {
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${title}" />
     <meta name="twitter:description" content="${description}" />
-    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/favicons/favicon.ico`)}" sizes="any" />
-    <link rel="icon" type="image/png" sizes="32x32" href="${escapeHtmlAttribute(`${staticRoot}/favicons/favicon-32x32.png`)}" />
-    <link rel="icon" type="image/png" sizes="16x16" href="${escapeHtmlAttribute(`${staticRoot}/favicons/favicon-16x16.png`)}" />
+    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/favicon-dark.svg`)}" type="image/svg+xml" />
+    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/favicon-dark.svg`)}" type="image/svg+xml" media="(prefers-color-scheme: light)" />
+    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/favicon-light.svg`)}" type="image/svg+xml" media="(prefers-color-scheme: dark)" />
     <link rel="apple-touch-icon" sizes="180x180" href="${escapeHtmlAttribute(`${staticRoot}/favicons/apple-touch-icon.png`)}" />
     <link rel="manifest" href="${escapeHtmlAttribute(`/${lang}/site.webmanifest`)}" />
     <meta name="theme-color" content="${themeColor}" media="(prefers-color-scheme: light)" />

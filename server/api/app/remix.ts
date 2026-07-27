@@ -1,5 +1,5 @@
 import type { BunRequest } from "bun";
-import { withAuthOrGuest } from "/utils/auth.server";
+import { withAuth } from "/utils/auth.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import {
   dbCreateApp,
@@ -20,7 +20,7 @@ import type { Language } from "/types/i18n-types";
  */
 export default {
   async POST(req: BunRequest) {
-    return withAuthOrGuest(req, async (user) => {
+    return withAuth(req, async (user) => {
       let body: unknown;
       try {
         body = await req.json();

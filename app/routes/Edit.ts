@@ -12,7 +12,7 @@ import { appEditUrl, appPageUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { draftLetter, previewGradient } from "/utils/app-preview";
 import { deleteApp } from "/app/stores/appStore";
-import { isGuest } from "/app/stores/userStore";
+import { isLoggedIn, openLoginDialog, requireLogin } from "/app/stores/userStore";
 import {
   editApp,
   editMessages,
@@ -56,7 +56,7 @@ function toolUsageLabel(tool: AppEditToolUsage["tool"]): string {
 }
 
 const WELCOME_KEY =
-  "Hey — I'm Abblet.\n\nTell me what kind of little app would help you. Just write it like you'd say it out loud — a couple of words is enough.\n\nFor example: shopping list, habit tracker, workout log, recipe book, budget, or mood journal.\n\nI do best with small, personal tools. What do you need?";
+  "Hey — I'm Rmix.\n\nTell me what kind of little app would help you. Just write it like you'd say it out loud — a couple of words is enough.\n\nFor example: shopping list, habit tracker, workout log, recipe book, budget, or mood journal.\n\nI do best with small, personal tools. What do you need?";
 
 /** New app: /:lang/edit — existing: /:lang/edit/:slug */
 export const EditPath = "/:lang/edit" as const;
@@ -72,11 +72,13 @@ export default function Edit(_props: EditRouteProps) {
   const lang = params.lang ?? "en";
   const slug = ("slug" in params ? params.slug : undefined) ?? "";
   const isNew = !slug;
-  const guest = isGuest();
   const deleting = useSignal(false);
 
   useEffect(() => {
     if (isNew) {
+      if (!isLoggedIn()) {
+        openLoginDialog();
+      }
       startNewEdit();
       return;
     }
@@ -183,29 +185,21 @@ export default function Edit(_props: EditRouteProps) {
                     <div id="edit-topbar-menu" popover="auto" role="menu">
                       ${showReadyTools
                         ? html`
-                          ${guest
-                            ? html`
-                              <button
-                                type="button"
-                                role="menuitem"
-                                onClick=${() => {
-                                  closeTopbarMenu();
-                                  (document.getElementById("login-dialog") as HTMLDialogElement | null)?.showModal();
-                                }}
-                              >
-                                <i ui-icon="share" aria-hidden="true"></i>
-                                ${t("Sign in to publish")}
-                              </button>`
-                            : html`
-                              <button
-                                type="button"
-                                role="menuitem"
-                                disabled=${publishing}
-                                onClick=${() => void handlePublishToggle()}
-                              >
-                                <i ui-icon=${isPublished ? "prohibit" : "share"} aria-hidden="true"></i>
-                                ${isPublished ? t("Remove from Gallery") : t("Publish to Gallery")}
-                              </button>`}
+                          <button
+                            type="button"
+                            role="menuitem"
+                            disabled=${publishing}
+                            onClick=${() => {
+                              if (!requireLogin()) {
+                                closeTopbarMenu();
+                                return;
+                              }
+                              void handlePublishToggle();
+                            }}
+                          >
+                            <i ui-icon=${isPublished ? "prohibit" : "share"} aria-hidden="true"></i>
+                            ${isPublished ? t("Remove from Gallery") : t("Publish to Gallery")}
+                          </button>
                           <button
                             type="button"
                             role="menuitem"
@@ -465,7 +459,7 @@ function ChatPanel({
               <p ui-heading="sm">${creating ? t("Describe your app") : t("Describe a change")}</p>
               <p class="chat-empty-copy">
                 ${creating
-                  ? t("Tell Abblet what you need — it builds a working app in minutes.")
+                  ? t("Tell Rmix what you need — it builds a working app in minutes.")
                   : t("Ask the AI to tweak your app — colors, features, wording, anything.")}
               </p>
             </div>`
@@ -707,8 +701,8 @@ function style() {
   return css`
     @scope ([data-scope="Edit"]) to ([data-scope]) {
       & {
-        flex: 1;
-        min-height: 0;
+        height: 100dvh;
+        max-height: 100dvh;
         display: flex;
         flex-direction: column;
         overflow: hidden;
