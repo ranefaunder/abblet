@@ -201,177 +201,317 @@ const INSTALL_COPY: Record<
   {
     back: string;
     install: string;
-    installing: string;
     installed: string;
     ready: string;
     offlineReady?: string;
     preparingOffline?: string;
     manualTitle: string;
-    iosSteps: string;
-    androidSteps: string;
-    desktopSteps: string;
+    /** Use {{share}} where the Share icon should appear. */
+    iosSteps: string[];
+    macSafariSteps?: string[];
+    firefoxSteps?: string[];
+    androidSteps: string[];
+    genericSteps: string[];
     openApp: string;
   }
 > = {
   en: {
     back: "Back",
     install: "Install",
-    installing: "Installing…",
     installed: "Installed",
     ready: "Add this app to your home screen.",
     offlineReady: "Ready for offline use.",
     preparingOffline: "Preparing offline…",
     manualTitle: "How to install",
-    iosSteps:
-      "Tap Share, then Add to Home Screen. Confirm Add.",
-    androidSteps: "Open the browser menu (⋮) and tap Install app or Add to Home screen.",
-    desktopSteps: "Use the install icon in the address bar, or the browser menu → Install app.",
+    iosSteps: [
+      "Tap {{share}} Share in Safari (bottom of the screen on iPhone).",
+      "Scroll down and tap Add to Home Screen.",
+      "Tap Add in the top right.",
+    ],
+    macSafariSteps: [
+      "Click {{share}} Share in the Safari toolbar.",
+      "Choose Add to Dock.",
+      "Confirm if Safari asks.",
+    ],
+    firefoxSteps: [
+      "Open the Firefox menu (☰).",
+      "Choose Install, Add to Home screen, or Add to Dock.",
+    ],
+    androidSteps: [
+      "Open the browser menu (⋮).",
+      "Tap Install app or Add to Home screen.",
+      "Confirm the install.",
+    ],
+    genericSteps: [
+      "Open your browser menu.",
+      "Look for Install app, Add to Home screen, or Add to Dock.",
+      "Confirm the install.",
+    ],
     openApp: "Open app",
   },
   fi: {
     back: "Takaisin",
     install: "Asenna",
-    installing: "Asennetaan…",
     installed: "Asennettu",
     ready: "Lisää tämä appi kotinäytölle.",
     offlineReady: "Valmis offline-käyttöön.",
     preparingOffline: "Valmistellaan offlinea…",
     manualTitle: "Näin asennat",
-    iosSteps: "Napauta Jaa, sitten Lisää Kotinäyttöön. Vahvista Lisää.",
-    androidSteps: "Avaa selaimen valikko (⋮) ja valitse Asenna sovellus tai Lisää aloitusnäytölle.",
-    desktopSteps: "Käytä asennuskuvaketta osoitekentässä tai selaimen valikkoa → Asenna sovellus.",
+    iosSteps: [
+      "Napauta {{share}} Jaa Safarissa (iPhonessa näytön alareunassa).",
+      "Vieritä alas ja napauta Lisää Kotinäyttöön.",
+      "Napauta Lisää oikeasta yläkulmasta.",
+    ],
+    macSafariSteps: [
+      "Klikkaa {{share}} Jaa Safari-työkalupalkissa.",
+      "Valitse Lisää Dockiin.",
+      "Vahvista, jos Safari kysyy.",
+    ],
+    firefoxSteps: [
+      "Avaa Firefoxin valikko (☰).",
+      "Valitse Asenna, Lisää aloitusnäytölle tai Lisää Dockiin.",
+    ],
+    androidSteps: [
+      "Avaa selaimen valikko (⋮).",
+      "Valitse Asenna sovellus tai Lisää aloitusnäytölle.",
+      "Vahvista asennus.",
+    ],
+    genericSteps: [
+      "Avaa selaimen valikko.",
+      "Etsi Asenna sovellus, Lisää aloitusnäytölle tai Lisää Dockiin.",
+      "Vahvista asennus.",
+    ],
     openApp: "Avaa appi",
   },
   sv: {
     back: "Tillbaka",
     install: "Installera",
-    installing: "Installerar…",
     installed: "Installerad",
     ready: "Lägg till appen på hemskärmen.",
     manualTitle: "Så här installerar du",
-    iosSteps: "Tryck på Dela, sedan Lägg till på hemskärmen.",
-    androidSteps: "Öppna menyn (⋮) och välj Installera app.",
-    desktopSteps: "Använd installationsikonen i adressfältet eller menyn → Installera app.",
+    iosSteps: [
+      "Tryck på {{share}} Dela i Safari.",
+      "Välj Lägg till på hemskärmen.",
+      "Bekräfta med Lägg till.",
+    ],
+    androidSteps: [
+      "Öppna menyn (⋮).",
+      "Välj Installera app eller Lägg till på hemskärmen.",
+    ],
+    genericSteps: [
+      "Öppna webbläsarens meny.",
+      "Leta efter Installera app eller Lägg till på hemskärmen.",
+    ],
     openApp: "Öppna app",
   },
   zh: {
     back: "Back",
     install: "Install",
-    installing: "Installing…",
     installed: "Installed",
     ready: "Add this app to your home screen.",
     manualTitle: "How to install",
-    iosSteps: "Tap Share, then Add to Home Screen.",
-    androidSteps: "Open the browser menu and tap Install app.",
-    desktopSteps: "Use the install icon in the address bar.",
+    iosSteps: [
+      "Tap {{share}} Share in Safari.",
+      "Tap Add to Home Screen.",
+      "Tap Add.",
+    ],
+    androidSteps: [
+      "Open the browser menu.",
+      "Tap Install app or Add to Home screen.",
+    ],
+    genericSteps: [
+      "Open your browser menu.",
+      "Look for Install app or Add to Home screen.",
+    ],
     openApp: "Open app",
   },
   es: {
     back: "Atrás",
     install: "Instalar",
-    installing: "Instalando…",
     installed: "Instalada",
     ready: "Añade esta app a tu pantalla de inicio.",
     manualTitle: "Cómo instalar",
-    iosSteps: "Toca Compartir y luego Añadir a pantalla de inicio.",
-    androidSteps: "Abre el menú del navegador e Instalar app.",
-    desktopSteps: "Usa el icono de instalación en la barra de direcciones.",
+    iosSteps: [
+      "Toca {{share}} Compartir en Safari.",
+      "Elige Añadir a pantalla de inicio.",
+      "Confirma con Añadir.",
+    ],
+    androidSteps: [
+      "Abre el menú del navegador (⋮).",
+      "Toca Instalar app o Añadir a pantalla de inicio.",
+    ],
+    genericSteps: [
+      "Abre el menú del navegador.",
+      "Busca Instalar app o Añadir a pantalla de inicio.",
+    ],
     openApp: "Abrir app",
   },
   ja: {
     back: "Back",
     install: "Install",
-    installing: "Installing…",
     installed: "Installed",
     ready: "Add this app to your home screen.",
     manualTitle: "How to install",
-    iosSteps: "Tap Share, then Add to Home Screen.",
-    androidSteps: "Open the browser menu and tap Install app.",
-    desktopSteps: "Use the install icon in the address bar.",
+    iosSteps: [
+      "Tap {{share}} Share in Safari.",
+      "Tap Add to Home Screen.",
+      "Tap Add.",
+    ],
+    androidSteps: [
+      "Open the browser menu.",
+      "Tap Install app or Add to Home screen.",
+    ],
+    genericSteps: [
+      "Open your browser menu.",
+      "Look for Install app or Add to Home screen.",
+    ],
     openApp: "Open app",
   },
   de: {
     back: "Zurück",
     install: "Installieren",
-    installing: "Wird installiert…",
     installed: "Installiert",
     ready: "App zum Startbildschirm hinzufügen.",
     manualTitle: "So installierst du",
-    iosSteps: "Tippe auf Teilen, dann Zum Home-Bildschirm.",
-    androidSteps: "Öffne das Menü (⋮) und wähle App installieren.",
-    desktopSteps: "Nutze das Installationssymbol in der Adressleiste.",
+    iosSteps: [
+      "Tippe auf {{share}} Teilen in Safari.",
+      "Wähle Zum Home-Bildschirm.",
+      "Bestätige mit Hinzufügen.",
+    ],
+    androidSteps: [
+      "Öffne das Menü (⋮).",
+      "Wähle App installieren oder Zum Startbildschirm.",
+    ],
+    genericSteps: [
+      "Öffne das Browser-Menü.",
+      "Suche nach App installieren oder Zum Startbildschirm.",
+    ],
     openApp: "App öffnen",
   },
   fr: {
     back: "Retour",
     install: "Installer",
-    installing: "Installation…",
     installed: "Installée",
     ready: "Ajoutez cette app à l’écran d’accueil.",
     manualTitle: "Comment installer",
-    iosSteps: "Touchez Partager, puis Sur l’écran d’accueil.",
-    androidSteps: "Ouvrez le menu (⋮) puis Installer l’application.",
-    desktopSteps: "Utilisez l’icône d’installation dans la barre d’adresse.",
+    iosSteps: [
+      "Touchez {{share}} Partager dans Safari.",
+      "Choisissez Sur l’écran d’accueil.",
+      "Confirmez avec Ajouter.",
+    ],
+    androidSteps: [
+      "Ouvrez le menu (⋮).",
+      "Choisissez Installer l’application ou Écran d’accueil.",
+    ],
+    genericSteps: [
+      "Ouvrez le menu du navigateur.",
+      "Cherchez Installer l’application ou Écran d’accueil.",
+    ],
     openApp: "Ouvrir l’app",
   },
   hi: {
     back: "Back",
     install: "Install",
-    installing: "Installing…",
     installed: "Installed",
     ready: "Add this app to your home screen.",
     manualTitle: "How to install",
-    iosSteps: "Tap Share, then Add to Home Screen.",
-    androidSteps: "Open the browser menu and tap Install app.",
-    desktopSteps: "Use the install icon in the address bar.",
+    iosSteps: [
+      "Tap {{share}} Share in Safari.",
+      "Tap Add to Home Screen.",
+      "Tap Add.",
+    ],
+    androidSteps: [
+      "Open the browser menu.",
+      "Tap Install app or Add to Home screen.",
+    ],
+    genericSteps: [
+      "Open your browser menu.",
+      "Look for Install app or Add to Home screen.",
+    ],
     openApp: "Open app",
   },
   ko: {
     back: "Back",
     install: "Install",
-    installing: "Installing…",
     installed: "Installed",
     ready: "Add this app to your home screen.",
     manualTitle: "How to install",
-    iosSteps: "Tap Share, then Add to Home Screen.",
-    androidSteps: "Open the browser menu and tap Install app.",
-    desktopSteps: "Use the install icon in the address bar.",
+    iosSteps: [
+      "Tap {{share}} Share in Safari.",
+      "Tap Add to Home Screen.",
+      "Tap Add.",
+    ],
+    androidSteps: [
+      "Open the browser menu.",
+      "Tap Install app or Add to Home screen.",
+    ],
+    genericSteps: [
+      "Open your browser menu.",
+      "Look for Install app or Add to Home screen.",
+    ],
     openApp: "Open app",
   },
   it: {
     back: "Indietro",
     install: "Installa",
-    installing: "Installazione…",
     installed: "Installata",
     ready: "Aggiungi questa app alla schermata Home.",
     manualTitle: "Come installare",
-    iosSteps: "Tocca Condividi, poi Aggiungi a Home.",
-    androidSteps: "Apri il menu (⋮) e Installa app.",
-    desktopSteps: "Usa l’icona di installazione nella barra degli indirizzi.",
+    iosSteps: [
+      "Tocca {{share}} Condividi in Safari.",
+      "Scegli Aggiungi a Home.",
+      "Conferma con Aggiungi.",
+    ],
+    androidSteps: [
+      "Apri il menu (⋮).",
+      "Scegli Installa app o Aggiungi a Home.",
+    ],
+    genericSteps: [
+      "Apri il menu del browser.",
+      "Cerca Installa app o Aggiungi a Home.",
+    ],
     openApp: "Apri app",
   },
   pt: {
     back: "Voltar",
     install: "Instalar",
-    installing: "A instalar…",
     installed: "Instalada",
     ready: "Adicione esta app ao ecrã inicial.",
     manualTitle: "Como instalar",
-    iosSteps: "Toque em Partilhar e depois Adicionar ao Ecrã Principal.",
-    androidSteps: "Abra o menu (⋮) e Instalar aplicação.",
-    desktopSteps: "Use o ícone de instalação na barra de endereço.",
+    iosSteps: [
+      "Toque em {{share}} Partilhar no Safari.",
+      "Escolha Adicionar ao Ecrã Principal.",
+      "Confirme com Adicionar.",
+    ],
+    androidSteps: [
+      "Abra o menu (⋮).",
+      "Escolha Instalar aplicação ou Adicionar ao ecrã inicial.",
+    ],
+    genericSteps: [
+      "Abra o menu do browser.",
+      "Procure Instalar aplicação ou Adicionar ao ecrã inicial.",
+    ],
     openApp: "Abrir app",
   },
   nl: {
     back: "Terug",
     install: "Installeren",
-    installing: "Bezig met installeren…",
     installed: "Geïnstalleerd",
     ready: "Voeg deze app toe aan je beginscherm.",
     manualTitle: "Zo installeer je",
-    iosSteps: "Tik op Delen, daarna Zet op beginscherm.",
-    androidSteps: "Open het menu (⋮) en kies App installeren.",
-    desktopSteps: "Gebruik het installatiepictogram in de adresbalk.",
+    iosSteps: [
+      "Tik op {{share}} Delen in Safari.",
+      "Kies Zet op beginscherm.",
+      "Bevestig met Zet erop.",
+    ],
+    androidSteps: [
+      "Open het menu (⋮).",
+      "Kies App installeren of Zet op beginscherm.",
+    ],
+    genericSteps: [
+      "Open het browsermenu.",
+      "Zoek App installeren of Zet op beginscherm.",
+    ],
     openApp: "App openen",
   },
 };
@@ -383,6 +523,9 @@ function installCopy(lang: Language) {
     ...c,
     offlineReady: c.offlineReady ?? en.offlineReady!,
     preparingOffline: c.preparingOffline ?? en.preparingOffline!,
+    macSafariSteps: c.macSafariSteps ?? en.macSafariSteps!,
+    firefoxSteps: c.firefoxSteps ?? en.firefoxSteps!,
+    genericSteps: c.genericSteps ?? en.genericSteps,
   };
 }
 
@@ -461,20 +604,64 @@ const INSTALL_PAGE_STYLES = `
   .install .manual {
     margin: 0;
     max-width: 22rem;
-    padding: 1rem;
-    border-radius: 12px;
+    width: 100%;
+    padding: 1.1rem 1.15rem;
+    border-radius: 14px;
     background: #fff;
     text-align: left;
     color: #1c1c1e;
     font-size: 0.9375rem;
     line-height: 1.45;
+    box-sizing: border-box;
   }
   .install .manual h2 {
-    margin: 0 0 0.5rem;
+    margin: 0 0 0.75rem;
     font-size: 0.8125rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: #6e6e73;
+  }
+  .install .manual ol.steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .install .manual ol.steps li {
+    display: grid;
+    grid-template-columns: 1.5rem 1fr;
+    gap: 0.65rem;
+    align-items: start;
+  }
+  .install .manual .step-num {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: #007aff;
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+  .install .manual .step-text {
+    padding-top: 0.1rem;
+  }
+  .install .manual .share-glyph {
+    display: inline-flex;
+    vertical-align: -0.35em;
+    width: 1.35em;
+    height: 1.35em;
+    margin: 0 0.15em;
+    color: #007aff;
+  }
+  .install .manual .share-glyph svg {
+    width: 100%;
+    height: 100%;
+    display: block;
   }
   .install .manual[hidden] { display: none; }
 `;
@@ -514,11 +701,11 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
       <p class="status" id="status" role="status"></p>
       <div class="actions">
         <a class="btn secondary" id="back" href="${escapeHtmlAttribute(backHref)}">${escapeHtmlTextContent(copy.back)}</a>
-        <button type="button" class="primary" id="install">${escapeHtmlTextContent(copy.install)}</button>
+        <button type="button" class="primary" id="install" hidden>${escapeHtmlTextContent(copy.install)}</button>
       </div>
       <div class="manual" id="manual" hidden>
         <h2>${escapeHtmlTextContent(copy.manualTitle)}</h2>
-        <p id="manual-body"></p>
+        <div id="manual-body"></div>
       </div>
     </main>
     <script>
@@ -532,8 +719,9 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
         var manualBody = document.getElementById("manual-body");
         var backBtn = document.getElementById("back");
         var deferredPrompt = null;
-        var promptAvailable = false;
         var offlineReady = false;
+        // Chromium (Chrome/Edge/Opera/Samsung/…): BeforeInstallPromptEvent.
+        var supportsBip = "onbeforeinstallprompt" in window;
 
         if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
           location.replace("/");
@@ -554,14 +742,60 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
         function isAndroid() {
           return /Android/i.test(navigator.userAgent);
         }
-        function manualText() {
+        function isFirefox() {
+          return /Firefox|FxiOS/i.test(navigator.userAgent);
+        }
+        function isMacSafari() {
+          var ua = navigator.userAgent;
+          var safari = /Safari/i.test(ua) && !/Chrome|Chromium|CriOS|Edg|Firefox|Android/i.test(ua);
+          var mac = /Macintosh|Mac OS X/i.test(ua);
+          return safari && mac && !isIos();
+        }
+        function manualSteps() {
           if (isIos()) return copy.iosSteps;
+          if (isMacSafari()) return copy.macSafariSteps;
+          if (isFirefox()) return copy.firefoxSteps;
           if (isAndroid()) return copy.androidSteps;
-          return copy.desktopSteps;
+          return copy.genericSteps;
+        }
+        function escapeHtml(s) {
+          return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+        // iOS / Safari Share glyph (square + arrow up)
+        var SHARE_ICON =
+          '<span class="share-glyph" aria-hidden="true">' +
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>' +
+          "</svg></span>";
+        function formatStep(text) {
+          var parts = String(text).split("{{share}}");
+          if (parts.length === 1) return escapeHtml(text);
+          return parts.map(escapeHtml).join(SHARE_ICON);
         }
         function showManual() {
           manual.hidden = false;
-          manualBody.textContent = manualText();
+          var steps = manualSteps() || [];
+          manualBody.innerHTML =
+            '<ol class="steps">' +
+            steps
+              .map(function (step, i) {
+                return (
+                  "<li>" +
+                  '<span class="step-num">' +
+                  (i + 1) +
+                  "</span>" +
+                  '<span class="step-text">' +
+                  formatStep(step) +
+                  "</span>" +
+                  "</li>"
+                );
+              })
+              .join("") +
+            "</ol>";
         }
 
         async function precacheViaCacheApi(urls) {
@@ -569,7 +803,7 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
           var cache = await caches.open(CACHE);
           await Promise.all(urls.map(async function (url) {
             try {
-              if (String(url).indexOf("mode=install") !== -1) return;
+              if (String(url) === "/install" || String(url).indexOf("/install") !== -1) return;
               var res = await fetch(url, { cache: "reload", credentials: "same-origin" });
               if (!res.ok) return;
               var path = new URL(url, location.origin).pathname;
@@ -600,56 +834,71 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
           }
         }
 
+        void prepareOffline();
+
+        if (!supportsBip) {
+          // Safari, Firefox, iOS Chrome, etc. — instructions only.
+          installBtn.hidden = true;
+          showManual();
+          return;
+        }
+
+        // Chromium: Install button + beforeinstallprompt.
+        installBtn.hidden = false;
+
         window.addEventListener("beforeinstallprompt", function (e) {
           e.preventDefault();
           deferredPrompt = e;
-          promptAvailable = true;
           manual.hidden = true;
-          installBtn.disabled = false;
           if (offlineReady) statusEl.textContent = copy.offlineReady;
           else statusEl.textContent = "";
+
+          var canAuto = false;
+          try {
+            canAuto = !!(navigator.userActivation && navigator.userActivation.isActive);
+          } catch (err) {}
+          if (canAuto) void runInstallPrompt();
         });
 
         window.addEventListener("appinstalled", function () {
           statusEl.textContent = copy.installed;
-          installBtn.disabled = true;
+          deferredPrompt = null;
           void prepareOffline().then(function () {
             setTimeout(function () { location.href = "/"; }, 500);
           });
         });
 
-        installBtn.addEventListener("click", async function () {
-          if (deferredPrompt) {
-            statusEl.textContent = copy.installing;
-            installBtn.disabled = true;
-            try {
-              deferredPrompt.prompt();
-              var choice = await deferredPrompt.userChoice;
-              deferredPrompt = null;
-              if (choice && choice.outcome === "accepted") {
-                statusEl.textContent = copy.installing;
-                await prepareOffline();
-              } else {
-                statusEl.textContent = offlineReady ? copy.offlineReady : "";
-                installBtn.disabled = false;
-                showManual();
-              }
-            } catch (err) {
-              statusEl.textContent = offlineReady ? copy.offlineReady : "";
-              installBtn.disabled = false;
-              showManual();
+        async function runInstallPrompt() {
+          if (!deferredPrompt) return;
+
+          var promptEvent = deferredPrompt;
+          try {
+            promptEvent.prompt();
+            var choice = await Promise.race([
+              promptEvent.userChoice,
+              new Promise(function (_, reject) {
+                setTimeout(function () {
+                  reject(new Error("PROMPT_TIMEOUT"));
+                }, 8000);
+              }),
+            ]);
+            deferredPrompt = null;
+            if (choice && choice.outcome === "accepted") {
+              await prepareOffline();
             }
-            return;
+          } catch (err) {
+            deferredPrompt = null;
           }
-          showManual();
-          void prepareOffline();
+        }
+
+        installBtn.addEventListener("click", function () {
+          void runInstallPrompt();
         });
 
-        void prepareOffline();
-
+        // If installability never arrives, show generic tip (button stays for late BIP).
         setTimeout(function () {
-          if (!promptAvailable) showManual();
-        }, 2000);
+          if (!deferredPrompt) showManual();
+        }, 3000);
       })();
     </script>
   </body>
@@ -801,8 +1050,22 @@ export function appSubdomainPage(req: BunRequest): Response {
   const slug = parseAppSubdomain(getRequestHost(req));
   if (!slug) return new Response("Not Found", { status: 404 });
   const lang = resolveRequestLang(req);
-  const mode = new URL(req.url).searchParams.get("mode");
-  return renderAppPage(resolveAppAccess(lang, slug, req, { allowDraftBySlug: true }), { mode });
+  const url = new URL(req.url);
+  // Legacy ?mode=install → /install
+  if (url.searchParams.get("mode") === "install") {
+    return Response.redirect(`${appOrigin(slug)}/install`, 302);
+  }
+  return renderAppPage(resolveAppAccess(lang, slug, req, { allowDraftBySlug: true }));
+}
+
+/** App PWA install UI on `{slug}.{APP_RUNTIME_HOST}/install`. */
+export function appSubdomainInstallPage(req: BunRequest): Response {
+  const slug = parseAppSubdomain(getRequestHost(req));
+  if (!slug) return new Response("Not Found", { status: 404 });
+  const lang = resolveRequestLang(req);
+  return renderAppPage(resolveAppAccess(lang, slug, req, { allowDraftBySlug: true }), {
+    mode: "install",
+  });
 }
 
 /** App module on `{slug}.{APP_RUNTIME_HOST}/module.js`. */
@@ -854,6 +1117,9 @@ export function appPage(req: LangAppRequest): Response {
 
   const url = new URL(req.url);
   if (isNumericAppSlug(slug)) {
+    if (url.searchParams.get("mode") === "install") {
+      return Response.redirect(`${appOrigin(slug)}/install`, 302);
+    }
     return redirectToAppSubdomain(slug, url.search);
   }
 

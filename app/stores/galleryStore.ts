@@ -140,7 +140,7 @@ export async function recordLibraryInstall(slug: string): Promise<boolean> {
 }
 
 /**
- * Open the app's PWA install page (`?mode=install`).
+ * Open the app's PWA install page (`/install`).
  * Signed-in users also get a library install recorded in the background.
  */
 export function openAppInstall(slug: string): void {

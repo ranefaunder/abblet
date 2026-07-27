@@ -71,7 +71,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
               <span class="step-num" aria-hidden="true">2</span>
               <div ui-column="gap-xs">
                 <h3 ui-heading="sm">${t("Rmix builds")}</h3>
-                <p class="body">${t("In minutes you get a finished mini-app with its own look and icon — ready to open, not a mockup.")}</p>
+                <p class="body">${t("In minutes you get a finished app with its own look and icon — ready to open, not a mockup.")}</p>
               </div>
             </li>
             <li>

@@ -4,7 +4,7 @@
  * - Precaches shell on install / PRECACHE (only then does cache update)
  * - Cache-first for `/`, `/module.js`, icons — no automatic background refresh
  * - CHECK_UPDATE compares network /module.js to cache; client shows Update UI
- * - Never treats `/?mode=install` as the app shell
+ * - Never treats `/install` as the app shell
  */
 const CACHE = "rmix-app-runtime-v3";
 const CORE = ["/", "/module.js", "/manifest.webmanifest"];
@@ -42,13 +42,13 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-function isInstallMode(url) {
-  return url.pathname === "/" && url.searchParams.get("mode") === "install";
+function isInstallPath(url) {
+  return url.pathname === "/install" || url.pathname === "/install/";
 }
 
 function shouldHandle(url) {
   if (url.origin !== self.location.origin) return false;
-  if (isInstallMode(url)) return false;
+  if (isInstallPath(url)) return false;
   const path = url.pathname;
   if (path === "/" || path === "") return true;
   if (path === "/module.js") return true;
@@ -132,7 +132,7 @@ async function precacheUrls(urls) {
   await Promise.all(
     list.map(async (url) => {
       try {
-        if (url.includes("mode=install")) return;
+        if (url.includes("/install")) return;
         const res = await fetch(url, { cache: "reload", credentials: "same-origin" });
         if (!res.ok) return;
         const path = new URL(url, self.location.origin).pathname;

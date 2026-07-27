@@ -6,7 +6,7 @@ export function appPageUrl(_lang: string, slug: string): string {
 
 /** App subdomain install UI (PWA Add to Home Screen). */
 export function appInstallUrl(_lang: string, slug: string): string {
-  return `${appOrigin(slug)}/?mode=install`;
+  return `${appOrigin(slug)}/install`;
 }
 
 export function appModuleUrl(_lang: string, slug: string): string {

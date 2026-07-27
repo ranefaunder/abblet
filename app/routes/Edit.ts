@@ -56,7 +56,7 @@ function toolUsageLabel(tool: AppEditToolUsage["tool"]): string {
 }
 
 const WELCOME_KEY =
-  "Hey — I'm Rmix.\n\nTell me what kind of little app would help you. Just write it like you'd say it out loud — a couple of words is enough.\n\nFor example: shopping list, habit tracker, workout log, recipe book, budget, or mood journal.\n\nI do best with small, personal tools. What do you need?";
+  "Hey — I'm Rmix.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?";
 
 /** New app: /:lang/edit — existing: /:lang/edit/:slug */
 export const EditPath = "/:lang/edit" as const;

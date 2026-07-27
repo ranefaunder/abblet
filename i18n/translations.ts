@@ -170,8 +170,8 @@ export const translations = {
   "I couldn't update the app icon right now. Try again in a moment.": {
     fi: "En saanut app-kuvaketta päivitettyä juuri nyt. Kokeile hetken päästä uudelleen.",
   },
-  "Hey — I'm Rmix.\n\nTell me what kind of little app would help you. Just write it like you'd say it out loud — a couple of words is enough.\n\nFor example: shopping list, habit tracker, workout log, recipe book, budget, or mood journal.\n\nI do best with small, personal tools. What do you need?": {
-    fi: "Hei — olen Rmix.\n\nKerro millainen pieni app auttaisi sinua. Kirjoita ihan niin kuin puhuisit — pari sanaa riittää.\n\nEsimerkiksi: ostoslista, tapaseuranta, treenipäiväkirja, reseptikirja, budjetti tai mielialaseuranta.\n\nParhaiten teen pieniä, henkilökohtaisia työkaluja. Mitä sinä tarvitset?",
+  "Hey — I'm Rmix.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?": {
+    fi: "Hei — olen Rmix.\n\nRakennan appin siitä mitä kuvailet. Hyvän ensimmäisen version saat, kun kerrot mitä appin pitäisi tehdä ja miten käytät sitä — mitä selkeämmin, sen parempi tulos.\n\nMitä tehdään?",
   },
   "Sign in to open your apps": {
     fi: "Kirjaudu avataksesi appisi",
@@ -432,8 +432,8 @@ export const translations = {
     fi: "Kirjoita tarpeesi arkikielellä — ostoslista, tapaseuranta, treenipäiväkirja tai jotain mitä vain sinä keksit.",
   },
   "Rmix builds": { fi: "Rmix rakentaa" },
-  "In minutes you get a finished mini-app with its own look and icon — ready to open, not a mockup.": {
-    fi: "Muutamassa minuutissa saat valmiin miniappin omalla ilmeellä ja kuvakkeella — avattavaksi, ei mockupiksi.",
+  "In minutes you get a finished app with its own look and icon — ready to open, not a mockup.": {
+    fi: "Muutamassa minuutissa saat valmiin appin omalla ilmeellä ja kuvakkeella — avattavaksi, ei mockupiksi.",
   },
   "Use and evolve": { fi: "Käytä ja kehitä" },
   "Ask for changes anytime. Publish to the Gallery if you want, or keep it private for yourself.": {
@@ -449,6 +449,34 @@ export const translations = {
   },
   "Personal apps, built in conversation — no code required.": {
     fi: "Henkilökohtaisia appeja keskustellen — ilman koodia.",
+  },
+  "Make your own apps": { fi: "Tee omia appeja" },
+  "Make your own apps with AI": {
+    fi: "Tee omia appeja tekoälyllä",
+  },
+  "Make your own apps with Rmix": {
+    fi: "Tee omia appeja Rmixillä",
+  },
+  "Your idea. Your app.": {
+    fi: "Sinun idea. Sinun appi.",
+  },
+  "Describe what you need in plain language. Rmix builds a working app in minutes — then you improve it by chatting. No code needed.": {
+    fi: "Kuvaile mitä tarvitset arkikielellä. Rmix rakentaa toimivan appin minuuteissa — ja parannat sitä keskustellen. Ei koodia tarvita.",
+  },
+  "From plain language to a working app in minutes.": {
+    fi: "Arkikielestä toimivaksi appiksi minuuteissa.",
+  },
+  "Everyday words. Any idea.": {
+    fi: "Arkikielellä. Mikä idea tahansa.",
+  },
+  "A real app — ready to open.": {
+    fi: "Oikea appi — heti auki.",
+  },
+  "Chat to change it. Private or published.": {
+    fi: "Muuta keskustellen. Yksityinen tai julkinen.",
+  },
+  "Rmix builds working apps from plain language. Describe an idea, get an app in minutes, then improve it by chatting — no code.": {
+    fi: "Rmix rakentaa toimivia appeja arkikielestä. Kuvaile idea, saat appin minuuteissa ja parannat sitä keskustellen — ilman koodia.",
   },
   "Previously installed": { fi: "Aiemmin asennetut" },
   "Popular apps": { fi: "Suositut appit" },

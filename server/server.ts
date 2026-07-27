@@ -9,7 +9,7 @@ import robotsTxt from "./routes/robots-txt";
 import sitemapXml from "./routes/sitemap-xml";
 import siteWebmanifest from "./routes/site-webmanifest";
 import appManifest from "./routes/app-manifest";
-import { appPage, appRunRedirect, appModule, shortAppModule, appSubdomainModule } from "./routes/app-page";
+import { appPage, appRunRedirect, appModule, shortAppModule, appSubdomainModule, appSubdomainInstallPage } from "./routes/app-page";
 import connectRoute from "./routes/connect";
 import sdkExchange from "./api/sdk/exchange";
 import sdkAi from "./api/sdk/ai";
@@ -50,6 +50,7 @@ const server = Bun.serve({
     "/sitemap.xml": sitemapXml,
     "/:lang/site.webmanifest": siteWebmanifest,
     "/manifest.webmanifest": appManifest,
+    "/install": appSubdomainInstallPage,
     "/.well-known/*": () => new Response(null, { status: 404 }),
     "/api/:lang/meta": meta,
     "/api/:lang/app/generate": appGenerate,

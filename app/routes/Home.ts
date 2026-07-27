@@ -156,15 +156,13 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   const loggedIn = isLoggedIn();
 
   const featuredApps = isDefaultBrowse ? apps.slice(0, Math.min(2, apps.length)) : [];
-  const featuredIds = new Set(featuredApps.map((a) => a.id));
-  const remaining = apps.filter((a) => !featuredIds.has(a.id));
-  const popular = [...remaining]
+  const popular = [...apps]
     .sort((a, b) => b.installCount - a.installCount || b.remixCount - a.remixCount)
     .slice(0, 12);
   const charts = [...apps]
     .sort((a, b) => b.installCount - a.installCount || b.remixCount - a.remixCount)
     .slice(0, 8);
-  const categoryGroups = isDefaultBrowse ? groupByCategory(remaining).slice(0, 4) : [];
+  const categoryGroups = isDefaultBrowse ? groupByCategory(apps).slice(0, 4) : [];
   const filteredList = !isDefaultBrowse ? apps : [];
 
   useEffect(() => {
@@ -318,6 +316,28 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                       </section>`
                     : ""}
 
+                  <section class="create-pitch">
+                    <div class="create-pitch-bg" aria-hidden="true"></div>
+                    <div class="create-pitch-inner" ui-column="gap-md">
+                      <header class="create-head" ui-column="gap-sm">
+                        <h2>${t("Make your own apps with AI")}</h2>
+                        <p class="create-lede">
+                          ${t("Describe what you need in plain language. Rmix builds a working app in minutes — then you improve it by chatting. No code needed.")}
+                        </p>
+                      </header>
+                      <div class="create-cta">
+                        <a
+                          href=${appEditUrl(lang)}
+                          ui-button="primary"
+                          onClick=${(e: Event) => {
+                            if (requireLogin()) return;
+                            e.preventDefault();
+                          }}
+                        >${t("Create an app")}</a>
+                      </div>
+                    </div>
+                  </section>
+
                   ${history.length > 0
                     ? html`
                       <section ui-column="gap-sm">
@@ -470,6 +490,82 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
         padding-top: 1.25rem;
         max-width: 48rem;
         margin-inline: auto;
+      }
+
+      .create-pitch {
+        position: relative;
+        overflow: hidden;
+        border-radius: 1.25rem;
+        border: 1px solid color-mix(in oklab, var(--primary-200) 55%, var(--neutral-200));
+        background: var(--white);
+        isolation: isolate;
+      }
+
+      .create-pitch-bg {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--primary-200) 55%, transparent), transparent 55%),
+          radial-gradient(90% 80% at 100% 10%, color-mix(in oklab, var(--secondary-200) 40%, transparent), transparent 50%),
+          linear-gradient(165deg, color-mix(in oklab, var(--primary-50) 70%, var(--white)), var(--white) 58%, var(--neutral-50));
+        pointer-events: none;
+      }
+
+      .create-pitch-bg::after {
+        content: "";
+        position: absolute;
+        inset: auto -10% -35% 35%;
+        height: 70%;
+        border-radius: 50%;
+        background: color-mix(in oklab, var(--primary-100) 45%, transparent);
+        filter: blur(28px);
+        opacity: 0.7;
+      }
+
+      .create-pitch-inner {
+        position: relative;
+        z-index: 1;
+        padding: 1.5rem 1.25rem 1.4rem;
+        max-width: 28rem;
+      }
+
+      .create-head h2 {
+        margin: 0;
+        font-size: 1.55rem;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        line-height: 1.12;
+        color: var(--neutral-950);
+      }
+
+      .create-lede {
+        margin: 0;
+        color: var(--neutral-600);
+        font-size: 1rem;
+        line-height: 1.45;
+      }
+
+      .create-cta {
+        display: flex;
+      }
+
+      .create-cta [ui-button] {
+        min-width: 9.5rem;
+      }
+
+      @media (min-width: 640px) {
+        .create-pitch-inner {
+          padding: 1.75rem 1.5rem 1.55rem;
+        }
+
+        .create-head h2 {
+          font-size: 1.85rem;
+        }
+
+        .create-lede {
+          font-size: 1.05rem;
+        }
       }
 
       .today-card {
@@ -660,6 +756,13 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
         clip: rect(0, 0, 0, 0);
         white-space: nowrap;
         border: 0;
+      }
+
+      @media (max-width: 719px) {
+        /* One featured card on small screens — two stacked cards overlap the fold. */
+        .today .today-card:nth-child(n + 2) {
+          display: none;
+        }
       }
 
       @media (min-width: 720px) {
