@@ -205,6 +205,7 @@ const INSTALL_COPY: Record<
     ready: string;
     offlineReady?: string;
     preparingOffline?: string;
+    firefoxUnsupported?: string;
     manualTitle: string;
     /** Use {{share}} where the Share icon should appear. */
     iosSteps: string[];
@@ -219,9 +220,11 @@ const INSTALL_COPY: Record<
     back: "Back",
     install: "Install",
     installed: "Installed",
-    ready: "Add this app to your home screen.",
-    offlineReady: "Ready for offline use.",
-    preparingOffline: "Preparing offline…",
+    ready: "Install on your home screen — open anytime, even offline.",
+    offlineReady: "Saved on this device. It opens even without a network.",
+    preparingOffline: "Saving the app on this device…",
+    firefoxUnsupported:
+      "Firefox can’t install this app. Open it in the browser, or use Chrome or Safari to install.",
     manualTitle: "How to install",
     iosSteps: [
       "Tap {{share}} Share in Safari (bottom of the screen on iPhone).",
@@ -253,9 +256,11 @@ const INSTALL_COPY: Record<
     back: "Takaisin",
     install: "Asenna",
     installed: "Asennettu",
-    ready: "Lisää tämä appi kotinäytölle.",
-    offlineReady: "Valmis offline-käyttöön.",
-    preparingOffline: "Valmistellaan offlinea…",
+    ready: "Asenna kotinäytölle — avaa milloin vain, myös ilman verkkoa.",
+    offlineReady: "Tallennettu tälle laitteelle. Aukeaa myös ilman verkkoa.",
+    preparingOffline: "Tallennetaan appi tälle laitteelle…",
+    firefoxUnsupported:
+      "Firefoxilla ei voi asentaa tätä appiä. Avaa se selaimessa, tai asenna Chromella tai Safarilla.",
     manualTitle: "Näin asennat",
     iosSteps: [
       "Napauta {{share}} Jaa Safarissa (iPhonessa näytön alareunassa).",
@@ -287,7 +292,7 @@ const INSTALL_COPY: Record<
     back: "Tillbaka",
     install: "Installera",
     installed: "Installerad",
-    ready: "Lägg till appen på hemskärmen.",
+    ready: "Installera appen på hemskärmen så att du kan öppna den när som helst.",
     manualTitle: "Så här installerar du",
     iosSteps: [
       "Tryck på {{share}} Dela i Safari.",
@@ -308,7 +313,7 @@ const INSTALL_COPY: Record<
     back: "Back",
     install: "Install",
     installed: "Installed",
-    ready: "Add this app to your home screen.",
+    ready: "Install this app on your home screen so you can open it anytime — like any other app.",
     manualTitle: "How to install",
     iosSteps: [
       "Tap {{share}} Share in Safari.",
@@ -329,7 +334,7 @@ const INSTALL_COPY: Record<
     back: "Atrás",
     install: "Instalar",
     installed: "Instalada",
-    ready: "Añade esta app a tu pantalla de inicio.",
+    ready: "Instala esta app en tu pantalla de inicio para abrirla cuando quieras.",
     manualTitle: "Cómo instalar",
     iosSteps: [
       "Toca {{share}} Compartir en Safari.",
@@ -350,7 +355,7 @@ const INSTALL_COPY: Record<
     back: "Back",
     install: "Install",
     installed: "Installed",
-    ready: "Add this app to your home screen.",
+    ready: "Install this app on your home screen so you can open it anytime — like any other app.",
     manualTitle: "How to install",
     iosSteps: [
       "Tap {{share}} Share in Safari.",
@@ -371,7 +376,7 @@ const INSTALL_COPY: Record<
     back: "Zurück",
     install: "Installieren",
     installed: "Installiert",
-    ready: "App zum Startbildschirm hinzufügen.",
+    ready: "Installiere die App auf dem Startbildschirm — öffne sie jederzeit wie jede andere App.",
     manualTitle: "So installierst du",
     iosSteps: [
       "Tippe auf {{share}} Teilen in Safari.",
@@ -392,7 +397,7 @@ const INSTALL_COPY: Record<
     back: "Retour",
     install: "Installer",
     installed: "Installée",
-    ready: "Ajoutez cette app à l’écran d’accueil.",
+    ready: "Installez cette app sur l’écran d’accueil pour l’ouvrir à tout moment.",
     manualTitle: "Comment installer",
     iosSteps: [
       "Touchez {{share}} Partager dans Safari.",
@@ -413,7 +418,7 @@ const INSTALL_COPY: Record<
     back: "Back",
     install: "Install",
     installed: "Installed",
-    ready: "Add this app to your home screen.",
+    ready: "Install this app on your home screen so you can open it anytime — like any other app.",
     manualTitle: "How to install",
     iosSteps: [
       "Tap {{share}} Share in Safari.",
@@ -434,7 +439,7 @@ const INSTALL_COPY: Record<
     back: "Back",
     install: "Install",
     installed: "Installed",
-    ready: "Add this app to your home screen.",
+    ready: "Install this app on your home screen so you can open it anytime — like any other app.",
     manualTitle: "How to install",
     iosSteps: [
       "Tap {{share}} Share in Safari.",
@@ -455,7 +460,7 @@ const INSTALL_COPY: Record<
     back: "Indietro",
     install: "Installa",
     installed: "Installata",
-    ready: "Aggiungi questa app alla schermata Home.",
+    ready: "Installa questa app sulla Home per aprirla quando vuoi — come le altre app.",
     manualTitle: "Come installare",
     iosSteps: [
       "Tocca {{share}} Condividi in Safari.",
@@ -476,7 +481,7 @@ const INSTALL_COPY: Record<
     back: "Voltar",
     install: "Instalar",
     installed: "Instalada",
-    ready: "Adicione esta app ao ecrã inicial.",
+    ready: "Instale esta app no ecrã inicial para a abrir quando quiser.",
     manualTitle: "Como instalar",
     iosSteps: [
       "Toque em {{share}} Partilhar no Safari.",
@@ -497,7 +502,7 @@ const INSTALL_COPY: Record<
     back: "Terug",
     install: "Installeren",
     installed: "Geïnstalleerd",
-    ready: "Voeg deze app toe aan je beginscherm.",
+    ready: "Installeer deze app op je beginscherm zodat je hem altijd kunt openen.",
     manualTitle: "Zo installeer je",
     iosSteps: [
       "Tik op {{share}} Delen in Safari.",
@@ -523,6 +528,7 @@ function installCopy(lang: Language) {
     ...c,
     offlineReady: c.offlineReady ?? en.offlineReady!,
     preparingOffline: c.preparingOffline ?? en.preparingOffline!,
+    firefoxUnsupported: c.firefoxUnsupported ?? en.firefoxUnsupported!,
     macSafariSteps: c.macSafariSteps ?? en.macSafariSteps!,
     firefoxSteps: c.firefoxSteps ?? en.firefoxSteps!,
     genericSteps: c.genericSteps ?? en.genericSteps,
@@ -566,12 +572,6 @@ const INSTALL_PAGE_STYLES = `
     color: #6e6e73;
     font-size: 1rem;
     line-height: 1.4;
-  }
-  .install .status {
-    margin: 0;
-    min-height: 1.25rem;
-    color: #6e6e73;
-    font-size: 0.9375rem;
   }
   .install .actions {
     display: flex;
@@ -664,9 +664,21 @@ const INSTALL_PAGE_STYLES = `
     display: block;
   }
   .install .manual[hidden] { display: none; }
+  .install button[hidden],
+  .install a.btn[hidden] { display: none; }
 `;
 
-function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Response {
+function isDesktopFirefoxUa(ua: string): boolean {
+  if (!ua) return false;
+  if (/Android|FxiOS/i.test(ua)) return false;
+  // Firefox and common Gecko forks.
+  return /Firefox\/|LibreWolf\/|Waterfox\//i.test(ua);
+}
+
+function renderInstallPage(
+  access: Extract<AppAccess, { kind: "ready" }>,
+  opts?: { userAgent?: string },
+): Response {
   const copy = installCopy(access.lang);
   const iconSrc = appIconPngSrc(access.iconId) ?? appIconSrc(access.iconId);
   const iconSvg = appIconSrc(access.iconId);
@@ -676,6 +688,9 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
   const precacheUrls = ["/", "/module.js", "/manifest.webmanifest"];
   if (iconSrc) precacheUrls.push(iconSrc);
   if (iconSvg && iconSvg !== iconSrc) precacheUrls.push(iconSvg);
+
+  const firefoxDesktop = isDesktopFirefoxUa(opts?.userAgent ?? "");
+  const ledeText = firefoxDesktop ? (copy.firefoxUnsupported ?? copy.ready) : copy.ready;
 
   const html = `<!doctype html>
 <html lang="${escapeHtmlAttribute(access.lang)}">
@@ -688,7 +703,7 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
     <style>${INSTALL_PAGE_STYLES}</style>
   </head>
   <body>
-    <main class="install" data-lang="${escapeHtmlAttribute(access.lang)}">
+    <main class="install" data-lang="${escapeHtmlAttribute(access.lang)}"${firefoxDesktop ? ' data-firefox-desktop="1"' : ""}>
       <span class="icon" aria-hidden="true">
         ${
           iconSrc
@@ -697,11 +712,11 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
         }
       </span>
       <h1>${escapeHtmlTextContent(access.title)}</h1>
-      <p class="lede" id="lede">${escapeHtmlTextContent(copy.ready)}</p>
-      <p class="status" id="status" role="status"></p>
+      <p class="lede" id="lede">${escapeHtmlTextContent(ledeText)}</p>
       <div class="actions">
         <a class="btn secondary" id="back" href="${escapeHtmlAttribute(backHref)}">${escapeHtmlTextContent(copy.back)}</a>
         <button type="button" class="primary" id="install" hidden>${escapeHtmlTextContent(copy.install)}</button>
+        <a class="btn primary" id="open" href="/"${firefoxDesktop ? "" : " hidden"}>${escapeHtmlTextContent(copy.openApp)}</a>
       </div>
       <div class="manual" id="manual" hidden>
         <h2>${escapeHtmlTextContent(copy.manualTitle)}</h2>
@@ -714,26 +729,14 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
         var precacheUrls = ${JSON.stringify(precacheUrls)};
         var CACHE = "rmix-app-runtime-v3";
         var installBtn = document.getElementById("install");
-        var statusEl = document.getElementById("status");
+        var openBtn = document.getElementById("open");
+        var ledeEl = document.getElementById("lede");
         var manual = document.getElementById("manual");
         var manualBody = document.getElementById("manual-body");
         var backBtn = document.getElementById("back");
+        var mainEl = document.querySelector("main.install");
         var deferredPrompt = null;
-        var offlineReady = false;
-        // Chromium (Chrome/Edge/Opera/Samsung/…): BeforeInstallPromptEvent.
         var supportsBip = "onbeforeinstallprompt" in window;
-
-        if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
-          location.replace("/");
-          return;
-        }
-
-        if (backBtn && history.length > 1) {
-          backBtn.addEventListener("click", function (e) {
-            e.preventDefault();
-            history.back();
-          });
-        }
 
         function isIos() {
           return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -742,9 +745,39 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
         function isAndroid() {
           return /Android/i.test(navigator.userAgent);
         }
-        function isFirefox() {
-          return /Firefox|FxiOS/i.test(navigator.userAgent);
+        function isDesktopFirefox() {
+          if (mainEl && mainEl.getAttribute("data-firefox-desktop") === "1") return true;
+          var ua = navigator.userAgent || "";
+          if (/Android|FxiOS/i.test(ua)) return false;
+          return /Firefox\\/|LibreWolf\\/|Waterfox\\//i.test(ua);
         }
+
+        function wireBack() {
+          if (backBtn && history.length > 1) {
+            backBtn.addEventListener("click", function (e) {
+              e.preventDefault();
+              history.back();
+            });
+          }
+        }
+
+        // Desktop Firefox first: show unsupported message + Open (no Install UI).
+        if (isDesktopFirefox()) {
+          installBtn.hidden = true;
+          manual.hidden = true;
+          if (ledeEl) ledeEl.textContent = copy.firefoxUnsupported;
+          if (openBtn) openBtn.hidden = false;
+          wireBack();
+          return;
+        }
+
+        if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
+          location.replace("/");
+          return;
+        }
+
+        wireBack();
+
         function isMacSafari() {
           var ua = navigator.userAgent;
           var safari = /Safari/i.test(ua) && !/Chrome|Chromium|CriOS|Edg|Firefox|Android/i.test(ua);
@@ -754,7 +787,6 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
         function manualSteps() {
           if (isIos()) return copy.iosSteps;
           if (isMacSafari()) return copy.macSafariSteps;
-          if (isFirefox()) return copy.firefoxSteps;
           if (isAndroid()) return copy.androidSteps;
           return copy.genericSteps;
         }
@@ -765,7 +797,6 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;");
         }
-        // iOS / Safari Share glyph (square + arrow up)
         var SHARE_ICON =
           '<span class="share-glyph" aria-hidden="true">' +
           '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">' +
@@ -813,7 +844,6 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
         }
 
         async function prepareOffline() {
-          statusEl.textContent = copy.preparingOffline;
           try {
             if (navigator.storage && navigator.storage.persist) {
               await navigator.storage.persist().catch(function () {});
@@ -825,33 +855,25 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
               if (worker) worker.postMessage({ type: "PRECACHE", urls: precacheUrls });
             }
             await precacheViaCacheApi(precacheUrls);
-            offlineReady = true;
-            if (!statusEl.textContent || statusEl.textContent === copy.preparingOffline) {
-              statusEl.textContent = copy.offlineReady;
-            }
-          } catch (e) {
-            statusEl.textContent = "";
-          }
+          } catch (e) {}
         }
 
         void prepareOffline();
 
         if (!supportsBip) {
-          // Safari, Firefox, iOS Chrome, etc. — instructions only.
           installBtn.hidden = true;
+          if (openBtn) openBtn.hidden = true;
           showManual();
           return;
         }
 
-        // Chromium: Install button + beforeinstallprompt.
         installBtn.hidden = false;
+        if (openBtn) openBtn.hidden = true;
 
         window.addEventListener("beforeinstallprompt", function (e) {
           e.preventDefault();
           deferredPrompt = e;
           manual.hidden = true;
-          if (offlineReady) statusEl.textContent = copy.offlineReady;
-          else statusEl.textContent = "";
 
           var canAuto = false;
           try {
@@ -861,7 +883,7 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
         });
 
         window.addEventListener("appinstalled", function () {
-          statusEl.textContent = copy.installed;
+          if (ledeEl) ledeEl.textContent = copy.installed;
           deferredPrompt = null;
           void prepareOffline().then(function () {
             setTimeout(function () { location.href = "/"; }, 500);
@@ -895,7 +917,6 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
           void runInstallPrompt();
         });
 
-        // If installability never arrives, show generic tip (button stays for late BIP).
         setTimeout(function () {
           if (!deferredPrompt) showManual();
         }, 3000);
@@ -909,7 +930,7 @@ function renderInstallPage(access: Extract<AppAccess, { kind: "ready" }>): Respo
 
 function renderAppPage(
   access: AppAccess,
-  opts?: { mode?: string | null },
+  opts?: { mode?: string | null; userAgent?: string },
 ): Response {
   if (access.kind === "error") {
     return new Response("Not Found", { status: access.status });
@@ -956,7 +977,7 @@ function renderAppPage(
   }
 
   if (opts?.mode === "install") {
-    return renderInstallPage(access);
+    return renderInstallPage(access, { userAgent: opts.userAgent });
   }
 
   const moduleUrl = appRuntimeModulePath();
@@ -1065,6 +1086,7 @@ export function appSubdomainInstallPage(req: BunRequest): Response {
   const lang = resolveRequestLang(req);
   return renderAppPage(resolveAppAccess(lang, slug, req, { allowDraftBySlug: true }), {
     mode: "install",
+    userAgent: req.headers.get("user-agent") ?? "",
   });
 }
 
@@ -1125,6 +1147,7 @@ export function appPage(req: LangAppRequest): Response {
 
   return renderAppPage(resolveAppAccess(lang, slug, req), {
     mode: url.searchParams.get("mode"),
+    userAgent: req.headers.get("user-agent") ?? "",
   });
 }
 

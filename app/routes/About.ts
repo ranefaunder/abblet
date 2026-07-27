@@ -107,10 +107,6 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
             >${t("Create an app")}</a>
           </div>
         </section>
-
-        <footer class="foot" ui-container="sm">
-          <p class="foot-brand">Rmix</p>
-        </footer>
       </div>
     </div>
   `;
@@ -168,8 +164,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
       .top,
       .hero,
       .section,
-      .closing,
-      .foot {
+      .closing {
         position: relative;
         z-index: 1;
       }
@@ -310,21 +305,6 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
         font-size: clamp(1.5rem, 4vw, 2rem);
         font-weight: 600;
         letter-spacing: -0.02em;
-      }
-
-      .foot {
-        padding-block: 2rem calc(2rem + env(safe-area-inset-bottom, 0px));
-        border-top: 1px solid rgba(244, 241, 234, 0.08);
-      }
-
-      .foot-brand {
-        margin: 0;
-        font-family: var(--about-display);
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        color: var(--about-paper-dim);
       }
 
       @media (min-width: 700px) {

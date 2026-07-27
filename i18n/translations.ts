@@ -84,6 +84,12 @@ export const translations = {
   "Remix": {
     fi: "Remix",
   },
+  "Make it yours with Remix": {
+    fi: "Tee siitä omasi remixillä",
+  },
+  "Remix creates your own copy of this app. Then change it by chatting — add features, tweak the look, make it fit you. No code needed.": {
+    fi: "Remix tekee tästä appista oman kopiosi. Sen jälkeen muutat sitä keskustellen — lisää ominaisuuksia, säädä ilmettä, sovi se itsellesi. Ei koodia tarvita.",
+  },
   "Try": {
     fi: "Kokeile",
   },
@@ -417,6 +423,8 @@ export const translations = {
     fi: "Rmix on alusta henkilökohtaisten appien luomiseen. Käyttämällä palvelua hyväksyt nämä ehdot.",
   },
   "About Rmix": { fi: "Tietoa Rmixista" },
+  "Faunder — maker of Rmix": { fi: "Faunder — Rmixin tekijä" },
+  "Rmix is made by": { fi: "Rmixin on tehnyt" },
   "Rmix — About": { fi: "Rmix — Tietoa" },
   "Create an app": { fi: "Luo appi" },
   "Browse the Gallery": { fi: "Selaa Storea" },
@@ -487,6 +495,19 @@ export const translations = {
   "Installed": { fi: "Asennettu" },
   "Preview": { fi: "Esikatselu" },
   "Installs": { fi: "Asennukset" },
+  "Share": { fi: "Jaa" },
+  "Link copied": { fi: "Linkki kopioitu" },
+  "Share this app": { fi: "Jaa tämä appi" },
+  "Send the Store link to a friend.": { fi: "Lähetä Store-linkki kaverille." },
+  "More like this": { fi: "Lisää samankaltaisia" },
+  "Published": { fi: "Julkaistu" },
+  "Back to Store": { fi: "Takaisin Storeen" },
+  "Install adds the app to your home screen so you can open it anytime.": {
+    fi: "Asennus lisää appin kotinäytölle, jotta avaat sen milloin vain.",
+  },
+  "Already in your library — open it anytime.": {
+    fi: "Appi on jo kirjastossasi — avaa milloin vain.",
+  },
   "No apps in the Store yet": { fi: "Storessa ei ole vielä appeja" },
   "Published apps will show up here.": { fi: "Julkaistut appit näkyvät täällä." },
 } as const;

@@ -1,24 +1,64 @@
 import { html, css } from "/utils/markup";
 import type { RoutePropsForPath } from "preact-iso";
-import { useEffect } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
+import { useSignal } from "@preact/signals";
 import { useLocation, useRoute } from "preact-iso";
 import { t } from "/utils/i18n";
-import { appEditUrl, appPageUrl, galleryUrl } from "/utils/app-url";
+import { aboutUrl, appEditUrl, appPageUrl, galleryAppUrl, galleryUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
+import type { AppCategory } from "/utils/app-categories";
+import type { GalleryAppCard } from "/types/app-types";
 import {
   clearGalleryApp,
   openAppInstall,
+  loadGallery,
   loadGalleryApp,
   galleryApp,
+  galleryApps,
   galleryBusy,
   galleryAppError,
   galleryAppLoading,
+  galleryQuery,
   remixGalleryApp,
 } from "/app/stores/galleryStore";
-import type { AppCategory } from "/utils/app-categories";
+import { isLoggedIn, logout, openLoginDialog, requireLogin, user } from "/app/stores/userStore";
 
 export const GalleryAppPath = "/:lang/gallery/:slug" as const;
+
+function formatPublishedAt(iso: string | null, lang: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  try {
+    return new Intl.DateTimeFormat(lang === "fi" ? "fi-FI" : "en-GB", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(d);
+  } catch {
+    return iso.slice(0, 10);
+  }
+}
+
+function RelatedTile({ app, lang }: { app: GalleryAppCard; lang: string }) {
+  const iconSrc = appIconSrc(app.iconId);
+  return html`
+    <a class="related-tile" href=${galleryAppUrl(lang, app.slug)} ui-column="gap-sm">
+      <span
+        class="related-icon"
+        style=${`background: ${previewGradient(app.slug)}`}
+        aria-hidden="true"
+      >
+        ${iconSrc
+          ? html`<img src=${iconSrc} alt="" width="64" height="64" decoding="async" />`
+          : html`<span>${draftLetter(app.title)}</span>`}
+      </span>
+      <strong>${app.title}</strong>
+      <small>${app.tagline || (app.category ? t(app.category as AppCategory) : t("App"))}</small>
+    </a>
+  `;
+}
 
 export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPath>) {
   const { params } = useRoute();
@@ -28,15 +68,72 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
   const app = galleryApp.value;
   const loading = galleryAppLoading.value;
   const busy = galleryBusy.value;
+  const loggedIn = isLoggedIn();
+  const [shareLabel, setShareLabel] = useState(t("Share"));
+  const [copiedFlash, setCopiedFlash] = useState(false);
+  const searchOpen = useSignal(false);
+  const draftQ = useSignal(galleryQuery.value);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (slug) void loadGalleryApp(slug);
+    if (galleryApps.value.length === 0) void loadGallery();
     return () => clearGalleryApp();
   }, [slug]);
+
+  useEffect(() => {
+    setShareLabel(t("Share"));
+    setCopiedFlash(false);
+  }, [slug, lang]);
+
+  useEffect(() => {
+    if (searchOpen.value) searchRef.current?.focus();
+  }, [searchOpen.value]);
+
+  function submitSearch(e: Event) {
+    e.preventDefault();
+    void loadGallery({ q: draftQ.value }).then(() => {
+      route(galleryUrl(lang));
+    });
+  }
+
+  function openSearch() {
+    searchOpen.value = true;
+  }
+
+  function onSearchBlur() {
+    if (draftQ.value.trim()) return;
+    searchOpen.value = false;
+  }
+
+  const accountMenu = loggedIn
+    ? html`
+        <div ui-menu="bottom-right">
+          <button type="button" ui-button="tertiary sm" popovertarget="gallery-app-account-menu">
+            ${user.value?.nickname || user.value?.email || t("Account")}
+          </button>
+          <div id="gallery-app-account-menu" popover="auto" role="menu">
+            <a role="menuitem" href=${`/${lang}/settings`}>${t("Settings")}</a>
+            <a role="menuitem" href=${aboutUrl(lang)}>${t("About Rmix")}</a>
+            <hr />
+            <button type="button" role="menuitem" onClick=${() => void logout()}>
+              ${t("Log out")}
+            </button>
+          </div>
+        </div>`
+    : html`
+      <button type="button" ui-button="tertiary sm" onClick=${openLoginDialog}>
+        ${t("Sign in")}
+      </button>`;
 
   function onInstall() {
     if (!app) return;
     openAppInstall(app.slug);
+  }
+
+  function onOpen() {
+    if (!app) return;
+    window.location.href = appPageUrl(lang, app.slug);
   }
 
   async function onRemix() {
@@ -47,26 +144,94 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
     }
   }
 
+  async function onShare() {
+    if (!app) return;
+    const url = `${window.location.origin}${galleryAppUrl(lang, app.slug)}`;
+    const shareData = { title: app.title, text: app.tagline || app.title, url };
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch {
+      /* fall through to clipboard */
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareLabel(t("Link copied"));
+      setCopiedFlash(true);
+      window.setTimeout(() => {
+        setShareLabel(t("Share"));
+        setCopiedFlash(false);
+      }, 1800);
+    } catch {
+      /* ignore */
+    }
+  }
+
   const iconSrc = appIconSrc(app?.iconId);
   const gradient = previewGradient(slug);
   const letter = draftLetter(app?.title ?? "?");
+  const published = formatPublishedAt(app?.publishedAt ?? null, lang);
+
+  const related =
+    app && app.category
+      ? galleryApps.value
+          .filter((a) => a.slug !== app.slug && a.category === app.category)
+          .slice(0, 8)
+      : galleryApps.value.filter((a) => a.slug !== slug).slice(0, 8);
+
+  const primaryCta = !app
+    ? null
+    : app.isOwner
+      ? { label: t("Edit"), action: () => route(appEditUrl(lang, app.slug)), href: appEditUrl(lang, app.slug) }
+      : app.installed
+        ? { label: t("Open"), action: onOpen, href: null }
+        : { label: t("Install"), action: onInstall, href: null };
 
   const view = html`
     <div data-scope="GalleryApp" ui-column>
       <header class="top" ui-padding="inline-md block-md">
-        <div class="top-row">
-          <div class="top-start">
+        <div ui-row="gap-sm y-center x-between">
+          <a class="brand" href=${`/${lang}/`} aria-label="Rmix">
+            <img src="/static/rmix.svg" alt="Rmix" width="96" height="22" />
+          </a>
+          <div class="header-actions" ui-row="gap-sm y-center">
+            ${searchOpen.value
+              ? html`
+                <form onSubmit=${submitSearch} class="search">
+                  <label class="sr-only" for="gallery-app-search">${t("Search apps")}</label>
+                  <input
+                    id="gallery-app-search"
+                    ref=${searchRef}
+                    type="search"
+                    ui-input="sm"
+                    placeholder=${t("Search apps")}
+                    value=${draftQ.value}
+                    onInput=${(e: Event) => {
+                      draftQ.value = (e.target as HTMLInputElement).value;
+                    }}
+                    onBlur=${onSearchBlur}
+                  />
+                </form>`
+              : html`
+                <button
+                  type="button"
+                  ui-button="tertiary square sm"
+                  ui-icon="search"
+                  aria-label=${t("Search apps")}
+                  onClick=${openSearch}
+                ></button>`}
             <a
-              href=${galleryUrl(lang)}
-              ui-button="tertiary square sm"
-              ui-icon="arrow-left"
-              aria-label=${t("Back")}
-            ></a>
+              href=${appEditUrl(lang)}
+              ui-button="primary sm"
+              onClick=${(e: Event) => {
+                if (requireLogin()) return;
+                e.preventDefault();
+              }}
+            >${t("Create")}</a>
+            ${accountMenu}
           </div>
-          <div class="top-center">
-            <h1 ui-heading="sm">${t("Store")}</h1>
-          </div>
-          <div class="top-end" aria-hidden="true"></div>
         </div>
       </header>
 
@@ -80,72 +245,150 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
           ? html`
             <div ui-column="gap-md x-center y-center" ui-padding="xl" class="state">
               <p>${galleryAppError.value ?? t("App not found")}</p>
-              <a href=${galleryUrl(lang)} ui-button="primary sm">${t("Store")}</a>
+              <a href=${galleryUrl(lang)} ui-button="primary sm">${t("Back to Store")}</a>
             </div>`
           : html`
-            <div class="content" ui-column="gap-lg x-center">
-              <div ui-column="gap-sm x-center" class="hero">
-                <span class="app-icon" style=${`background: ${gradient}`} aria-hidden="true">
+            <div class="content" ui-column="gap-xl" ui-padding="inline-md">
+              <section class="hero">
+                <span
+                  class="app-icon"
+                  style=${iconSrc ? "" : `background: ${gradient}`}
+                  aria-hidden="true"
+                >
                   ${iconSrc
                     ? html`<img src=${iconSrc} alt="" width="112" height="112" decoding="async" />`
                     : html`<span>${letter}</span>`}
                 </span>
-                <h1 ui-heading="lg">${app.title}</h1>
-                <p class="tagline">${app.tagline || app.description}</p>
-                ${app.ownerNickname
-                  ? html`<p class="author">${t("By $name", { name: app.ownerNickname })}</p>`
-                  : ""}
-              </div>
-
-              <div ui-row="gap-sm x-center wrap">
-                <button
-                  type="button"
-                  ui-button="primary"
-                  disabled=${busy}
-                  aria-busy=${busy}
-                  onClick=${() => onInstall()}
-                >
-                  ${t("Install")}
-                </button>
-                ${app.isOwner
-                  ? html`<a ui-button href=${appEditUrl(lang, app.slug)}>${t("Edit")}</a>`
-                  : html`
-                    <button
-                      type="button"
-                      ui-button
-                      disabled=${busy}
-                      aria-busy=${busy}
-                      onClick=${() => void onRemix()}
-                    >
-                      ${t("Remix")}
-                    </button>`}
-                <a ui-button href=${appPageUrl(lang, app.slug)}>${t("Preview")}</a>
-              </div>
-
-              ${galleryAppError.value
-                ? html`<p ui-card="error" ui-padding="md" role="alert">${galleryAppError.value}</p>`
-                : ""}
-
-              <section ui-card ui-padding="lg" ui-column="gap-md" class="panel">
-                <div ui-row="gap-lg x-around">
-                  <div ui-column="gap-xs x-center">
-                    <strong>${app.installCount}</strong>
-                    <small>${t("Installs")}</small>
+                <div class="hero-main" ui-column="gap-md">
+                  <div class="hero-copy" ui-column="gap-sm">
+                    <h1 class="title">${app.title}</h1>
+                    ${app.tagline ? html`<p class="tagline">${app.tagline}</p>` : ""}
                   </div>
-                  ${app.category
-                    ? html`
-                      <div ui-column="gap-xs x-center">
-                        <strong>${t(app.category as AppCategory)}</strong>
-                        <small>${t("Category")}</small>
-                      </div>`
-                    : ""}
-                </div>
-                <hr />
-                <div ui-column="gap-xs">
-                  <h2 ui-heading="sm">${t("About")}</h2>
-                  <p class="about">${app.description}</p>
+                  <div class="actions" ui-column="gap-sm">
+                    <div class="cta-row" ui-row="gap-sm wrap">
+                      ${primaryCta?.href
+                        ? html`<a href=${primaryCta.href} ui-button="primary">${primaryCta.label}</a>`
+                        : html`
+                          <button
+                            type="button"
+                            ui-button="primary"
+                            disabled=${busy}
+                            aria-busy=${busy}
+                            onClick=${() => primaryCta?.action()}
+                          >
+                            ${primaryCta?.label}
+                          </button>`}
+                      ${!app.isOwner
+                        ? html`
+                          <button
+                            type="button"
+                            ui-button
+                            disabled=${busy}
+                            aria-busy=${busy}
+                            onClick=${() => void onRemix()}
+                          >
+                            ${t("Remix")}
+                          </button>`
+                        : html`<a ui-button href=${appPageUrl(lang, app.slug)}>${t("Preview")}</a>`}
+                      ${app.installed && !app.isOwner
+                        ? html`
+                          <button
+                            type="button"
+                            ui-button
+                            disabled=${busy}
+                            onClick=${() => onInstall()}
+                          >
+                            ${t("Install")}
+                          </button>`
+                        : !app.isOwner
+                          ? html`<a ui-button href=${appPageUrl(lang, app.slug)}>${t("Preview")}</a>`
+                          : ""}
+                    </div>
+                  </div>
                 </div>
               </section>
+
+              ${galleryAppError.value
+                ? html`<p class="error" role="alert">${galleryAppError.value}</p>`
+                : ""}
+
+              <section class="meta" ui-row="gap-md x-around wrap">
+                <div ui-column="gap-xs x-center">
+                  <strong>${app.installCount}</strong>
+                  <small>${t("Installs")}</small>
+                </div>
+                <div ui-column="gap-xs x-center">
+                  <strong>${app.remixCount}</strong>
+                  <small>${t("Remixes")}</small>
+                </div>
+                ${published
+                  ? html`
+                    <div ui-column="gap-xs x-center">
+                      <strong class="date">${published}</strong>
+                      <small>${t("Published")}</small>
+                    </div>`
+                  : ""}
+              </section>
+
+              ${app.description
+                ? html`
+                  <section class="about" ui-column="gap-sm">
+                    <h2 ui-heading="sm">${t("About")}</h2>
+                    <p>${app.description}</p>
+                  </section>`
+                : ""}
+
+              <section class="share-row" ui-row="gap-sm y-center x-between wrap">
+                <div ui-column="gap-xs">
+                  <strong>${t("Share this app")}</strong>
+                  <small>${t("Send the Store link to a friend.")}</small>
+                </div>
+                <button
+                  type="button"
+                  ui-button=${copiedFlash ? "primary sm" : "sm"}
+                  onClick=${() => void onShare()}
+                >
+                  ${shareLabel}
+                </button>
+              </section>
+
+              ${!app.isOwner
+                ? html`
+                  <section class="remix-pitch">
+                    <div class="remix-pitch-bg" aria-hidden="true"></div>
+                    <div class="remix-pitch-inner" ui-column="gap-md">
+                      <header class="remix-head" ui-column="gap-sm">
+                        <h2>${t("Make it yours with Remix")}</h2>
+                        <p class="remix-lede">
+                          ${t("Remix creates your own copy of this app. Then change it by chatting — add features, tweak the look, make it fit you. No code needed.")}
+                        </p>
+                      </header>
+                      <div class="remix-cta">
+                        <button
+                          type="button"
+                          ui-button="primary"
+                          disabled=${busy}
+                          aria-busy=${busy}
+                          onClick=${() => void onRemix()}
+                        >
+                          ${t("Remix")}
+                        </button>
+                      </div>
+                    </div>
+                  </section>`
+                : ""}
+
+              ${related.length > 0
+                ? html`
+                  <section ui-column="gap-sm">
+                    <h2 ui-heading="sm">${t("More like this")}</h2>
+                    <div class="related-rail" ui-row="gap-md">
+                      ${related.map(
+                        (item) => html`<${RelatedTile} app=${item} lang=${lang} />`,
+                      )}
+                    </div>
+                  </section>`
+                : ""}
             </div>`}
     </div>
   `;
@@ -163,40 +406,49 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
 
       .top {
         flex: none;
+        position: sticky;
+        top: 0;
+        z-index: 2;
         padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
         border-bottom: 1px solid var(--neutral-200);
         background: color-mix(in oklab, var(--neutral-50) 88%, var(--white));
         backdrop-filter: blur(12px);
       }
 
-      .top-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        align-items: center;
-        gap: 0.5rem;
+      .brand {
+        color: var(--neutral-950);
+        text-decoration: none;
+        flex: none;
+      }
+
+      .brand img {
+        display: block;
+        height: 1.35rem;
+        width: auto;
+      }
+
+      .header-actions {
         min-width: 0;
+        flex: 1;
+        justify-content: flex-end;
       }
 
-      .top-start {
-        justify-self: start;
-      }
-
-      .top-center {
-        justify-self: center;
+      .search {
         min-width: 0;
-        text-align: center;
+        flex: 1;
+        max-width: 14rem;
       }
 
-      .top-center h1 {
-        margin: 0;
-        white-space: nowrap;
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
         overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .top-end {
-        justify-self: stretch;
-        min-width: 0;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
 
       .state {
@@ -211,27 +463,43 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
         min-height: 0;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        width: min(100%, 36rem);
+        padding-top: 1.25rem;
+        padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
+        max-width: 48rem;
+        width: 100%;
         margin-inline: auto;
-        padding: 1rem 1rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
         box-sizing: border-box;
       }
 
       .hero {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.25rem;
         text-align: center;
       }
 
+      .hero-main {
+        width: 100%;
+        align-items: center;
+      }
+
+      .hero-copy {
+        align-items: center;
+      }
+
       .app-icon {
-        width: 7rem;
-        height: 7rem;
-        border-radius: 1.5rem;
+        flex: none;
+        width: 6.5rem;
+        height: 6.5rem;
+        border-radius: 1.4rem;
         overflow: hidden;
         display: grid;
         place-items: center;
         color: var(--white);
-        font-size: 2.5rem;
+        font-size: 2.35rem;
         font-weight: 750;
-        box-shadow: 0 10px 28px oklch(from var(--neutral-900) l c h / 18%);
       }
 
       .app-icon img {
@@ -240,24 +508,56 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
         object-fit: cover;
       }
 
+      .title {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 750;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        color: var(--neutral-950);
+      }
+
       .tagline {
         margin: 0;
-        max-width: 22rem;
+        max-width: 28rem;
         color: var(--neutral-600);
+        font-size: 1.05rem;
+        line-height: 1.4;
       }
 
-      .author {
-        margin: 0;
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--primary-600);
-      }
-
-      .panel {
+      .actions {
         width: 100%;
+        align-items: center;
       }
 
-      .panel small {
+      .cta-row {
+        justify-content: center;
+      }
+
+      .error {
+        margin: 0;
+        padding: 0.85rem 1rem;
+        border-radius: 0.9rem;
+        background: color-mix(in oklab, var(--error-100) 80%, var(--white));
+        color: var(--error-800);
+        border: 1px solid var(--error-200);
+      }
+
+      .meta {
+        padding: 0.85rem 0.5rem;
+        border-block: 1px solid var(--neutral-200);
+      }
+
+      .meta strong {
+        font-size: 1.05rem;
+        color: var(--neutral-950);
+      }
+
+      .meta strong.date {
+        font-size: 0.9rem;
+      }
+
+      .meta small {
         color: var(--neutral-500);
         text-transform: uppercase;
         letter-spacing: 0.04em;
@@ -265,16 +565,187 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
         font-weight: 650;
       }
 
-      .about {
+      .about h2 {
+        margin: 0;
+      }
+
+      .about p {
         margin: 0;
         white-space: pre-wrap;
         color: var(--neutral-700);
+        line-height: 1.5;
+      }
+
+      .remix-pitch {
+        position: relative;
+        overflow: hidden;
+        border-radius: 1.25rem;
+        border: 1px solid color-mix(in oklab, var(--primary-200) 55%, var(--neutral-200));
+        background: var(--white);
+        isolation: isolate;
+      }
+
+      .remix-pitch-bg {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--primary-200) 55%, transparent), transparent 55%),
+          radial-gradient(90% 80% at 100% 10%, color-mix(in oklab, var(--secondary-200) 40%, transparent), transparent 50%),
+          linear-gradient(165deg, color-mix(in oklab, var(--primary-50) 70%, var(--white)), var(--white) 58%, var(--neutral-50));
+        pointer-events: none;
+      }
+
+      .remix-pitch-bg::after {
+        content: "";
+        position: absolute;
+        inset: auto -10% -35% 35%;
+        height: 70%;
+        border-radius: 50%;
+        background: color-mix(in oklab, var(--primary-100) 45%, transparent);
+        filter: blur(28px);
+        opacity: 0.7;
+      }
+
+      .remix-pitch-inner {
+        position: relative;
+        z-index: 1;
+        padding: 1.5rem 1.25rem 1.4rem;
+        max-width: 28rem;
+      }
+
+      .remix-head h2 {
+        margin: 0;
+        font-size: 1.45rem;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        line-height: 1.12;
+        color: var(--neutral-950);
+      }
+
+      .remix-lede {
+        margin: 0;
+        color: var(--neutral-600);
+        font-size: 1rem;
+        line-height: 1.45;
+      }
+
+      .remix-cta {
+        display: flex;
+      }
+
+      .share-row {
+        padding: 1rem 1.05rem;
+        border-radius: 1rem;
+        background: var(--white);
+        border: 1px solid var(--neutral-200);
+      }
+
+      .share-row strong {
+        font-size: 0.9375rem;
+      }
+
+      .share-row small {
+        color: var(--neutral-500);
+        font-size: 0.8125rem;
+      }
+
+      .related-rail {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding-bottom: 0.15rem;
+      }
+
+      .related-rail::-webkit-scrollbar {
+        display: none;
+      }
+
+      .related-tile {
+        flex: none;
+        width: 6.75rem;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .related-tile strong {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        font-size: 0.875rem;
+        line-height: 1.25;
+      }
+
+      .related-tile small {
+        color: var(--neutral-500);
+        font-size: 0.6875rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .related-icon {
+        width: 4.5rem;
+        height: 4.5rem;
+        border-radius: 1rem;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        color: var(--white);
+        font-weight: 700;
+        font-size: 1.35rem;
+      }
+
+      .related-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
 
       @media (min-width: 720px) {
         .top {
-          width: min(100%, 36rem);
+          max-width: 48rem;
           margin-inline: auto;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .hero {
+          flex-direction: row;
+          align-items: flex-start;
+          text-align: left;
+          gap: 1.75rem;
+        }
+
+        .hero-main,
+        .hero-copy,
+        .actions {
+          align-items: flex-start;
+        }
+
+        .cta-row {
+          justify-content: flex-start;
+        }
+
+        .app-icon {
+          width: 8.5rem;
+          height: 8.5rem;
+          border-radius: 1.65rem;
+          font-size: 2.75rem;
+        }
+
+        .title {
+          font-size: 2.25rem;
+        }
+
+        .remix-pitch-inner {
+          padding: 1.75rem 1.5rem 1.55rem;
+        }
+
+        .remix-head h2 {
+          font-size: 1.7rem;
         }
       }
     }

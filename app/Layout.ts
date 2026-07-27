@@ -2,6 +2,7 @@ import type { ComponentChildren, ComponentType } from "preact";
 import { h } from "preact";
 import { html, css } from "/utils/markup";
 import Dialogs from "/app/components/Dialogs";
+import SiteFooter from "/app/components/SiteFooter";
 
 type LayoutProps = {
   children: ComponentChildren;
@@ -11,7 +12,8 @@ type LayoutProps = {
 export default function Layout({ children }: LayoutProps) {
   const view = html`
     <div data-scope="Layout">
-      <main>${children}</main>
+      <main class="shell">${children}</main>
+      <${SiteFooter} />
       <${Dialogs} />
     </div>
   `;
@@ -20,7 +22,16 @@ export default function Layout({ children }: LayoutProps) {
     @scope ([data-scope="Layout"]) to ([data-scope]) {
       & {
         min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
         background-color: var(--neutral-50);
+      }
+
+      .shell {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
       }
     }
   `;
