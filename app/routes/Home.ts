@@ -525,6 +525,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
       }
 
       .create-demo {
+        display: none;
         position: relative;
         z-index: 1;
         justify-self: stretch;
@@ -795,6 +796,10 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
 
         .create-lede {
           font-size: 1.1rem;
+        }
+
+        .create-demo {
+          display: block;
         }
 
         .create-demo-stage {
