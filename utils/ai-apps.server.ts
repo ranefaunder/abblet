@@ -8,7 +8,7 @@ import { APP_CATEGORIES, normalizeAppCategory } from "/utils/app-categories";
 
 /** Home-screen label hard limit (must fit under the icon). */
 export const APP_TITLE_MAX_LENGTH = 12;
-/** Gallery tagline hard limit. */
+/** Store tagline hard limit. */
 export const APP_TAGLINE_MAX_LENGTH = 40;
 
 function clampAppTitle(title: string): string {
@@ -290,7 +290,7 @@ export async function generateAppConfig(
 Return one JSON object with:
 - title: short app name, MAXIMUM 12 characters (including spaces). Must fit under a phone home-screen icon — prefer 1–2 words (e.g. "Budget", "Ostoslista", "Run Log"). Never use the raw user prompt if it is longer than 12 chars; invent a short label instead.
 - description: 1-2 sentences describing what the app does
-- tagline: short Gallery marketing line in ${langName}, MAXIMUM 40 characters (e.g. "Track spending in seconds")
+- tagline: short Store marketing line in ${langName}, MAXIMUM 40 characters (e.g. "Track spending in seconds")
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
 - tagName: valid custom element name, lowercase with at least one hyphen (e.g. "run-log", "wine-journal")
 - code: complete JavaScript that registers the custom element
@@ -351,7 +351,7 @@ export async function classifyEditIntent(opts: {
 
 Available tools:
 - updateCode: change the app's features, UI, behavior, bugfixes, layout, text inside the app, or anything that requires modifying the Web Component source.
-- rename: change only the home-screen app name (title, max 12 chars) and/or the short Gallery description. Use when the user asks to rename, retitle, or rewrite the description — without needing code changes for that part.
+- rename: change only the home-screen app name (title, max 12 chars) and/or the short Store description. Use when the user asks to rename, retitle, or rewrite the description — without needing code changes for that part.
 - regenerateIcon: regenerate the home-screen / launcher icon. Use ONLY for an explicit icon request (e.g. "new icon", "vaihda kuvake", "make the icon blue"). Never invent an icon request.
 
 Rules:
@@ -432,12 +432,12 @@ export async function generateAppName(opts: {
   const { current, instruction, language, model } = opts;
   const langName = AVAILABLE_LANGUAGES[language]?.name ?? "English";
 
-  const systemPrompt = `You name Rmix apps for a phone home screen and Gallery listing.
+  const systemPrompt = `You name Rmix apps for a phone home screen and Store listing.
 
 Return JSON:
 - title: short app name, MAXIMUM 12 characters (including spaces). Prefer 1–2 words. Must fit under an icon.
 - description: 1-2 sentences in ${langName} describing what the app does
-- tagline: short Gallery marketing line in ${langName}, MAXIMUM 40 characters
+- tagline: short Store marketing line in ${langName}, MAXIMUM 40 characters
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
 - summary: 1 short sentence in ${langName} for the chat (what you renamed it to)
 

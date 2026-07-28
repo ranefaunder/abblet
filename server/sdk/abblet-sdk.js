@@ -1,7 +1,7 @@
 /**
  * Rmix app-runtime SDK — inlined into the app page HTML by server/routes/app-page.ts.
  * Expects window.__ABBLET__ = { appSlug, platformOrigin, connectHref, tagName, moduleUrl, lang, published, title }.
- * Mounts the corner Rmix Patch (share/gallery if published + edit + about) after the app loads.
+ * Mounts the corner Rmix Patch (share/store if published + edit + about) after the app loads.
  */
 const cfg = window.__ABBLET__;
 const appSlug = cfg.appSlug;
@@ -28,7 +28,7 @@ const COPY = {
     patchAria: "Rmix",
     share: "Share",
     shareCopied: "Link copied",
-    gallery: "View in Store",
+    store: "View in Store",
     edit: "Edit app",
     about: "About Rmix",
     update: "Update",
@@ -45,7 +45,7 @@ const COPY = {
     patchAria: "Rmix",
     share: "Jaa",
     shareCopied: "Linkki kopioitu",
-    gallery: "Näytä Storessa",
+    store: "Näytä Storessa",
     edit: "Muokkaa appia",
     about: "Tietoa Rmixistä",
     update: "Päivitä",
@@ -268,12 +268,12 @@ mountRmixPatch();
 
 const PRECACHE_URLS = ["/", "/module.js", "/manifest.webmanifest"];
 
-/** Rmix Patch — share + gallery (if published), edit, about, optional Update. */
+/** Rmix Patch — share + store (if published), edit, about, optional Update. */
 function mountRmixPatch() {
   if (document.getElementById("abblet-patch")) return;
 
   const t = uiCopy();
-  const galleryHref = platformOrigin + "/" + lang + "/gallery/" + encodeURIComponent(appSlug);
+  const storeHref = platformOrigin + "/" + lang + "/store/" + encodeURIComponent(appSlug);
   const editHref = platformOrigin + "/" + lang + "/edit/" + encodeURIComponent(appSlug);
   const aboutHref = platformOrigin + "/" + lang + "/about";
 
@@ -283,7 +283,7 @@ function mountRmixPatch() {
   );
   if (published) {
     menuItems.push(`<button type="button" role="menuitem" data-abblet-share>${t.share}</button>`);
-    menuItems.push(`<a role="menuitem" href="${galleryHref}">${t.gallery}</a>`);
+    menuItems.push(`<a role="menuitem" href="${storeHref}">${t.store}</a>`);
   }
   menuItems.push(`<a role="menuitem" href="${editHref}">${t.edit}</a>`);
   menuItems.push(`<a role="menuitem" href="${aboutHref}">${t.about}</a>`);
@@ -453,7 +453,7 @@ function mountRmixPatch() {
   }
 
   async function shareApp() {
-    const shareData = { title: appTitle, url: galleryHref, text: appTitle };
+    const shareData = { title: appTitle, url: storeHref, text: appTitle };
     try {
       if (typeof navigator.share === "function") {
         await navigator.share(shareData);
@@ -467,7 +467,7 @@ function mountRmixPatch() {
       }
     }
     try {
-      await navigator.clipboard.writeText(galleryHref);
+      await navigator.clipboard.writeText(storeHref);
       if (shareBtn) {
         const prev = shareBtn.textContent;
         shareBtn.textContent = t.shareCopied;

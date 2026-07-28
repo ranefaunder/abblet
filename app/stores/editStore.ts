@@ -407,7 +407,7 @@ export async function regenerateIcon(slug: string): Promise<boolean> {
   }
 }
 
-/** Publish (or remove) the current app from Gallery. */
+/** Publish (or remove) the current app from the Store. */
 export async function setAppPublished(slug: string, publish: boolean): Promise<boolean> {
   if (editPublishing.value) return false;
   editError.value = null;

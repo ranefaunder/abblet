@@ -43,7 +43,7 @@ The Store (`/`) stays a product UI. Marketing lives on About (`/:lang/about`).
 
 - Do not invent alternate slogans or pitches in UI copy
 - Do not put the slogan on every Store card or section heading
-- App-level gallery `tagline` fields are per-app marketing lines — not this brand slogan
+- App-level store `tagline` fields are per-app marketing lines — not this brand slogan
 
 ## Related assets
 

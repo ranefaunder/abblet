@@ -8,8 +8,8 @@ import Dialogs from "/app/components/Dialogs";
 import SiteFooter from "/app/components/SiteFooter";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
-import { aboutUrl, appEditUrl, galleryUrl } from "/utils/app-url";
-import { galleryQuery, loadGallery } from "/app/stores/galleryStore";
+import { aboutUrl, appEditUrl, storeUrl } from "/utils/app-url";
+import { storeQuery, loadStore } from "/app/stores/storeListingStore";
 import { isLoggedIn, logout, openLoginDialog, requireLogin } from "/app/stores/userStore";
 
 type LayoutProps = {
@@ -25,14 +25,14 @@ function SiteHeader() {
   const { path, route } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
   const loggedIn = isLoggedIn();
-  const searchOpen = useSignal(Boolean(galleryQuery.value.trim()));
-  const draftQ = useSignal(galleryQuery.value);
+  const searchOpen = useSignal(Boolean(storeQuery.value.trim()));
+  const draftQ = useSignal(storeQuery.value);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    draftQ.value = galleryQuery.value;
-    if (galleryQuery.value.trim()) searchOpen.value = true;
-  }, [galleryQuery.value]);
+    draftQ.value = storeQuery.value;
+    if (storeQuery.value.trim()) searchOpen.value = true;
+  }, [storeQuery.value]);
 
   useEffect(() => {
     if (searchOpen.value) searchRef.current?.focus();
@@ -40,8 +40,8 @@ function SiteHeader() {
 
   function submitSearch(e: Event) {
     e.preventDefault();
-    void loadGallery({ q: draftQ.value }).then(() => {
-      route(galleryUrl(lang));
+    void loadStore({ q: draftQ.value }).then(() => {
+      route(storeUrl(lang));
     });
   }
 

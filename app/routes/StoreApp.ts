@@ -3,26 +3,26 @@ import type { RoutePropsForPath } from "preact-iso";
 import { useEffect, useState } from "preact/hooks";
 import { useLocation, useRoute } from "preact-iso";
 import { t } from "/utils/i18n";
-import { appEditUrl, appPageUrl, galleryAppUrl, galleryUrl } from "/utils/app-url";
+import { appEditUrl, appPageUrl, storeAppUrl, storeUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import type { AppCategory } from "/utils/app-categories";
-import type { GalleryAppCard } from "/types/app-types";
+import type { StoreAppCard } from "/types/app-types";
 import {
-  clearGalleryApp,
+  clearStoreApp,
   openAppInstall,
-  loadGallery,
-  loadGalleryApp,
-  galleryApp,
-  galleryApps,
-  galleryBusy,
-  galleryAppError,
-  galleryAppLoading,
-  remixGalleryApp,
-} from "/app/stores/galleryStore";
+  loadStore,
+  loadStoreApp,
+  storeApp,
+  storeApps,
+  storeBusy,
+  storeAppError,
+  storeAppLoading,
+  remixStoreApp,
+} from "/app/stores/storeListingStore";
 import { requireLogin } from "/app/stores/userStore";
 
-export const GalleryAppPath = "/:lang/gallery/:slug" as const;
+export const StoreAppPath = "/:lang/store/:slug" as const;
 
 function formatPublishedAt(iso: string | null, lang: string): string | null {
   if (!iso) return null;
@@ -39,10 +39,10 @@ function formatPublishedAt(iso: string | null, lang: string): string | null {
   }
 }
 
-function RelatedTile({ app, lang }: { app: GalleryAppCard; lang: string }) {
+function RelatedTile({ app, lang }: { app: StoreAppCard; lang: string }) {
   const iconSrc = appIconSrc(app.iconId);
   return html`
-    <a class="related-tile" href=${galleryAppUrl(lang, app.slug)} ui-column="gap-sm">
+    <a class="related-tile" href=${storeAppUrl(lang, app.slug)} ui-column="gap-sm">
       <span
         class="related-icon"
         style=${`background: ${previewGradient(app.slug)}`}
@@ -58,21 +58,21 @@ function RelatedTile({ app, lang }: { app: GalleryAppCard; lang: string }) {
   `;
 }
 
-export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPath>) {
+export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>) {
   const { params } = useRoute();
   const { route } = useLocation();
   const lang = params.lang ?? "en";
   const slug = params.slug ?? "";
-  const app = galleryApp.value;
-  const loading = galleryAppLoading.value;
-  const busy = galleryBusy.value;
+  const app = storeApp.value;
+  const loading = storeAppLoading.value;
+  const busy = storeBusy.value;
   const [shareLabel, setShareLabel] = useState(t("Share"));
   const [copiedFlash, setCopiedFlash] = useState(false);
 
   useEffect(() => {
-    if (slug) void loadGalleryApp(slug);
-    if (galleryApps.value.length === 0) void loadGallery();
-    return () => clearGalleryApp();
+    if (slug) void loadStoreApp(slug);
+    if (storeApps.value.length === 0) void loadStore();
+    return () => clearStoreApp();
   }, [slug]);
 
   useEffect(() => {
@@ -92,7 +92,7 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
 
   async function onRemix() {
     if (!app) return;
-    const cloned = await remixGalleryApp(app.slug);
+    const cloned = await remixStoreApp(app.slug);
     if (cloned?.slug) {
       route(appEditUrl(lang, cloned.slug));
     }
@@ -100,7 +100,7 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
 
   async function onShare() {
     if (!app) return;
-    const url = `${window.location.origin}${galleryAppUrl(lang, app.slug)}`;
+    const url = `${window.location.origin}${storeAppUrl(lang, app.slug)}`;
     const shareData = { title: app.title, text: app.tagline || app.title, url };
     try {
       if (typeof navigator.share === "function") {
@@ -130,10 +130,10 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
 
   const related =
     app && app.category
-      ? galleryApps.value
+      ? storeApps.value
           .filter((a) => a.slug !== app.slug && a.category === app.category)
           .slice(0, 8)
-      : galleryApps.value.filter((a) => a.slug !== slug).slice(0, 8);
+      : storeApps.value.filter((a) => a.slug !== slug).slice(0, 8);
 
   const primaryCta = !app
     ? null
@@ -144,7 +144,7 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
         : { label: t("Install"), action: onInstall, href: null };
 
   const view = html`
-    <div data-scope="GalleryApp" ui-column>
+    <div data-scope="StoreApp" ui-column>
       ${loading && !app
         ? html`
           <div ui-column="gap-md x-center y-center" ui-padding="xl" class="state">
@@ -154,8 +154,8 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
         : !app
           ? html`
             <div ui-column="gap-md x-center y-center" ui-padding="xl" class="state">
-              <p>${galleryAppError.value ?? t("App not found")}</p>
-              <a href=${galleryUrl(lang)} ui-button="primary sm">${t("Back to Store")}</a>
+              <p>${storeAppError.value ?? t("App not found")}</p>
+              <a href=${storeUrl(lang)} ui-button="primary sm">${t("Back to Store")}</a>
             </div>`
           : html`
             <div class="content" ui-column="gap-xl" ui-padding="inline-md">
@@ -218,8 +218,8 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
                 </div>
               </section>
 
-              ${galleryAppError.value
-                ? html`<p class="error" role="alert">${galleryAppError.value}</p>`
+              ${storeAppError.value
+                ? html`<p class="error" role="alert">${storeAppError.value}</p>`
                 : ""}
 
               <section class="meta" ui-row="gap-md x-around wrap">
@@ -304,7 +304,7 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
   `;
 
   const style = css`
-    @scope ([data-scope="GalleryApp"]) to ([data-scope]) {
+    @scope ([data-scope="StoreApp"]) to ([data-scope]) {
       & {
         flex: 1;
         min-height: 0;

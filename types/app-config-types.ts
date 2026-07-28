@@ -16,9 +16,9 @@ export const appConfigSchema = z.object({
    */
   title: z.string().min(1).max(80),
   description: z.string(),
-  /** Short Gallery marketing line (~30 chars). Optional for older apps. */
+  /** Short Store marketing line (~30 chars). Optional for older apps. */
   tagline: z.string().max(80).optional(),
-  /** Gallery category. Optional for older apps. */
+  /** Store category. Optional for older apps. */
   category: z
     .enum([
       "Productivity",

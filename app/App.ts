@@ -19,8 +19,7 @@ import Home, { HomePath } from "./routes/Home";
 import Settings, { SettingsPath } from "./routes/Settings";
 import Login, { LoginPath } from "./routes/Login";
 import Edit, { EditPath, EditSlugPath } from "./routes/Edit";
-import Gallery, { GalleryPath } from "./routes/Gallery";
-import GalleryApp, { GalleryAppPath } from "./routes/GalleryApp";
+import StoreApp, { StoreAppPath } from "./routes/StoreApp";
 import About, { AboutPath } from "./routes/About";
 import NotFound from "./routes/NotFound";
 import { spaRouterScope } from "/utils/app-url";
@@ -60,8 +59,7 @@ export default function App() {
         <div data-scope="App" ui-column>
           <${Router}>
             <${Route} path=${HomePath} component=${withLayout(Home)} />
-            <${Route} path=${GalleryAppPath} component=${withLayout(GalleryApp)} />
-            <${Route} path=${GalleryPath} component=${withLayout(Gallery)} />
+            <${Route} path=${StoreAppPath} component=${withLayout(StoreApp)} />
             <${Route} path=${AboutPath} component=${withLayout(About)} />
             <${Route} path=${SettingsPath} component=${withLayout(Settings)} />
             <${Route} path=${LoginPath} component=${withLayout(Login)} />

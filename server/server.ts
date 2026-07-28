@@ -29,8 +29,8 @@ import appEditHistory from "./api/app/edit-history";
 import appList from "./api/app/list";
 import appRegenerateIcon from "./api/app/regenerate-icon";
 import appDelete from "./api/app/delete";
-import appGallery from "./api/app/gallery";
-import appGalleryGet from "./api/app/gallery-get";
+import appStore from "./api/app/store";
+import appStoreGet from "./api/app/store-get";
 import appInstall from "./api/app/install";
 import appInstallHistory from "./api/app/install-history";
 import appUninstall from "./api/app/uninstall";
@@ -61,8 +61,8 @@ const server = Bun.serve({
     "/api/:lang/app/regenerate-icon": appRegenerateIcon,
     "/api/:lang/app/delete": appDelete,
     "/api/:lang/app/list": appList,
-    "/api/:lang/app/gallery": appGallery,
-    "/api/:lang/app/gallery-get": appGalleryGet,
+    "/api/:lang/app/store": appStore,
+    "/api/:lang/app/store-get": appStoreGet,
     "/api/:lang/app/install": appInstall,
     "/api/:lang/app/install-history": appInstallHistory,
     "/api/:lang/app/uninstall": appUninstall,

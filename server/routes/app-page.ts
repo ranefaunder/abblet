@@ -684,7 +684,7 @@ function renderInstallPage(
   const iconSvg = appIconSrc(access.iconId);
   const letter = (access.title.trim().charAt(0) || "?").toUpperCase();
   const platformOrigin = getPlatformOrigin();
-  const backHref = `${platformOrigin}/${access.lang}/gallery/${encodeURIComponent(access.slug)}`;
+  const backHref = `${platformOrigin}/${access.lang}/store/${encodeURIComponent(access.slug)}`;
   const precacheUrls = ["/", "/module.js", "/manifest.webmanifest"];
   if (iconSrc) precacheUrls.push(iconSrc);
   if (iconSvg && iconSvg !== iconSrc) precacheUrls.push(iconSvg);

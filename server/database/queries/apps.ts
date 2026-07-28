@@ -1,5 +1,5 @@
 import { db } from "/server/database/db";
-import type { AppSummary, AppVisibility, GalleryAppCard, GalleryAppDetail } from "/types/app-types";
+import type { AppSummary, AppVisibility, StoreAppCard, StoreAppDetail } from "/types/app-types";
 import { isAppCategory } from "/utils/app-categories";
 
 type AppRow = {
@@ -46,7 +46,7 @@ function toSummary(row: AppRow, ownedFallback = true): AppSummary {
   };
 }
 
-function toGalleryCard(row: AppRow): GalleryAppCard {
+function toStoreCard(row: AppRow): StoreAppCard {
   return {
     id: row.id,
     slug: row.slug,
@@ -110,12 +110,12 @@ export const dbListPublicApps = (limit = 24): AppSummary[] =>
     .all(limit)
     .map((row) => toSummary(row, false));
 
-export function dbListGalleryApps(opts: {
+export function dbListStoreApps(opts: {
   q?: string;
   category?: string | null;
   userId?: string | null;
   limit?: number;
-}): GalleryAppCard[] {
+}): StoreAppCard[] {
   const limit = Math.min(Math.max(opts.limit ?? 48, 1), 100);
   const q = opts.q?.trim() ?? "";
   const category = opts.category?.trim() || null;
@@ -153,11 +153,11 @@ export function dbListGalleryApps(opts: {
       LIMIT ?
     `)
     .all(...allParams)
-    .map(toGalleryCard);
+    .map(toStoreCard);
 }
 
-/** Distinct Gallery categories that currently have at least one public app. */
-export function dbListGalleryCategories(opts?: { q?: string }): string[] {
+/** Distinct Store categories that currently have at least one public app. */
+export function dbListStoreCategories(opts?: { q?: string }): string[] {
   const q = opts?.q?.trim() ?? "";
   const where: string[] = [
     "a.visibility = 'public'",
@@ -185,7 +185,7 @@ export function dbListGalleryCategories(opts?: { q?: string }): string[] {
   return rows.map((r) => r.category).filter(isAppCategory);
 }
 
-export function dbGetGalleryAppBySlug(slug: string, userId: string | null): GalleryAppDetail | null {
+export function dbGetStoreAppBySlug(slug: string, userId: string | null): StoreAppDetail | null {
   const row =
     db
       .query<AppRow, [string | null, string | null, string | null, string | null, string]>(`
@@ -205,7 +205,7 @@ export function dbGetGalleryAppBySlug(slug: string, userId: string | null): Gall
 
   if (!row) return null;
   return {
-    ...toGalleryCard(row),
+    ...toStoreCard(row),
     ownerId: row.owner_id,
   };
 }

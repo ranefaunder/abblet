@@ -4,18 +4,18 @@ import { useEffect } from "preact/hooks";
 import { useLocation } from "preact-iso";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
-import { appEditUrl, galleryAppUrl, galleryUrl } from "/utils/app-url";
+import { appEditUrl, storeAppUrl, storeUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
-import type { GalleryAppCard } from "/types/app-types";
-import { galleryApps, loadGallery } from "/app/stores/galleryStore";
+import type { StoreAppCard } from "/types/app-types";
+import { storeApps, loadStore } from "/app/stores/storeListingStore";
 import { requireLogin } from "/app/stores/userStore";
 
 export const AboutPath = "/:lang/about" as const;
 
-function pickApps(apps: GalleryAppCard[], count: number, offset = 0): GalleryAppCard[] {
+function pickApps(apps: StoreAppCard[], count: number, offset = 0): StoreAppCard[] {
   if (apps.length === 0) return [];
-  const out: GalleryAppCard[] = [];
+  const out: StoreAppCard[] = [];
   for (let i = 0; i < count; i++) {
     out.push(apps[(offset + i) % apps.length]!);
   }
@@ -29,7 +29,7 @@ function IconLink({
   rotate = 0,
   className = "",
 }: {
-  app: GalleryAppCard;
+  app: StoreAppCard;
   lang: string;
   sizeRem: number;
   rotate?: number;
@@ -39,7 +39,7 @@ function IconLink({
   return html`
     <a
       class=${`icon-link ${className}`.trim()}
-      href=${galleryAppUrl(lang, app.slug)}
+      href=${storeAppUrl(lang, app.slug)}
       aria-label=${app.title}
       title=${app.title}
       style=${`--icon-size: ${sizeRem}rem; --icon-rot: ${rotate}deg`}
@@ -57,7 +57,7 @@ function IconLink({
 const HERO_COLS = 5;
 const HERO_ROWS = 3;
 
-function HeroShelf({ apps, lang }: { apps: GalleryAppCard[]; lang: string }) {
+function HeroShelf({ apps, lang }: { apps: StoreAppCard[]; lang: string }) {
   if (apps.length === 0) return null;
   const cols = Array.from({ length: HERO_COLS }, (_, col) =>
     Array.from({ length: HERO_ROWS }, (_, row) => apps[(col + row * HERO_COLS) % apps.length]!),
@@ -81,7 +81,7 @@ function HeroShelf({ apps, lang }: { apps: GalleryAppCard[]; lang: string }) {
   `;
 }
 
-function IconRiver({ apps, lang }: { apps: GalleryAppCard[]; lang: string }) {
+function IconRiver({ apps, lang }: { apps: StoreAppCard[]; lang: string }) {
   if (apps.length === 0) return null;
   // Enough icons to fill wide viewports; identical twin group = seamless loop.
   const base = apps.length >= 12 ? apps : pickApps(apps, 12, 0);
@@ -110,13 +110,13 @@ function IconRiver({ apps, lang }: { apps: GalleryAppCard[]; lang: string }) {
 export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
   const { path } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
-  const apps = galleryApps.value;
+  const apps = storeApps.value;
   const heroApps = pickApps(apps, HERO_COLS * HERO_ROWS, 0);
   const riverApps = pickApps(apps, Math.max(apps.length, 12), 2);
   const closingApps = pickApps(apps, 7, 1);
 
   useEffect(() => {
-    void loadGallery({ q: "", category: null });
+    void loadStore({ q: "", category: null });
   }, []);
 
   function onCreateClick(e: Event) {
@@ -141,7 +141,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
               ${t("An app store where every app is remixable to fit you.")}
             </p>
             <div class="cta" ui-row="gap-sm wrap y-center">
-              <a href=${galleryUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
+              <a href=${storeUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
               <a href=${appEditUrl(lang)} ui-button onClick=${onCreateClick}>
                 ${t("Create an app")}
               </a>
@@ -170,7 +170,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
             <p class="body">
               ${t("Open anything in the Store, then adapt it with a prompt until it matches how you actually work — lists, trackers, tools, and helpers that fit your life.")}
             </p>
-            <a href=${galleryUrl(lang)} ui-button="primary sm">${t("Browse the Store")}</a>
+            <a href=${storeUrl(lang)} ui-button="primary sm">${t("Browse the Store")}</a>
           </article>
           <article ui-column="gap-md">
             <p class="eyebrow">${t("Make your own")}</p>
@@ -256,7 +256,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
         <div class="wrap" ui-column="gap-lg x-center">
           <h2 class="closing-title">${t("Remix any app, or make your own.")}</h2>
           <div class="cta" ui-row="gap-sm wrap y-center x-center">
-            <a href=${galleryUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
+            <a href=${storeUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
             <a href=${appEditUrl(lang)} ui-button onClick=${onCreateClick}>
               ${t("Create an app")}
             </a>

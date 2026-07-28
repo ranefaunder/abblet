@@ -5,21 +5,21 @@ import { useLocation } from "preact-iso";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import { type AppCategory, isAppCategory } from "/utils/app-categories";
-import { aboutUrl, appEditUrl, galleryAppUrl } from "/utils/app-url";
+import { aboutUrl, appEditUrl, storeAppUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter, draftAccentColor } from "/utils/app-preview";
-import type { GalleryAppCard } from "/types/app-types";
+import type { StoreAppCard } from "/types/app-types";
 import {
-  galleryApps,
-  galleryCategories,
-  galleryCategory,
-  galleryError,
-  galleryLoading,
-  galleryQuery,
+  storeApps,
+  storeCategories,
+  storeCategory,
+  storeError,
+  storeLoading,
+  storeQuery,
   installHistory,
-  loadGallery,
+  loadStore,
   loadInstallHistory,
-} from "/app/stores/galleryStore";
+} from "/app/stores/storeListingStore";
 import { requireLogin } from "/app/stores/userStore";
 
 export const HomePath = "/:lang" as const;
@@ -46,7 +46,7 @@ function AppIcon({
   app,
   size = "",
 }: {
-  app: Pick<GalleryAppCard, "slug" | "title" | "iconId">;
+  app: Pick<StoreAppCard, "slug" | "title" | "iconId">;
   size?: "" | "sm" | "md" | "lg";
 }) {
   const iconSrc = appIconSrc(app.iconId);
@@ -63,12 +63,12 @@ function AppIcon({
   `;
 }
 
-function TodayCard({ app, lang }: { app: GalleryAppCard; lang: string }) {
+function TodayCard({ app, lang }: { app: StoreAppCard; lang: string }) {
   const cta = app.isOwner ? t("Edit") : app.installed ? t("Open") : t("Get");
   return html`
     <a
       class="today-card"
-      href=${galleryAppUrl(lang, app.slug)}
+      href=${storeAppUrl(lang, app.slug)}
       style=${`--card-gradient: ${previewGradient(app.slug)}; --card-accent: ${draftAccentColor(app.slug)}`}
     >
       <span class="today-art" aria-hidden="true">
@@ -91,9 +91,9 @@ function TodayCard({ app, lang }: { app: GalleryAppCard; lang: string }) {
   `;
 }
 
-function RailTile({ app, lang }: { app: GalleryAppCard; lang: string }) {
+function RailTile({ app, lang }: { app: StoreAppCard; lang: string }) {
   return html`
-    <a class="rail-tile" href=${galleryAppUrl(lang, app.slug)} ui-column="gap-sm">
+    <a class="rail-tile" href=${storeAppUrl(lang, app.slug)} ui-column="gap-sm">
       <${AppIcon} app=${app} size="md" />
       <strong>${app.title}</strong>
       <small>${app.tagline || app.category || t("App")}</small>
@@ -106,13 +106,13 @@ function ChartRow({
   lang,
   rank,
 }: {
-  app: GalleryAppCard;
+  app: StoreAppCard;
   lang: string;
   rank: number;
 }) {
   const cta = app.isOwner ? t("Edit") : app.installed ? t("Open") : t("Get");
   return html`
-    <a class="chart-row" href=${galleryAppUrl(lang, app.slug)} ui-row="y-center gap-md">
+    <a class="chart-row" href=${storeAppUrl(lang, app.slug)} ui-row="y-center gap-md">
       <span class="rank">${rank}</span>
       <${AppIcon} app=${app} />
       <span ui-column="gap-xs" class="meta">
@@ -124,8 +124,8 @@ function ChartRow({
   `;
 }
 
-function groupByCategory(apps: GalleryAppCard[]): { category: AppCategory; apps: GalleryAppCard[] }[] {
-  const map = new Map<AppCategory, GalleryAppCard[]>();
+function groupByCategory(apps: StoreAppCard[]): { category: AppCategory; apps: StoreAppCard[] }[] {
+  const map = new Map<AppCategory, StoreAppCard[]>();
   for (const app of apps) {
     const cat = isAppCategory(app.category) ? app.category : "Utilities";
     const list = map.get(cat) ?? [];
@@ -141,14 +141,14 @@ function groupByCategory(apps: GalleryAppCard[]): { category: AppCategory; apps:
 export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   const { path } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
-  const apps = galleryApps.value;
-  const loading = galleryLoading.value;
-  const category = galleryCategory.value;
-  const categories = galleryCategories.value;
+  const apps = storeApps.value;
+  const loading = storeLoading.value;
+  const category = storeCategory.value;
+  const categories = storeCategories.value;
   const history = installHistory.value;
   const visibleCategories =
     category && !categories.includes(category) ? [...categories, category] : categories;
-  const isDefaultBrowse = !galleryQuery.value.trim() && !category;
+  const isDefaultBrowse = !storeQuery.value.trim() && !category;
 
   const featuredApps = isDefaultBrowse ? apps.slice(0, Math.min(2, apps.length)) : [];
   const popular = [...apps]
@@ -165,12 +165,12 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
       : Array.from({ length: 7 }, (_, i) => apps[(i * 2) % apps.length]!);
 
   useEffect(() => {
-    void loadGallery();
+    void loadStore();
     void loadInstallHistory();
   }, []);
 
   function selectCategory(next: AppCategory | null) {
-    void loadGallery({ category: next });
+    void loadStore({ category: next });
   }
 
   const view = html`
@@ -207,8 +207,8 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
               <i ui-icon="spinner lg"></i>
               <p>${t("Loading…")}</p>
             </div>`
-          : galleryError.value
-            ? html`<p role="alert">${galleryError.value}</p>`
+          : storeError.value
+            ? html`<p role="alert">${storeError.value}</p>`
             : apps.length === 0
               ? html`
                 <div ui-column="gap-sm x-center" ui-padding="xl">
@@ -295,7 +295,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                             (item) => html`
                               <a
                                 class="rail-tile history"
-                                href=${galleryAppUrl(lang, item.slug)}
+                                href=${storeAppUrl(lang, item.slug)}
                                 ui-column="gap-xs x-center"
                               >
                                 <${AppIcon}
@@ -364,7 +364,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                     <h2 ui-heading="sm">
                       ${category
                         ? categoryLabel(category)
-                        : galleryQuery.value.trim()
+                        : storeQuery.value.trim()
                           ? t("Results")
                           : t("New & Noteworthy")}
                     </h2>
@@ -384,7 +384,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                   (app, i) => html`
                     <a
                       class="about-pitch-icon"
-                      href=${galleryAppUrl(lang, app.slug)}
+                      href=${storeAppUrl(lang, app.slug)}
                       aria-label=${app.title}
                       title=${app.title}
                       style=${`--icon-size: ${2.35 + (i % 3) * 0.22}rem`}

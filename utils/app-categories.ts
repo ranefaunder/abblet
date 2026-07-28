@@ -1,4 +1,4 @@
-/** Fixed Gallery categories shared by AI generation, Gallery, and Edit. */
+/** Fixed Store categories shared by AI generation, Store, and Edit. */
 export const APP_CATEGORIES = [
   "Productivity",
   "Health",

@@ -58,7 +58,7 @@ export default {
         });
       }
 
-      // Ensure gallery metadata columns are filled before publishing.
+      // Ensure store metadata columns are filled before publishing.
       const category = normalizeAppCategory(row.category ?? config.category);
       const tagline = (row.tagline ?? config.tagline ?? config.description.slice(0, 40)).trim();
       const nextConfig = { ...config, category, tagline: tagline || undefined };

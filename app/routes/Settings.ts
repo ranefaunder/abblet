@@ -4,7 +4,7 @@ import { useLocation } from "preact-iso";
 import { useEffect, useState } from "preact/hooks";
 import { t } from "/utils/i18n";
 import { user, logout, updateMarketingOptIn } from "/app/stores/userStore";
-import { aboutUrl, galleryUrl } from "/utils/app-url";
+import { aboutUrl, storeUrl } from "/utils/app-url";
 
 export const SettingsPath = "/:lang/settings" as const;
 
@@ -131,7 +131,7 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
           </header>
           <div ui-row="gap-sm wrap">
             <a href=${aboutUrl(lang)} ui-button>${t("About Rmix")}</a>
-            <a href=${galleryUrl(lang)} ui-button="tertiary">${t("Store")}</a>
+            <a href=${storeUrl(lang)} ui-button="tertiary">${t("Store")}</a>
           </div>
         </section>
       </div>

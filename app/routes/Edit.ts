@@ -157,7 +157,7 @@ export default function Edit(_props: EditRouteProps) {
                       ${creating
                         ? html`<span class="top-meta">${t("Building")}</span>`
                         : isPublished
-                        ? html`<span class="top-meta published">${t("In Gallery")}</span>`
+                        ? html`<span class="top-meta published">${t("In Store")}</span>`
                         : ""}
                     </div>`
                   : html`<h1 ui-heading="sm" class="muted">${t("Editor")}</h1>`}
@@ -198,7 +198,7 @@ export default function Edit(_props: EditRouteProps) {
                             }}
                           >
                             <i ui-icon=${isPublished ? "prohibit" : "share"} aria-hidden="true"></i>
-                            ${isPublished ? t("Remove from Gallery") : t("Publish to Gallery")}
+                            ${isPublished ? t("Remove from Store") : t("Publish to Store")}
                           </button>
                           <button
                             type="button"

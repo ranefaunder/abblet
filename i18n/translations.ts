@@ -33,11 +33,8 @@ export const translations = {
   "1 app": {
     fi: "1 appi",
   },
-  "App Gallery": {
-    fi: "App Galleria",
-  },
-  "Gallery": {
-    fi: "Galleria",
+  "App Store": {
+    fi: "App Store",
   },
   "Discover apps made by others": {
     fi: "Löydä muiden tekemiä appeja",
@@ -60,11 +57,14 @@ export const translations = {
   "Results": {
     fi: "Tulokset",
   },
-  "No apps in Gallery yet": {
-    fi: "Galleriassa ei ole vielä appeja",
+  "No apps in the Store yet": {
+    fi: "Storessa ei ole vielä appeja",
   },
-  "Apps published to Gallery will show up here.": {
-    fi: "Galleriaan julkaistut appit näkyvät täällä.",
+  "Apps published to the Store will show up here.": {
+    fi: "Storeen julkaistut appit näkyvät täällä.",
+  },
+  "Published apps will show up here.": {
+    fi: "Julkaistut apit näkyvät täällä.",
   },
   "App": {
     fi: "Appi",
@@ -111,14 +111,14 @@ export const translations = {
   "By $name": {
     fi: "Tekijä: $name",
   },
-  "Publish to Gallery": {
-    fi: "Julkaise galleriaan",
+  "Publish to Store": {
+    fi: "Julkaise Storeen",
   },
-  "In Gallery": {
-    fi: "Galleriassa",
+  "In Store": {
+    fi: "Storessa",
   },
-  "Remove from Gallery": {
-    fi: "Poista galleriasta",
+  "Remove from Store": {
+    fi: "Poista Storesta",
   },
   "Remove from library": {
     fi: "Poista kirjastosta",
@@ -448,7 +448,6 @@ export const translations = {
   "Rmix is made by": { fi: "Rmixin on tehnyt" },
   "Rmix — About": { fi: "Rmix — Tietoa" },
   "Create an app": { fi: "Luo appi" },
-  "Browse the Gallery": { fi: "Selaa Storea" },
   "Browse the Store": { fi: "Selaa Storea" },
   "An app store where every app is remixable to fit you.": {
     fi: "App store, jossa kaikki apit ovat remixattavia itselle sopivaksi.",
@@ -517,8 +516,8 @@ export const translations = {
     fi: "Muutamassa minuutissa saat valmiin appin omalla ilmeellä ja kuvakkeella — avattavaksi, ei mockupiksi.",
   },
   "Use and evolve": { fi: "Käytä ja kehitä" },
-  "Ask for changes anytime. Publish to the Gallery if you want, or keep it private for yourself.": {
-    fi: "Pyydä muutoksia milloin tahansa. Julkaise galleriaan jos haluat, tai pidä appi yksityisenä.",
+  "Ask for changes anytime. Publish to the Store if you want, or keep it private for yourself.": {
+    fi: "Pyydä muutoksia milloin tahansa. Julkaise Storeen jos haluat, tai pidä appi yksityisenä.",
   },
   "Who it's for": { fi: "Kenelle se on" },
   "Rmix is for anyone who wants software that fits their life — without learning to code, waiting on a developer, or forcing a generic app to behave.": {
@@ -546,9 +545,6 @@ export const translations = {
   },
   "A habit tracker for my morning routine": {
     fi: "Tottumusseuranta aamurutiiniini",
-  },
-  "Building your app…": {
-    fi: "Rakennetaan appia…",
   },
   "Morning Habits": {
     fi: "Aamutottumukset",
@@ -596,8 +592,6 @@ export const translations = {
   "Already in your library — open it anytime.": {
     fi: "Appi on jo kirjastossasi — avaa milloin vain.",
   },
-  "No apps in the Store yet": { fi: "Storessa ei ole vielä appeja" },
-  "Published apps will show up here.": { fi: "Julkaistut appit näkyvät täällä." },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
