@@ -303,14 +303,44 @@ mountRmixPatch(platformSession);
 
 const PRECACHE_URLS = ["/", "/module.js", "/manifest.webmanifest"];
 
-function isStandalonePwa() {
+/**
+ * Whether this document is shown in an installed-app chrome.
+ * (Do not treat minimal-ui as installed — too aggressive.)
+ */
+function isStandaloneDisplay() {
   try {
     if (window.matchMedia("(display-mode: standalone)").matches) return true;
-    if (window.matchMedia("(display-mode: minimal-ui)").matches) return true;
   } catch {
     // ignore
   }
   return window.navigator.standalone === true;
+}
+
+/** Navigated here from the Rmix platform (Store / Open / etc.). */
+function cameFromPlatform() {
+  const key = "abblet.fromPlatform:" + appSlug;
+  try {
+    if (sessionStorage.getItem(key) === "1") return true;
+    const ref = document.referrer || "";
+    if (ref && ref.startsWith(platformOrigin)) {
+      sessionStorage.setItem(key, "1");
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
+/**
+ * True only when THIS app is running as its own installed PWA.
+ * If the user opened the app from the Rmix PWA/site while still in standalone
+ * chrome, Install should still be offered for this app.
+ */
+function isThisAppInstalledPwa() {
+  if (!isStandaloneDisplay()) return false;
+  if (cameFromPlatform()) return false;
+  return true;
 }
 
 /** R⫶⫶MIX badge — edit/remix, share + store (if published), about, optional Update/Install. */
@@ -321,7 +351,7 @@ function mountRmixPatch(session) {
   const storeHref = platformOrigin + "/" + lang + "/store/" + encodeURIComponent(appSlug);
   const editHref = platformOrigin + "/" + lang + "/edit/" + encodeURIComponent(appSlug);
   const aboutHref = platformOrigin + "/" + lang + "/about";
-  const canOfferInstall = !isStandalonePwa();
+  const canOfferInstall = !isThisAppInstalledPwa();
   let deferredPrompt = null;
 
   const isOwner = session?.isOwner === true;
@@ -558,6 +588,11 @@ function mountRmixPatch(session) {
   function hideInstall() {
     if (installBtn) installBtn.hidden = true;
     deferredPrompt = null;
+    try {
+      sessionStorage.removeItem("abblet.fromPlatform:" + appSlug);
+    } catch {
+      // ignore
+    }
     syncActionDot();
   }
 
