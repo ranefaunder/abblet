@@ -39,7 +39,7 @@ export default async function (req: BunRequest): Promise<Response> {
   const manifest = {
     name: "Rmix",
     short_name: "Rmix",
-    description: t("Your apps evolve with your needs.", lang),
+    description: t("Remix any app, or make your own.", lang),
     start_url: `/${lang}/`,
     scope: "/",
     display: "standalone",

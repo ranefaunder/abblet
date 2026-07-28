@@ -6,11 +6,11 @@ export const translations = {
   "Rmix — Apply it.": {
     fi: "Rmix — Toteuta se.",
   },
-  "Rmix — Your apps evolve with your needs.": {
-    fi: "Rmix — Appisi kehittyvät tarpeidesi mukana.",
+  "Rmix — Remix any app, or make your own.": {
+    fi: "Rmix — Remixaa mikä tahansa appi, tai tee oma.",
   },
-  "Your apps evolve with your needs.": {
-    fi: "Appisi kehittyvät tarpeidesi mukana.",
+  "Remix any app, or make your own.": {
+    fi: "Remixaa mikä tahansa appi, tai tee oma.",
   },
   "Describe what you need in plain language. Rmix builds your app in minutes — no code required.": {
     fi: "Kuvaile mitä tarvitset arkikielellä. Rmix rakentaa sovelluksen minuuteissa — ei koodia.",
@@ -428,7 +428,59 @@ export const translations = {
   "Rmix — About": { fi: "Rmix — Tietoa" },
   "Create an app": { fi: "Luo appi" },
   "Browse the Gallery": { fi: "Selaa Storea" },
+  "Browse the Store": { fi: "Selaa Storea" },
+  "An app store where every app is remixable to fit you.": {
+    fi: "App store, jossa kaikki apit ovat remixattavia itselle sopivaksi.",
+  },
+  "Software that fits — because you shape it.": {
+    fi: "Ohjelmisto joka sopii — koska sinä muokkaat sen.",
+  },
+  "Make your own": { fi: "Tee oma" },
+  "Start with an app someone already made.": {
+    fi: "Aloita jonkun jo tekemästä appista.",
+  },
+  "Turn your idea into a new app from scratch.": {
+    fi: "Tee omasta ideastasi uusi appi nollasta.",
+  },
+  "Open anything in the Store, then adapt it with a prompt until it matches how you actually work — lists, trackers, tools, and helpers that fit your life.": {
+    fi: "Avaa mitä tahansa Storesta ja sovita se promptilla siihen, miten sinä oikeasti toimit — listat, seurannat, työkalut ja apurit omaan elämään.",
+  },
+  "Describe what you need in plain language. Rmix builds a working app you can open, install, and keep improving — no code required.": {
+    fi: "Kuvaile tarve arkikielellä. Rmix rakentaa toimivan appin, jonka avaat, asennat ja jota parannat — ilman koodia.",
+  },
+  "Designed for discovery.": { fi: "Tehty löytämiseen." },
+  "Explore apps others have published. Remix the ones that almost fit. Or invent something only you would think of.": {
+    fi: "Tutki muiden julkaisemia appeja. Remixaa ne jotka melkein sopivat. Tai keksi jotain mitä vain sinä keksit.",
+  },
+  "Discover": { fi: "Löydä" },
+  "Adapt": { fi: "Sovita" },
+  "Browse the Store for apps that solve real everyday needs — then make them yours.": {
+    fi: "Selaa Storea appeihin, jotka ratkovat arjen tarpeita — ja tee niistä omat.",
+  },
+  "Change an existing app with a prompt. Keep what works. Rewrite what doesn’t.": {
+    fi: "Muuta olemassa olevaa appia promptilla. Pidä mikä toimii. Kirjoita uudelleen mikä ei.",
+  },
+  "Go from idea to a working app in minutes, then improve it by chatting.": {
+    fi: "Ideasta toimivaksi appiksi minuuteissa — ja paranna sitä keskustellen.",
+  },
+  "Pick a path": { fi: "Valitse polku" },
+  "Remix an app from the Store, or start from your own idea.": {
+    fi: "Remixaa appi Storesta, tai aloita omasta ideasta.",
+  },
+  "Shape it with a prompt": { fi: "Muotoile promptilla" },
+  "Say what you need in everyday words. Rmix builds and updates a real app — ready to open, not a mockup.": {
+    fi: "Sano tarpeesi arkikielellä. Rmix rakentaa ja päivittää oikean appin — avattavaksi, ei mockupiksi.",
+  },
+  "Install it, live with it, ask for changes anytime. Keep it private or publish it back to the Store.": {
+    fi: "Asenna, käytä arjessa, pyydä muutoksia milloin tahansa. Pidä yksityisenä tai julkaise takaisin Storeen.",
+  },
+  "Instead of settling for software that almost fits, make software that does.": {
+    fi: "Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.",
+  },
   "What Rmix is": { fi: "Mikä Rmix on" },
+  "Rmix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.": {
+    fi: "Rmix on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi appi nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.",
+  },
   "Rmix is a place to make small personal apps for your own life — lists, trackers, tools, and little helpers that fit how you actually work.": {
     fi: "Rmix on paikka tehdä pieniä henkilökohtaisia appeja omaan elämään — listoja, seurantaa, työkaluja ja apureita, jotka sopivat siihen miten sinä oikeasti toimit.",
   },

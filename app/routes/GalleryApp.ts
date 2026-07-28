@@ -1,10 +1,9 @@
 import { html, css } from "/utils/markup";
 import type { RoutePropsForPath } from "preact-iso";
-import { useEffect, useRef, useState } from "preact/hooks";
-import { useSignal } from "@preact/signals";
+import { useEffect, useState } from "preact/hooks";
 import { useLocation, useRoute } from "preact-iso";
 import { t } from "/utils/i18n";
-import { aboutUrl, appEditUrl, appPageUrl, galleryAppUrl, galleryUrl } from "/utils/app-url";
+import { appEditUrl, appPageUrl, galleryAppUrl, galleryUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import type { AppCategory } from "/utils/app-categories";
@@ -19,10 +18,9 @@ import {
   galleryBusy,
   galleryAppError,
   galleryAppLoading,
-  galleryQuery,
   remixGalleryApp,
 } from "/app/stores/galleryStore";
-import { isLoggedIn, logout, openLoginDialog, requireLogin, user } from "/app/stores/userStore";
+import { requireLogin } from "/app/stores/userStore";
 
 export const GalleryAppPath = "/:lang/gallery/:slug" as const;
 
@@ -68,12 +66,8 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
   const app = galleryApp.value;
   const loading = galleryAppLoading.value;
   const busy = galleryBusy.value;
-  const loggedIn = isLoggedIn();
   const [shareLabel, setShareLabel] = useState(t("Share"));
   const [copiedFlash, setCopiedFlash] = useState(false);
-  const searchOpen = useSignal(false);
-  const draftQ = useSignal(galleryQuery.value);
-  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (slug) void loadGalleryApp(slug);
@@ -85,46 +79,6 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
     setShareLabel(t("Share"));
     setCopiedFlash(false);
   }, [slug, lang]);
-
-  useEffect(() => {
-    if (searchOpen.value) searchRef.current?.focus();
-  }, [searchOpen.value]);
-
-  function submitSearch(e: Event) {
-    e.preventDefault();
-    void loadGallery({ q: draftQ.value }).then(() => {
-      route(galleryUrl(lang));
-    });
-  }
-
-  function openSearch() {
-    searchOpen.value = true;
-  }
-
-  function onSearchBlur() {
-    if (draftQ.value.trim()) return;
-    searchOpen.value = false;
-  }
-
-  const accountMenu = loggedIn
-    ? html`
-        <div ui-menu="bottom-right">
-          <button type="button" ui-button="tertiary sm" popovertarget="gallery-app-account-menu">
-            ${user.value?.nickname || user.value?.email || t("Account")}
-          </button>
-          <div id="gallery-app-account-menu" popover="auto" role="menu">
-            <a role="menuitem" href=${`/${lang}/settings`}>${t("Settings")}</a>
-            <a role="menuitem" href=${aboutUrl(lang)}>${t("About Rmix")}</a>
-            <hr />
-            <button type="button" role="menuitem" onClick=${() => void logout()}>
-              ${t("Log out")}
-            </button>
-          </div>
-        </div>`
-    : html`
-      <button type="button" ui-button="tertiary sm" onClick=${openLoginDialog}>
-        ${t("Sign in")}
-      </button>`;
 
   function onInstall() {
     if (!app) return;
@@ -191,50 +145,6 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
 
   const view = html`
     <div data-scope="GalleryApp" ui-column>
-      <header class="top" ui-padding="inline-md block-md">
-        <div ui-row="gap-sm y-center x-between">
-          <a class="brand" href=${`/${lang}/`} aria-label="Rmix">
-            <img src="/static/rmix.svg" alt="Rmix" width="96" height="22" />
-          </a>
-          <div class="header-actions" ui-row="gap-sm y-center">
-            ${searchOpen.value
-              ? html`
-                <form onSubmit=${submitSearch} class="search">
-                  <label class="sr-only" for="gallery-app-search">${t("Search apps")}</label>
-                  <input
-                    id="gallery-app-search"
-                    ref=${searchRef}
-                    type="search"
-                    ui-input="sm"
-                    placeholder=${t("Search apps")}
-                    value=${draftQ.value}
-                    onInput=${(e: Event) => {
-                      draftQ.value = (e.target as HTMLInputElement).value;
-                    }}
-                    onBlur=${onSearchBlur}
-                  />
-                </form>`
-              : html`
-                <button
-                  type="button"
-                  ui-button="tertiary square sm"
-                  ui-icon="search"
-                  aria-label=${t("Search apps")}
-                  onClick=${openSearch}
-                ></button>`}
-            <a
-              href=${appEditUrl(lang)}
-              ui-button="primary sm"
-              onClick=${(e: Event) => {
-                if (requireLogin()) return;
-                e.preventDefault();
-              }}
-            >${t("Create")}</a>
-            ${accountMenu}
-          </div>
-        </div>
-      </header>
-
       ${loading && !app
         ? html`
           <div ui-column="gap-md x-center y-center" ui-padding="xl" class="state">
@@ -402,53 +312,6 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
         display: flex;
         flex-direction: column;
         overflow: hidden;
-      }
-
-      .top {
-        flex: none;
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
-        border-bottom: 1px solid var(--neutral-200);
-        background: color-mix(in oklab, var(--neutral-50) 88%, var(--white));
-        backdrop-filter: blur(12px);
-      }
-
-      .brand {
-        color: var(--neutral-950);
-        text-decoration: none;
-        flex: none;
-      }
-
-      .brand img {
-        display: block;
-        height: 1.35rem;
-        width: auto;
-      }
-
-      .header-actions {
-        min-width: 0;
-        flex: 1;
-        justify-content: flex-end;
-      }
-
-      .search {
-        min-width: 0;
-        flex: 1;
-        max-width: 14rem;
-      }
-
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
       }
 
       .state {
@@ -705,13 +568,6 @@ export default function GalleryApp(_props: RoutePropsForPath<typeof GalleryAppPa
       }
 
       @media (min-width: 720px) {
-        .top {
-          max-width: 48rem;
-          margin-inline: auto;
-          width: 100%;
-          box-sizing: border-box;
-        }
-
         .hero {
           flex-direction: row;
           align-items: flex-start;

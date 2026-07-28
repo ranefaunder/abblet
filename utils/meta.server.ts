@@ -24,14 +24,14 @@ function metaCopy(lang: Language, pathname: string): { title: string; descriptio
     return {
       title: metaPlainForTitleElement(t("Rmix — About", lang)),
       description: metaPlainForHtmlAttribute(
-        t("Personal apps, built in conversation — no code required.", lang),
+        t("Rmix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.", lang),
       ),
     };
   }
   return {
-    title: metaPlainForTitleElement(t("Rmix — Your apps evolve with your needs.", lang)),
+    title: metaPlainForTitleElement(t("Rmix — Remix any app, or make your own.", lang)),
     description: metaPlainForHtmlAttribute(
-      t("Your apps evolve with your needs.", lang),
+      t("Remix any app, or make your own.", lang),
     ),
   };
 }

@@ -1,7 +1,6 @@
 import { html, css } from "/utils/markup";
 import type { RoutePropsForPath } from "preact-iso";
-import { useEffect, useRef } from "preact/hooks";
-import { useSignal } from "@preact/signals";
+import { useEffect } from "preact/hooks";
 import { useLocation } from "preact-iso";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
@@ -21,7 +20,7 @@ import {
   loadGallery,
   loadInstallHistory,
 } from "/app/stores/galleryStore";
-import { isLoggedIn, logout, openLoginDialog, requireLogin, user } from "/app/stores/userStore";
+import { requireLogin } from "/app/stores/userStore";
 
 export const HomePath = "/:lang" as const;
 
@@ -142,9 +141,6 @@ function groupByCategory(apps: GalleryAppCard[]): { category: AppCategory; apps:
 export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   const { path } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
-  const draftQ = useSignal(galleryQuery.value);
-  const searchOpen = useSignal(Boolean(galleryQuery.value.trim()));
-  const searchRef = useRef<HTMLInputElement>(null);
   const apps = galleryApps.value;
   const loading = galleryLoading.value;
   const category = galleryCategory.value;
@@ -153,7 +149,6 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   const visibleCategories =
     category && !categories.includes(category) ? [...categories, category] : categories;
   const isDefaultBrowse = !galleryQuery.value.trim() && !category;
-  const loggedIn = isLoggedIn();
 
   const featuredApps = isDefaultBrowse ? apps.slice(0, Math.min(2, apps.length)) : [];
   const popular = [...apps]
@@ -170,96 +165,15 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
     void loadInstallHistory();
   }, []);
 
-  useEffect(() => {
-    if (searchOpen.value) searchRef.current?.focus();
-  }, [searchOpen.value]);
-
-  function submitSearch(e: Event) {
-    e.preventDefault();
-    void loadGallery({ q: draftQ.value });
-  }
-
-  function openSearch() {
-    searchOpen.value = true;
-  }
-
-  function onSearchBlur() {
-    if (draftQ.value.trim()) return;
-    searchOpen.value = false;
-    if (galleryQuery.value.trim()) void loadGallery({ q: "" });
-  }
-
   function selectCategory(next: AppCategory | null) {
     void loadGallery({ category: next });
   }
 
-  const accountMenu = loggedIn
-    ? html`
-        <div ui-menu="bottom-right">
-          <button type="button" ui-button="tertiary sm" popovertarget="store-account-menu">
-            ${user.value?.nickname || user.value?.email || t("Account")}
-          </button>
-          <div id="store-account-menu" popover="auto" role="menu">
-            <a role="menuitem" href=${`/${lang}/settings`}>${t("Settings")}</a>
-            <a role="menuitem" href=${aboutUrl(lang)}>${t("About Rmix")}</a>
-            <hr />
-            <button type="button" role="menuitem" onClick=${() => void logout()}>
-              ${t("Log out")}
-            </button>
-          </div>
-        </div>`
-    : html`
-      <button type="button" ui-button="tertiary sm" onClick=${openLoginDialog}>
-        ${t("Sign in")}
-      </button>`;
-
   const view = html`
     <div data-scope="Store">
-      <header class="top" ui-padding="inline-md block-md" ui-column="gap-md">
-        <div ui-row="gap-sm y-center x-between">
-          <a class="brand" href=${`/${lang}/`} aria-label="Rmix">
-            <img src="/static/rmix.svg" alt="Rmix" width="96" height="22" />
-          </a>
-          <div class="actions" ui-row="gap-sm y-center">
-            ${searchOpen.value
-              ? html`
-                <form onSubmit=${submitSearch} class="search">
-                  <label class="sr-only" for="store-search">${t("Search apps")}</label>
-                  <input
-                    id="store-search"
-                    ref=${searchRef}
-                    type="search"
-                    ui-input="sm"
-                    placeholder=${t("Search apps")}
-                    value=${draftQ.value}
-                    onInput=${(e: Event) => {
-                      draftQ.value = (e.target as HTMLInputElement).value;
-                    }}
-                    onBlur=${onSearchBlur}
-                  />
-                </form>`
-              : html`
-                <button
-                  type="button"
-                  ui-button="tertiary square sm"
-                  ui-icon="search"
-                  aria-label=${t("Search apps")}
-                  onClick=${openSearch}
-                ></button>`}
-            <a
-              href=${appEditUrl(lang)}
-              ui-button="primary sm"
-              onClick=${(e: Event) => {
-                if (requireLogin()) return;
-                e.preventDefault();
-              }}
-            >${t("Create")}</a>
-            ${accountMenu}
-          </div>
-        </div>
-
-        ${visibleCategories.length > 0
-          ? html`
+      ${visibleCategories.length > 0
+        ? html`
+          <div class="chips-bar" ui-padding="inline-md block-sm">
             <div class="chips" role="tablist" aria-label=${t("Categories")} ui-row="gap-sm">
               <button
                 type="button"
@@ -278,9 +192,9 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                     ${categoryLabel(c)}
                   </button>`,
               )}
-            </div>`
-          : ""}
-      </header>
+            </div>
+          </div>`
+        : ""}
 
       <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
         ${loading && apps.length === 0
@@ -428,6 +342,15 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                     </div>
                   </section>`}
       </div>
+
+      <section class="about-banner">
+        <div class="about-banner-inner" ui-column="gap-lg x-center">
+          <h2 class="about-banner-title">
+            ${t("Instead of settling for software that almost fits, make software that does.")}
+          </h2>
+          <a href=${aboutUrl(lang)} ui-button="primary">${t("About Rmix")}</a>
+        </div>
+      </section>
     </div>
   `;
 
@@ -435,44 +358,17 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
     @scope ([data-scope="Store"]) to ([data-scope]) {
       & {
         color: var(--neutral-900);
-        padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+        padding-bottom: 0;
       }
 
-      .top {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
+      .chips-bar {
         border-bottom: 1px solid var(--neutral-200);
         background: color-mix(in oklab, var(--neutral-50) 88%, var(--white));
-        backdrop-filter: blur(12px);
-      }
-
-      .brand {
-        color: var(--neutral-950);
-        text-decoration: none;
-        flex: none;
-      }
-
-      .brand img {
-        display: block;
-        height: 1.35rem;
-        width: auto;
-      }
-
-      .actions {
-        min-width: 0;
-        flex: 1;
-        justify-content: flex-end;
-      }
-
-      .search {
-        min-width: 0;
-        flex: 1;
-        max-width: 14rem;
       }
 
       .chips {
+        max-width: 48rem;
+        margin-inline: auto;
         flex-wrap: nowrap;
         overflow-x: auto;
         scrollbar-width: none;
@@ -552,6 +448,35 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
 
       .create-cta [ui-button] {
         min-width: 9.5rem;
+      }
+
+      .about-banner {
+        margin-top: 2.5rem;
+        padding: clamp(2.75rem, 7vw, 4.5rem) 1.25rem
+          calc(2.75rem + env(safe-area-inset-bottom, 0px));
+        background: var(--neutral-950);
+        color: var(--white);
+        text-align: center;
+      }
+
+      .about-banner-inner {
+        max-width: 28rem;
+        margin-inline: auto;
+      }
+
+      .about-banner-title {
+        margin: 0;
+        max-width: 18ch;
+        font-size: clamp(1.5rem, 4.5vw, 2.25rem);
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        line-height: 1.12;
+        text-wrap: balance;
+      }
+
+      .about-banner a[ui-button="primary"] {
+        --_btn-bg: var(--white);
+        --_btn-fg: var(--neutral-950);
       }
 
       @media (min-width: 640px) {
@@ -746,18 +671,6 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
         object-fit: cover;
       }
 
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
-      }
-
       @media (max-width: 719px) {
         /* One featured card on small screens — two stacked cards overlap the fold. */
         .today .today-card:nth-child(n + 2) {
@@ -766,13 +679,6 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
       }
 
       @media (min-width: 720px) {
-        .top {
-          max-width: 48rem;
-          margin-inline: auto;
-          width: 100%;
-          box-sizing: border-box;
-        }
-
         .today {
           display: grid;
           grid-template-columns: 1fr 1fr;
