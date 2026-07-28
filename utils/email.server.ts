@@ -6,23 +6,23 @@ const ABBLET_SITE_ORIGIN = "https://abblet.com";
 export function createWelcomeEmail(language: Language): { subject: string; text: string } {
   const siteUrl = `${ABBLET_SITE_ORIGIN}/${language}/`;
   return {
-    subject: t("Welcome to Abblet!", language),
+    subject: t("Welcome to Rmix!", language),
     text: `${t("Hello,", language)}
 
-${t("Thank you for joining Abblet. Describe what you need and Abblet applies it — your first app in minutes.", language)}
+${t("Thank you for joining Rmix. Describe what you need and Rmix applies it — your first app in minutes.", language)}
 
-${t("Open Abblet:\n$url", { url: siteUrl }, language)}
+${t("Open Rmix:\n$url", { url: siteUrl }, language)}
 
-${t("Best regards\nRane Faunder\nFounder of Abblet", language)}`,
+${t("Best regards\nRane Faunder\nFounder of Rmix", language)}`,
   };
 }
 
 export function createLoginCodeEmail(code: string, language: Language): { subject: string; text: string } {
   return {
-    subject: t("Abblet - Login Code", language),
+    subject: t("Rmix - Login Code", language),
     text: `${t("Hello!", language)}
 
-${t("Use the following code to log in to Abblet:", language)}
+${t("Use the following code to log in to Rmix:", language)}
 
 ${code}
 
@@ -31,7 +31,7 @@ ${t("• Code is valid for 10 minutes", language)}
 ${t("• Code can only be used once", language)}
 ${t("• If you didn't request this code, you can safely ignore this message", language)}
 
-${t("Abblet Team", language)}`,
+${t("Rmix Team", language)}`,
   };
 }
 
@@ -43,7 +43,7 @@ export function createFeedbackNotificationEmail(payload: {
   createdAt: string;
 }): { subject: string; text: string } {
   return {
-    subject: `Abblet feedback #${payload.feedbackId} (${payload.language})`,
+    subject: `Rmix feedback #${payload.feedbackId} (${payload.language})`,
     text: `New feedback (id ${payload.feedbackId})
 
 Message:
@@ -86,7 +86,7 @@ export async function sendEmailSafe(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Abblet <no-reply@faunder.fi>",
+        from: "Rmix <no-reply@faunder.fi>",
         reply_to: "rane@faunder.fi",
         to: [resendTo],
         subject,

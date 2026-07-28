@@ -27,30 +27,12 @@ export const dbCreateUser = (data: {
   email: string;
   nickname: string;
   marketingOptIn: boolean;
-  isGuest?: boolean;
 }) =>
   db
     .query(
-      "INSERT INTO users (id, email, nickname, marketing_opt_in, is_guest) VALUES (?, ?, ?, ?, ?)",
+      "INSERT INTO users (id, email, nickname, marketing_opt_in, is_guest) VALUES (?, ?, ?, ?, 0)",
     )
-    .run(
-      data.id,
-      data.email,
-      data.nickname,
-      data.marketingOptIn ? 1 : 0,
-      data.isGuest ? 1 : 0,
-    );
-
-export const dbCreateGuestUser = (data: { id: string; nickname: string }) => {
-  const email = `guest-${data.id}@abblet.guest`;
-  return dbCreateUser({
-    id: data.id,
-    email,
-    nickname: data.nickname,
-    marketingOptIn: false,
-    isGuest: true,
-  });
-};
+    .run(data.id, data.email, data.nickname, data.marketingOptIn ? 1 : 0);
 
 export const dbUpdateUserLastLogin = (email: string) => {
   const now = new Date().toISOString();
@@ -61,23 +43,4 @@ export const dbUpdateUserMarketingOptIn = (userId: string, marketingOptIn: boole
   return db
     .query("UPDATE users SET marketing_opt_in = ? WHERE id = ?")
     .run(marketingOptIn ? 1 : 0, userId);
-};
-
-/** Move guest-owned apps and installs onto a real account, then delete the guest. */
-export const dbClaimGuestToUser = (guestId: string, targetUserId: string): void => {
-  if (guestId === targetUserId) return;
-
-  const claim = db.transaction(() => {
-    db.query("UPDATE apps SET owner_id = ? WHERE owner_id = ?").run(targetUserId, guestId);
-    db.query(
-      `
-      INSERT OR IGNORE INTO app_installs (user_id, app_id, created_at)
-      SELECT ?, app_id, created_at FROM app_installs WHERE user_id = ?
-    `,
-    ).run(targetUserId, guestId);
-    db.query("DELETE FROM app_installs WHERE user_id = ?").run(guestId);
-    db.query("DELETE FROM sessions WHERE user_id = ?").run(guestId);
-    db.query("DELETE FROM users WHERE id = ? AND is_guest = 1").run(guestId);
-  });
-  claim();
 };

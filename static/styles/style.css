@@ -14,13 +14,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Etusivun fallback — itse tausta on CSS Home-reitillä. */
-html:has([data-scope="Layout"].home) {
-  background-color: #1a1848;
-}
-
-html:has([data-scope="Layout"].home) body {
-  background-color: transparent;
+/* Etusivu on App Store — neutraali tausta. */
+html,
+body {
+  background-color: var(--neutral-50, #f5f5f5);
 }
 
 /* iOS zooms focused fields under 16px — keep a hard floor. */

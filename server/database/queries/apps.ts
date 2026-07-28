@@ -251,6 +251,7 @@ export const dbCreateApp = (data: {
 
   if (data.installForOwner !== false) {
     dbInstallApp(data.ownerId, data.id);
+    dbLogInstallEvent(data.ownerId, data.id);
   }
 };
 
@@ -379,6 +380,67 @@ export const dbInstallApp = (userId: string, appId: string): void => {
     VALUES (?, ?, ?)
   `,
   ).run(userId, appId, now);
+};
+
+/** Append-only install history for "Previously installed". */
+export const dbLogInstallEvent = (
+  userId: string,
+  appId: string,
+  installedAt = new Date().toISOString(),
+): void => {
+  db.query(
+    `
+    INSERT INTO app_install_events (id, user_id, app_id, installed_at)
+    VALUES (?, ?, ?, ?)
+  `,
+  ).run(crypto.randomUUID(), userId, appId, installedAt);
+};
+
+export type InstallHistoryRow = {
+  slug: string;
+  title: string;
+  tagline: string | null;
+  iconId: string | null;
+  installedAt: string;
+};
+
+/** Latest install event per app for a user, newest first. */
+export const dbListInstallHistory = (userId: string, limit = 40): InstallHistoryRow[] => {
+  const rows = db
+    .query<
+      {
+        slug: string;
+        title: string;
+        tagline: string | null;
+        icon_id: string | null;
+        installed_at: string;
+      },
+      [string, string, number]
+    >(
+      `
+      SELECT a.slug, a.title, a.tagline, a.icon_id, e.installed_at
+      FROM app_install_events e
+      INNER JOIN apps a ON a.id = e.app_id
+      INNER JOIN (
+        SELECT app_id, MAX(installed_at) AS max_at
+        FROM app_install_events
+        WHERE user_id = ?
+        GROUP BY app_id
+      ) latest ON latest.app_id = e.app_id AND latest.max_at = e.installed_at
+      WHERE e.user_id = ?
+      ORDER BY e.installed_at DESC
+      LIMIT ?
+    `,
+    )
+    .all(userId, userId, limit);
+
+  return rows.map((row) => ({
+    slug: row.slug,
+    title: row.title,
+    tagline: row.tagline,
+    iconId: row.icon_id,
+    installedAt: row.installed_at,
+  }));
 };
 
 export const dbUninstallApp = (userId: string, appId: string): boolean => {

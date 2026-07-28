@@ -13,7 +13,9 @@ type StoredUser = LoggedInUser & {
 };
 
 function normalizeStoredUser(u: StoredUser): LoggedInUser {
-  const { created_at, last_login, ...rest } = u;
+  const { created_at, last_login, isGuest: _guest, ...rest } = u as StoredUser & {
+    isGuest?: boolean;
+  };
   return {
     ...rest,
     createdAt: u.createdAt ?? created_at ?? "",
@@ -26,7 +28,11 @@ const loadUserFromStorage = (): LoggedInUser | null => {
   try {
     const stored = localStorage.getItem("appstudo-user");
     if (stored) {
-      const u = parseJson<StoredUser>(stored);
+      const u = parseJson<StoredUser & { isGuest?: boolean }>(stored);
+      if (u?.isGuest) {
+        localStorage.removeItem("appstudo-user");
+        return null;
+      }
       if (u) return normalizeStoredUser(u);
     }
   } catch (error) {
@@ -185,9 +191,20 @@ export const logout = async () => {
 
 export const isLoggedIn = (): boolean => user.value !== null;
 
-export const isGuest = (): boolean => user.value?.isGuest === true;
+/** Open the login dialog (links to register). */
+export function openLoginDialog(): void {
+  if (typeof document === "undefined") return;
+  (document.getElementById("login-dialog") as HTMLDialogElement | null)?.showModal();
+}
 
-/** Apply a user payload from an API response (e.g. guest create/install). */
+/** Returns true if signed in; otherwise opens login and returns false. */
+export function requireLogin(): boolean {
+  if (isLoggedIn()) return true;
+  openLoginDialog();
+  return false;
+}
+
+/** Apply a user payload from an API response. */
 export function applySessionUser(raw: StoredUser | LoggedInUser): LoggedInUser {
   const normalized = normalizeStoredUser(raw as StoredUser);
   user.value = normalized;
@@ -195,7 +212,7 @@ export function applySessionUser(raw: StoredUser | LoggedInUser): LoggedInUser {
   return normalized;
 }
 
-/** Sync client user from session cookie (e.g. after guest create/install). */
+/** Sync client user from session cookie. */
 export async function refreshSessionUser(): Promise<LoggedInUser | null> {
   try {
     const lang = getLang(window.location.pathname) ?? "en";

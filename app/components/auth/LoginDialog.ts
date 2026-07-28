@@ -1,7 +1,7 @@
 import { html, css } from "/utils/markup";
 import { useState, useRef, useEffect } from "preact/hooks";
 import { useLocation } from "preact-iso";
-import { requestLoginCode, user, logout, isGuest } from "/app/stores/userStore";
+import { requestLoginCode, user, logout, isLoggedIn } from "/app/stores/userStore";
 import { getLang } from "/utils/lang";
 import { t } from "/utils/i18n";
 
@@ -14,7 +14,7 @@ export default function LoginDialog() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [sendingCode, setSendingCode] = useState(false);
-  const registered = Boolean(user.value && !isGuest());
+  const registered = isLoggedIn();
 
   function closeDialog() {
     dialogRef.current?.close();

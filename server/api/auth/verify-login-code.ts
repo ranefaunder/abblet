@@ -2,7 +2,7 @@ import { checkRateLimit } from "/utils/rate-limit.server";
 import { getClientIP } from "/utils/request.server";
 import { dbGetLoginCode, dbGetUsedLoginCode, dbUpdateLoginCodeUsed } from "/server/database/queries/login-codes";
 import { dbGetUserByEmail, dbUpdateUserLastLogin } from "/server/database/queries/users";
-import { claimGuestSession } from "/utils/auth.server";
+import { createAuthSession } from "/utils/auth.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import type { BunRequest } from "bun";
 
@@ -47,7 +47,7 @@ export default {
     }
 
     dbUpdateUserLastLogin(email);
-    claimGuestSession(req, existingUser.id);
+    createAuthSession(req, existingUser.id);
 
     return apiSuccess({
       data: {
@@ -58,7 +58,6 @@ export default {
           lastLogin: existingUser.last_login,
           nickname: existingUser.nickname ?? null,
           marketingOptIn: (existingUser.marketing_opt_in ?? 0) === 1,
-          isGuest: false,
         },
       },
     });

@@ -3,7 +3,14 @@ import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 
+/** PWA icons: white-background mark (favicon-light.svg). */
 const ICONS = [
+  {
+    src: "/static/favicon-light.svg",
+    sizes: "any",
+    type: "image/svg+xml",
+    purpose: "any",
+  },
   {
     src: "/static/favicons/android-chrome-192x192.png",
     sizes: "192x192",
@@ -30,14 +37,14 @@ export default async function (req: BunRequest): Promise<Response> {
   }
 
   const manifest = {
-    name: "Abblet",
-    short_name: "Abblet",
-    description: t("Your apps evolve with your needs.", lang),
+    name: "Rmix",
+    short_name: "Rmix",
+    description: t("Remix any app, or make your own.", lang),
     start_url: `/${lang}/`,
     scope: "/",
     display: "standalone",
-    background_color: "#f4f2f8",
-    theme_color: "#f4f2f8",
+    background_color: "#f5f5f5",
+    theme_color: "#f5f5f5",
     lang,
     icons: [...ICONS],
   };

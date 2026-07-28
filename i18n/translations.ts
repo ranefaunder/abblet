@@ -3,20 +3,20 @@ import { AVAILABLE_LANGUAGES } from "/i18n/languages";
 export type Language = keyof typeof AVAILABLE_LANGUAGES;
 
 export const translations = {
-  "Abblet — Apply it.": {
-    fi: "Abblet — Toteuta se.",
+  "Rmix — Apply it.": {
+    fi: "Rmix — Toteuta se.",
   },
-  "Abblet — Your apps evolve with your needs.": {
-    fi: "Abblet — Appisi kehittyvät tarpeidesi mukana.",
+  "Rmix — Remix any app, or make your own.": {
+    fi: "Rmix — Remixaa mikä tahansa appi, tai tee oma.",
   },
-  "Your apps evolve with your needs.": {
-    fi: "Appisi kehittyvät tarpeidesi mukana.",
+  "Remix any app, or make your own.": {
+    fi: "Remixaa mikä tahansa appi, tai tee oma.",
   },
-  "Describe what you need in plain language. Abblet builds your app in minutes — no code required.": {
-    fi: "Kuvaile mitä tarvitset arkikielellä. Abblet rakentaa sovelluksen minuuteissa — ei koodia.",
+  "Describe what you need in plain language. Rmix builds your app in minutes — no code required.": {
+    fi: "Kuvaile mitä tarvitset arkikielellä. Rmix rakentaa sovelluksen minuuteissa — ei koodia.",
   },
-  "Build personal apps for your needs. Describe what you need — Abblet builds it in minutes.": {
-    fi: "Tee henkilökohtaisia appeja tarpeisiisi. Kuvaile mitä tarvitset — Abblet rakentaa sen minuuteissa.",
+  "Build personal apps for your needs. Describe what you need — Rmix builds it in minutes.": {
+    fi: "Tee henkilökohtaisia appeja tarpeisiisi. Kuvaile mitä tarvitset — Rmix rakentaa sen minuuteissa.",
   },
   "Apply It": {
     fi: "Toteuta se",
@@ -83,6 +83,12 @@ export const translations = {
   },
   "Remix": {
     fi: "Remix",
+  },
+  "Make it yours with Remix": {
+    fi: "Tee siitä omasi remixillä",
+  },
+  "Remix creates your own copy of this app. Then change it by chatting — add features, tweak the look, make it fit you. No code needed.": {
+    fi: "Remix tekee tästä appista oman kopiosi. Sen jälkeen muutat sitä keskustellen — lisää ominaisuuksia, säädä ilmettä, sovi se itsellesi. Ei koodia tarvita.",
   },
   "Try": {
     fi: "Kokeile",
@@ -170,8 +176,8 @@ export const translations = {
   "I couldn't update the app icon right now. Try again in a moment.": {
     fi: "En saanut app-kuvaketta päivitettyä juuri nyt. Kokeile hetken päästä uudelleen.",
   },
-  "Hey — I'm Abblet.\n\nTell me what kind of little app would help you. Just write it like you'd say it out loud — a couple of words is enough.\n\nFor example: shopping list, habit tracker, workout log, recipe book, budget, or mood journal.\n\nI do best with small, personal tools. What do you need?": {
-    fi: "Hei — olen Abblet.\n\nKerro millainen pieni app auttaisi sinua. Kirjoita ihan niin kuin puhuisit — pari sanaa riittää.\n\nEsimerkiksi: ostoslista, tapaseuranta, treenipäiväkirja, reseptikirja, budjetti tai mielialaseuranta.\n\nParhaiten teen pieniä, henkilökohtaisia työkaluja. Mitä sinä tarvitset?",
+  "Hey — I'm Rmix.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?": {
+    fi: "Hei — olen Rmix.\n\nRakennan appin siitä mitä kuvailet. Hyvän ensimmäisen version saat, kun kerrot mitä appin pitäisi tehdä ja miten käytät sitä — mitä selkeämmin, sen parempi tulos.\n\nMitä tehdään?",
   },
   "Sign in to open your apps": {
     fi: "Kirjaudu avataksesi appisi",
@@ -209,8 +215,8 @@ export const translations = {
   "Describe your idea": {
     fi: "Kuvaile ideasi",
   },
-  "Tell Abblet what you need — a packing list, budget tracker, or anything else.": {
-    fi: "Kerro Abbletille mitä tarvitset — pakkauslista, budjettiseuranta tai mikä tahansa muu.",
+  "Tell Rmix what you need — a packing list, budget tracker, or anything else.": {
+    fi: "Kerro Rmixille mitä tarvitset — pakkauslista, budjettiseuranta tai mikä tahansa muu.",
   },
   "Apply it": {
     fi: "Toteuta se",
@@ -218,8 +224,8 @@ export const translations = {
   "Apply it.": {
     fi: "Toteuta se.",
   },
-  "Abblet applies your idea into a working app you can use right away.": {
-    fi: "Abblet toteuttaa ideasi toimivana sovelluksena, jota voit käyttää heti.",
+  "Rmix applies your idea into a working app you can use right away.": {
+    fi: "Rmix toteuttaa ideasi toimivana sovelluksena, jota voit käyttää heti.",
   },
   "Edit anytime": {
     fi: "Muokkaa milloin tahansa",
@@ -248,23 +254,23 @@ export const translations = {
   "No apps yet": {
     fi: "Ei vielä appeja",
   },
-  "Welcome to Abblet!": { fi: "Tervetuloa Abbletiin!" },
+  "Welcome to Rmix!": { fi: "Tervetuloa Rmixiin!" },
   "Hello,": { fi: "Hei," },
-  "Thank you for joining Abblet. Describe what you need and Abblet applies it — your first app in minutes.": {
-    fi: "Kiitos liittymisestä Abbletiin. Kuvaile mitä tarvitset — Abblet toteuttaa sen, ensimmäinen app minuuteissa.",
+  "Thank you for joining Rmix. Describe what you need and Rmix applies it — your first app in minutes.": {
+    fi: "Kiitos liittymisestä Rmixiin. Kuvaile mitä tarvitset — Rmix toteuttaa sen, ensimmäinen app minuuteissa.",
   },
-  "Open Abblet:\n$url": { fi: "Avaa Abblet:\n$url" },
-  "Best regards\nRane Faunder\nFounder of Abblet": { fi: "Ystävällisin terveisin\nRane Faunder\nAbbletin perustaja" },
-  "Abblet - Login Code": { fi: "Abblet – kirjautumiskoodi" },
+  "Open Rmix:\n$url": { fi: "Avaa Rmix:\n$url" },
+  "Best regards\nRane Faunder\nFounder of Rmix": { fi: "Ystävällisin terveisin\nRane Faunder\nRmixin perustaja" },
+  "Rmix - Login Code": { fi: "Rmix – kirjautumiskoodi" },
   "Hello!": { fi: "Hei!" },
-  "Use the following code to log in to Abblet:": { fi: "Käytä seuraavaa koodia kirjautuaksesi Abbletiin:" },
+  "Use the following code to log in to Rmix:": { fi: "Käytä seuraavaa koodia kirjautuaksesi Rmixiin:" },
   "Important:": { fi: "Tärkeää:" },
   "• Code is valid for 10 minutes": { fi: "• Koodi on voimassa 10 minuuttia" },
   "• Code can only be used once": { fi: "• Koodia voi käyttää vain kerran" },
   "• If you didn't request this code, you can safely ignore this message": {
     fi: "• Jos et pyytänyt tätä koodia, voit jättää viestin huomiotta",
   },
-  "Abblet Team": { fi: "Abblet-tiimi" },
+  "Rmix Team": { fi: "Rmix-tiimi" },
   "Email address required": { fi: "Sähköpostiosoite vaaditaan" },
   "Email address is too long": { fi: "Sähköpostiosoite on liian pitkä" },
   "Invalid email address": { fi: "Virheellinen sähköpostiosoite" },
@@ -351,8 +357,8 @@ export const translations = {
   },
   "Building": { fi: "Rakenteilla" },
   "Describe your app": { fi: "Kuvaile appisi" },
-  "Tell Abblet what you need — it builds a working app in minutes.": {
-    fi: "Kerro mitä tarvitset — Abblet rakentaa toimivan apin minuuteissa.",
+  "Tell Rmix what you need — it builds a working app in minutes.": {
+    fi: "Kerro mitä tarvitset — Rmix rakentaa toimivan apin minuuteissa.",
   },
   "Unsaved changes": { fi: "Tallentamattomia muutoksia" },
   "Saved": { fi: "Tallennettu" },
@@ -372,25 +378,25 @@ export const translations = {
   "Could not update app. Try again.": { fi: "Appin päivitys epäonnistui. Yritä uudelleen." },
   "Code must still register <$tag>.": { fi: "Koodin on yhä rekisteröitävä <$tag>." },
   "Applied in minutes": { fi: "Toteutettu minuuteissa" },
-  "Describe your idea and Abblet applies it instantly — no setup, no waiting.": {
-    fi: "Kuvaile ideasi — Abblet toteuttaa sen heti. Ei asennusta, ei odottelua.",
+  "Describe your idea and Rmix applies it instantly — no setup, no waiting.": {
+    fi: "Kuvaile ideasi — Rmix toteuttaa sen heti. Ei asennusta, ei odottelua.",
   },
   "Truly yours": { fi: "Täysin sinun" },
   "Your apps store data right in your browser. No accounts to wire up, no servers to manage.": {
     fi: "Appit tallentavat datan suoraan selaimeesi. Ei tilien kytkentää, ei palvelimien ylläpitoa.",
   },
   "No code required": { fi: "Ei koodia" },
-  "Just describe it in plain language. Abblet applies the rest.": {
-    fi: "Kuvaile arkikielellä. Abblet toteuttaa loput.",
+  "Just describe it in plain language. Rmix applies the rest.": {
+    fi: "Kuvaile arkikielellä. Rmix toteuttaa loput.",
   },
   "Make every idea an app": { fi: "Tee jokaisesta ideasta app" },
   "Describe it, apply it — right where you work.": {
     fi: "Kuvaile, toteuta — juuri siellä missä työskentelet.",
   },
   "Frequently asked questions": { fi: "Usein kysytyt kysymykset" },
-  "What is Abblet?": { fi: "Mikä on Abblet?" },
-  "Abblet lets you apply your ideas as small personal apps. Describe what you need and Abblet builds a working app that runs in your browser and keeps your data on your device.": {
-    fi: "Abbletilla toteutat ideasi pieninä henkilökohtaisina appeina. Kuvaile mitä tarvitset — Abblet rakentaa toimivan appin selaimeesi, data pysyy laitteellasi.",
+  "What is Rmix?": { fi: "Mikä on Rmix?" },
+  "Rmix lets you apply your ideas as small personal apps. Describe what you need and Rmix builds a working app that runs in your browser and keeps your data on your device.": {
+    fi: "Rmixilla toteutat ideasi pieninä henkilökohtaisina appeina. Kuvaile mitä tarvitset — Rmix rakentaa toimivan appin selaimeesi, data pysyy laitteellasi.",
   },
   "What kind of apps can I build?": { fi: "Millaisia appeja voin tehdä?" },
   "Anything small and personal: trackers, journals, calculators, checklists, simple games, or quick one-off tools that make your life easier.": {
@@ -401,8 +407,8 @@ export const translations = {
     fi: "Jokainen app tallentaa datansa paikallisesti selaimeesi. Mitään ei lähetetä palvelimelle — merkintäsi pysyvät yksityisinä.",
   },
   "What will you apply?": { fi: "Mitä toteutat seuraavaksi?" },
-  "Describe your idea and watch Abblet apply it in minutes.": {
-    fi: "Kuvaile ideasi ja katso Abbletin toteuttavan sen minuuteissa.",
+  "Describe your idea and watch Rmix apply it in minutes.": {
+    fi: "Kuvaile ideasi ja katso Rmixin toteuttavan sen minuuteissa.",
   },
   "Apply your first app": {
     fi: "Toteuta ensimmäinen appisi",
@@ -410,38 +416,92 @@ export const translations = {
   "Describe your idea and see your first app in minutes.": {
     fi: "Kuvaile ideasi ja näe ensimmäinen app minuuteissa.",
   },
-  "Email me about Abblet updates": {
-    fi: "Lähetä minulle sähköpostia Abblet-päivityksistä",
+  "Email me about Rmix updates": {
+    fi: "Lähetä minulle sähköpostia Rmix-päivityksistä",
   },
-  "Abblet is a platform for creating personal apps. By using the service you accept these terms.": {
-    fi: "Abblet on alusta henkilökohtaisten appien luomiseen. Käyttämällä palvelua hyväksyt nämä ehdot.",
+  "Rmix is a platform for creating personal apps. By using the service you accept these terms.": {
+    fi: "Rmix on alusta henkilökohtaisten appien luomiseen. Käyttämällä palvelua hyväksyt nämä ehdot.",
   },
-  "About Abblet": { fi: "Tietoa Abbletista" },
-  "Abblet — About": { fi: "Abblet — Tietoa" },
+  "About Rmix": { fi: "Tietoa Rmixista" },
+  "Faunder — maker of Rmix": { fi: "Faunder — Rmixin tekijä" },
+  "Rmix is made by": { fi: "Rmixin on tehnyt" },
+  "Rmix — About": { fi: "Rmix — Tietoa" },
   "Create an app": { fi: "Luo appi" },
-  "Browse the Gallery": { fi: "Selaa galleriaa" },
-  "What Abblet is": { fi: "Mikä Abblet on" },
-  "Abblet is a place to make small personal apps for your own life — lists, trackers, tools, and little helpers that fit how you actually work.": {
-    fi: "Abblet on paikka tehdä pieniä henkilökohtaisia appeja omaan elämään — listoja, seurantaa, työkaluja ja apureita, jotka sopivat siihen miten sinä oikeasti toimit.",
+  "Browse the Gallery": { fi: "Selaa Storea" },
+  "Browse the Store": { fi: "Selaa Storea" },
+  "An app store where every app is remixable to fit you.": {
+    fi: "App store, jossa kaikki apit ovat remixattavia itselle sopivaksi.",
   },
-  "You talk to Abblet like a person. It designs and builds a working app you can open on your phone and keep improving.": {
-    fi: "Puhut Abbletille kuin ihmiselle. Se suunnittelee ja rakentaa toimivan appin, jonka avaat puhelimessa ja jota voit parantaa.",
+  "Software that fits — because you shape it.": {
+    fi: "Ohjelmisto joka sopii — koska sinä muokkaat sen.",
+  },
+  "Make your own": { fi: "Tee oma" },
+  "Start with an app someone already made.": {
+    fi: "Aloita jonkun jo tekemästä appista.",
+  },
+  "Turn your idea into a new app from scratch.": {
+    fi: "Tee omasta ideastasi uusi appi nollasta.",
+  },
+  "Open anything in the Store, then adapt it with a prompt until it matches how you actually work — lists, trackers, tools, and helpers that fit your life.": {
+    fi: "Avaa mitä tahansa Storesta ja sovita se promptilla siihen, miten sinä oikeasti toimit — listat, seurannat, työkalut ja apurit omaan elämään.",
+  },
+  "Describe what you need in plain language. Rmix builds a working app you can open, install, and keep improving — no code required.": {
+    fi: "Kuvaile tarve arkikielellä. Rmix rakentaa toimivan appin, jonka avaat, asennat ja jota parannat — ilman koodia.",
+  },
+  "Designed for discovery.": { fi: "Tehty löytämiseen." },
+  "Explore apps others have published. Remix the ones that almost fit. Or invent something only you would think of.": {
+    fi: "Tutki muiden julkaisemia appeja. Remixaa ne jotka melkein sopivat. Tai keksi jotain mitä vain sinä keksit.",
+  },
+  "Discover": { fi: "Löydä" },
+  "Adapt": { fi: "Sovita" },
+  "Browse the Store for apps that solve real everyday needs — then make them yours.": {
+    fi: "Selaa Storea appeihin, jotka ratkovat arjen tarpeita — ja tee niistä omat.",
+  },
+  "Change an existing app with a prompt. Keep what works. Rewrite what doesn’t.": {
+    fi: "Muuta olemassa olevaa appia promptilla. Pidä mikä toimii. Kirjoita uudelleen mikä ei.",
+  },
+  "Go from idea to a working app in minutes, then improve it by chatting.": {
+    fi: "Ideasta toimivaksi appiksi minuuteissa — ja paranna sitä keskustellen.",
+  },
+  "Pick a path": { fi: "Valitse polku" },
+  "Remix an app from the Store, or start from your own idea.": {
+    fi: "Remixaa appi Storesta, tai aloita omasta ideasta.",
+  },
+  "Shape it with a prompt": { fi: "Muotoile promptilla" },
+  "Say what you need in everyday words. Rmix builds and updates a real app — ready to open, not a mockup.": {
+    fi: "Sano tarpeesi arkikielellä. Rmix rakentaa ja päivittää oikean appin — avattavaksi, ei mockupiksi.",
+  },
+  "Install it, live with it, ask for changes anytime. Keep it private or publish it back to the Store.": {
+    fi: "Asenna, käytä arjessa, pyydä muutoksia milloin tahansa. Pidä yksityisenä tai julkaise takaisin Storeen.",
+  },
+  "Instead of settling for software that almost fits, make software that does.": {
+    fi: "Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.",
+  },
+  "What Rmix is": { fi: "Mikä Rmix on" },
+  "Rmix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.": {
+    fi: "Rmix on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi appi nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.",
+  },
+  "Rmix is a place to make small personal apps for your own life — lists, trackers, tools, and little helpers that fit how you actually work.": {
+    fi: "Rmix on paikka tehdä pieniä henkilökohtaisia appeja omaan elämään — listoja, seurantaa, työkaluja ja apureita, jotka sopivat siihen miten sinä oikeasti toimit.",
+  },
+  "You talk to Rmix like a person. It designs and builds a working app you can open on your phone and keep improving.": {
+    fi: "Puhut Rmixille kuin ihmiselle. Se suunnittelee ja rakentaa toimivan appin, jonka avaat puhelimessa ja jota voit parantaa.",
   },
   "Describe": { fi: "Kuvaile" },
   "Write what you need in everyday words — a shopping list, habit tracker, workout log, or something only you would invent.": {
     fi: "Kirjoita tarpeesi arkikielellä — ostoslista, tapaseuranta, treenipäiväkirja tai jotain mitä vain sinä keksit.",
   },
-  "Abblet builds": { fi: "Abblet rakentaa" },
-  "In minutes you get a finished mini-app with its own look and icon — ready to open, not a mockup.": {
-    fi: "Muutamassa minuutissa saat valmiin miniappin omalla ilmeellä ja kuvakkeella — avattavaksi, ei mockupiksi.",
+  "Rmix builds": { fi: "Rmix rakentaa" },
+  "In minutes you get a finished app with its own look and icon — ready to open, not a mockup.": {
+    fi: "Muutamassa minuutissa saat valmiin appin omalla ilmeellä ja kuvakkeella — avattavaksi, ei mockupiksi.",
   },
   "Use and evolve": { fi: "Käytä ja kehitä" },
   "Ask for changes anytime. Publish to the Gallery if you want, or keep it private for yourself.": {
     fi: "Pyydä muutoksia milloin tahansa. Julkaise galleriaan jos haluat, tai pidä appi yksityisenä.",
   },
   "Who it's for": { fi: "Kenelle se on" },
-  "Abblet is for anyone who wants software that fits their life — without learning to code, waiting on a developer, or forcing a generic app to behave.": {
-    fi: "Abblet on kaikille, jotka haluavat ohjelmiston joka sopii omaan elämään — ilman koodaamista, kehittäjän odottelua tai geneerisen appin väkisin sovittamista.",
+  "Rmix is for anyone who wants software that fits their life — without learning to code, waiting on a developer, or forcing a generic app to behave.": {
+    fi: "Rmix on kaikille, jotka haluavat ohjelmiston joka sopii omaan elämään — ilman koodaamista, kehittäjän odottelua tai geneerisen appin väkisin sovittamista.",
   },
   "Start with one idea": { fi: "Aloita yhdellä idealla" },
   "Your first app can be tiny. The important part is that it's yours.": {
@@ -450,6 +510,58 @@ export const translations = {
   "Personal apps, built in conversation — no code required.": {
     fi: "Henkilökohtaisia appeja keskustellen — ilman koodia.",
   },
+  "Make your own apps": { fi: "Tee omia appeja" },
+  "Make your own apps with AI": {
+    fi: "Tee omia appeja tekoälyllä",
+  },
+  "Make your own apps with Rmix": {
+    fi: "Tee omia appeja Rmixillä",
+  },
+  "Your idea. Your app.": {
+    fi: "Sinun idea. Sinun appi.",
+  },
+  "Describe what you need in plain language. Rmix builds a working app in minutes — then you improve it by chatting. No code needed.": {
+    fi: "Kuvaile mitä tarvitset arkikielellä. Rmix rakentaa toimivan appin minuuteissa — ja parannat sitä keskustellen. Ei koodia tarvita.",
+  },
+  "From plain language to a working app in minutes.": {
+    fi: "Arkikielestä toimivaksi appiksi minuuteissa.",
+  },
+  "Everyday words. Any idea.": {
+    fi: "Arkikielellä. Mikä idea tahansa.",
+  },
+  "A real app — ready to open.": {
+    fi: "Oikea appi — heti auki.",
+  },
+  "Chat to change it. Private or published.": {
+    fi: "Muuta keskustellen. Yksityinen tai julkinen.",
+  },
+  "Rmix builds working apps from plain language. Describe an idea, get an app in minutes, then improve it by chatting — no code.": {
+    fi: "Rmix rakentaa toimivia appeja arkikielestä. Kuvaile idea, saat appin minuuteissa ja parannat sitä keskustellen — ilman koodia.",
+  },
+  "Previously installed": { fi: "Aiemmin asennetut" },
+  "Popular apps": { fi: "Suositut appit" },
+  "Top charts": { fi: "Suosituimmat" },
+  "See all": { fi: "Näytä kaikki" },
+  "Store": { fi: "Store" },
+  "Install": { fi: "Asenna" },
+  "Installed": { fi: "Asennettu" },
+  "Preview": { fi: "Esikatselu" },
+  "Installs": { fi: "Asennukset" },
+  "Share": { fi: "Jaa" },
+  "Link copied": { fi: "Linkki kopioitu" },
+  "Share this app": { fi: "Jaa tämä appi" },
+  "Send the Store link to a friend.": { fi: "Lähetä Store-linkki kaverille." },
+  "More like this": { fi: "Lisää samankaltaisia" },
+  "Published": { fi: "Julkaistu" },
+  "Back to Store": { fi: "Takaisin Storeen" },
+  "Install adds the app to your home screen so you can open it anytime.": {
+    fi: "Asennus lisää appin kotinäytölle, jotta avaat sen milloin vain.",
+  },
+  "Already in your library — open it anytime.": {
+    fi: "Appi on jo kirjastossasi — avaa milloin vain.",
+  },
+  "No apps in the Store yet": { fi: "Storessa ei ole vielä appeja" },
+  "Published apps will show up here.": { fi: "Julkaistut appit näkyvät täällä." },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
