@@ -727,6 +727,8 @@ function renderInstallPage(
       (function () {
         var copy = ${JSON.stringify(copy)};
         var precacheUrls = ${JSON.stringify(precacheUrls)};
+        var platformOrigin = ${JSON.stringify(platformOrigin)};
+        var appSlug = ${JSON.stringify(access.slug)};
         var CACHE = "rmix-app-runtime-v3";
         var installBtn = document.getElementById("install");
         var openBtn = document.getElementById("open");
@@ -737,6 +739,7 @@ function renderInstallPage(
         var mainEl = document.querySelector("main.install");
         var deferredPrompt = null;
         var supportsBip = "onbeforeinstallprompt" in window;
+        var fromPlatformKey = "abblet.fromPlatform:" + appSlug;
 
         function isIos() {
           return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -750,6 +753,32 @@ function renderInstallPage(
           var ua = navigator.userAgent || "";
           if (/Android|FxiOS/i.test(ua)) return false;
           return /Firefox\\/|LibreWolf\\/|Waterfox\\//i.test(ua);
+        }
+
+        function cameFromPlatform() {
+          try {
+            if (sessionStorage.getItem(fromPlatformKey) === "1") return true;
+            var ref = document.referrer || "";
+            if (ref && platformOrigin && ref.indexOf(platformOrigin) === 0) {
+              sessionStorage.setItem(fromPlatformKey, "1");
+              return true;
+            }
+          } catch (e) {}
+          return false;
+        }
+
+        function isStandaloneDisplay() {
+          try {
+            if (window.matchMedia("(display-mode: standalone)").matches) return true;
+          } catch (e) {}
+          return !!window.navigator.standalone;
+        }
+
+        /** Only bounce away when THIS app is already its own installed PWA. */
+        function shouldSkipInstallPage() {
+          if (!isStandaloneDisplay()) return false;
+          if (cameFromPlatform()) return false;
+          return true;
         }
 
         function wireBack() {
@@ -771,7 +800,7 @@ function renderInstallPage(
           return;
         }
 
-        if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
+        if (shouldSkipInstallPage()) {
           location.replace("/");
           return;
         }
@@ -885,6 +914,9 @@ function renderInstallPage(
         window.addEventListener("appinstalled", function () {
           if (ledeEl) ledeEl.textContent = copy.installed;
           deferredPrompt = null;
+          try {
+            sessionStorage.removeItem(fromPlatformKey);
+          } catch (e) {}
           void prepareOffline().then(function () {
             setTimeout(function () { location.href = "/"; }, 500);
           });
