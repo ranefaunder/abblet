@@ -5,23 +5,23 @@ import type { Language } from "/types/i18n-types";
 export function createWelcomeEmail(language: Language): { subject: string; text: string } {
   const siteUrl = `${getPlatformOrigin()}/${language}/`;
   return {
-    subject: t("Welcome to Rmix!", language),
+    subject: t("Welcome to R⫶⫶MIX!", language),
     text: `${t("Hello,", language)}
 
-${t("Thank you for joining Rmix. Describe what you need and Rmix applies it — your first app in minutes.", language)}
+${t("Thank you for joining R⫶⫶MIX. Describe what you need and R⫶⫶MIX applies it — your first app in minutes.", language)}
 
-${t("Open Rmix:\n$url", { url: siteUrl }, language)}
+${t("Open R⫶⫶MIX:\n$url", { url: siteUrl }, language)}
 
-${t("Best regards\nRane Faunder\nFounder of Rmix", language)}`,
+${t("Best regards\nRane Faunder\nFounder of R⫶⫶MIX", language)}`,
   };
 }
 
 export function createLoginCodeEmail(code: string, language: Language): { subject: string; text: string } {
   return {
-    subject: t("Rmix - Login Code", language),
+    subject: t("R⫶⫶MIX - Login Code", language),
     text: `${t("Hello!", language)}
 
-${t("Use the following code to log in to Rmix:", language)}
+${t("Use the following code to log in to R⫶⫶MIX:", language)}
 
 ${code}
 
@@ -30,7 +30,7 @@ ${t("• Code is valid for 10 minutes", language)}
 ${t("• Code can only be used once", language)}
 ${t("• If you didn't request this code, you can safely ignore this message", language)}
 
-${t("Rmix Team", language)}`,
+${t("R⫶⫶MIX Team", language)}`,
   };
 }
 
@@ -42,7 +42,7 @@ export function createFeedbackNotificationEmail(payload: {
   createdAt: string;
 }): { subject: string; text: string } {
   return {
-    subject: `Rmix feedback #${payload.feedbackId} (${payload.language})`,
+    subject: `R⫶⫶MIX feedback #${payload.feedbackId} (${payload.language})`,
     text: `New feedback (id ${payload.feedbackId})
 
 Message:
@@ -85,7 +85,7 @@ export async function sendEmailSafe(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Rmix <no-reply@faunder.fi>",
+        from: "R⫶⫶MIX <no-reply@faunder.fi>",
         reply_to: "rane@faunder.fi",
         to: [resendTo],
         subject,

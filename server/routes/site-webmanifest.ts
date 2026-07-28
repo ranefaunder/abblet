@@ -37,8 +37,8 @@ export default async function (req: BunRequest): Promise<Response> {
   }
 
   const manifest = {
-    name: "Rmix",
-    short_name: "Rmix",
+    name: "R⫶⫶MIX",
+    short_name: "R⫶⫶MIX",
     description: t("Remix any app, or make your own.", lang),
     start_url: `/${lang}/`,
     scope: "/",

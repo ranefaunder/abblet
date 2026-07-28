@@ -10,7 +10,6 @@ import type { AppCategory } from "/utils/app-categories";
 import type { StoreAppCard } from "/types/app-types";
 import {
   clearStoreApp,
-  openAppInstall,
   loadStore,
   loadStoreApp,
   storeApp,
@@ -20,7 +19,6 @@ import {
   storeAppLoading,
   remixStoreApp,
 } from "/app/stores/storeListingStore";
-import { requireLogin } from "/app/stores/userStore";
 
 export const StoreAppPath = "/:lang/store/:slug" as const;
 
@@ -80,16 +78,6 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
     setCopiedFlash(false);
   }, [slug, lang]);
 
-  function onInstall() {
-    if (!app) return;
-    openAppInstall(app.slug);
-  }
-
-  function onOpen() {
-    if (!app) return;
-    window.location.href = appPageUrl(lang, app.slug);
-  }
-
   async function onRemix() {
     if (!app) return;
     const cloned = await remixStoreApp(app.slug);
@@ -135,14 +123,6 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
           .slice(0, 8)
       : storeApps.value.filter((a) => a.slug !== slug).slice(0, 8);
 
-  const primaryCta = !app
-    ? null
-    : app.isOwner
-      ? { label: t("Edit"), action: () => route(appEditUrl(lang, app.slug)), href: appEditUrl(lang, app.slug) }
-      : app.installed
-        ? { label: t("Open"), action: onOpen, href: null }
-        : { label: t("Install"), action: onInstall, href: null };
-
   const view = html`
     <div data-scope="StoreApp" ui-column>
       ${loading && !app
@@ -176,20 +156,10 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
                   </div>
                   <div class="actions" ui-column="gap-sm">
                     <div class="cta-row" ui-row="gap-sm wrap">
-                      ${primaryCta?.href
-                        ? html`<a href=${primaryCta.href} ui-button="primary">${primaryCta.label}</a>`
+                      <a href=${appPageUrl(lang, app.slug)} ui-button="primary">${t("Open")}</a>
+                      ${app.isOwner
+                        ? html`<a href=${appEditUrl(lang, app.slug)} ui-button>${t("Edit")}</a>`
                         : html`
-                          <button
-                            type="button"
-                            ui-button="primary"
-                            disabled=${busy}
-                            aria-busy=${busy}
-                            onClick=${() => primaryCta?.action()}
-                          >
-                            ${primaryCta?.label}
-                          </button>`}
-                      ${!app.isOwner
-                        ? html`
                           <button
                             type="button"
                             ui-button
@@ -198,21 +168,7 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
                             onClick=${() => void onRemix()}
                           >
                             ${t("Remix")}
-                          </button>`
-                        : html`<a ui-button href=${appPageUrl(lang, app.slug)}>${t("Preview")}</a>`}
-                      ${app.installed && !app.isOwner
-                        ? html`
-                          <button
-                            type="button"
-                            ui-button
-                            disabled=${busy}
-                            onClick=${() => onInstall()}
-                          >
-                            ${t("Install")}
-                          </button>`
-                        : !app.isOwner
-                          ? html`<a ui-button href=${appPageUrl(lang, app.slug)}>${t("Preview")}</a>`
-                          : ""}
+                          </button>`}
                     </div>
                   </div>
                 </div>

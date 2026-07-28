@@ -404,7 +404,7 @@ export type InstallHistoryRow = {
   installedAt: string;
 };
 
-/** Latest install event per app for a user, newest first. */
+/** Latest install event per app for a user, newest first. Only apps still in the Store. */
 export const dbListInstallHistory = (userId: string, limit = 40): InstallHistoryRow[] => {
   const rows = db
     .query<
@@ -428,6 +428,8 @@ export const dbListInstallHistory = (userId: string, limit = 40): InstallHistory
         GROUP BY app_id
       ) latest ON latest.app_id = e.app_id AND latest.max_at = e.installed_at
       WHERE e.user_id = ?
+        AND a.visibility = 'public'
+        AND a.is_draft = 0
       ORDER BY e.installed_at DESC
       LIMIT ?
     `,

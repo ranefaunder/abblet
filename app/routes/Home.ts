@@ -8,7 +8,7 @@ import { type AppCategory, isAppCategory } from "/utils/app-categories";
 import { aboutUrl, appEditUrl, storeAppUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter, draftAccentColor } from "/utils/app-preview";
-import type { StoreAppCard } from "/types/app-types";
+import type { AppSummary, StoreAppCard } from "/types/app-types";
 import {
   storeApps,
   storeCategories,
@@ -20,6 +20,7 @@ import {
   loadStore,
   loadInstallHistory,
 } from "/app/stores/storeListingStore";
+import { apps as libraryApps, loadApps } from "/app/stores/appStore";
 import { requireLogin } from "/app/stores/userStore";
 
 export const HomePath = "/:lang" as const;
@@ -101,6 +102,16 @@ function RailTile({ app, lang }: { app: StoreAppCard; lang: string }) {
   `;
 }
 
+function OwnedRailTile({ app, lang }: { app: AppSummary; lang: string }) {
+  return html`
+    <a class="rail-tile" href=${appEditUrl(lang, app.slug)} ui-column="gap-sm">
+      <${AppIcon} app=${app} size="md" />
+      <strong>${app.title}</strong>
+      <small>${app.isDraft ? t("Draft") : app.tagline || app.category || t("App")}</small>
+    </a>
+  `;
+}
+
 function ChartRow({
   app,
   lang,
@@ -146,6 +157,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   const category = storeCategory.value;
   const categories = storeCategories.value;
   const history = installHistory.value;
+  const ownedApps = libraryApps.value.filter((app) => app.owned);
   const visibleCategories =
     category && !categories.includes(category) ? [...categories, category] : categories;
   const isDefaultBrowse = !storeQuery.value.trim() && !category;
@@ -167,6 +179,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   useEffect(() => {
     void loadStore();
     void loadInstallHistory();
+    void loadApps();
   }, []);
 
   function selectCategory(next: AppCategory | null) {
@@ -225,21 +238,12 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                 </div>`
               : isDefaultBrowse
                 ? html`
-                  ${featuredApps.length > 0
-                    ? html`
-                      <section class="today" ui-column="gap-md">
-                        ${featuredApps.map(
-                          (app) => html`<${TodayCard} app=${app} lang=${lang} />`,
-                        )}
-                      </section>`
-                    : ""}
-
                   <section class="create-pitch">
                     <div class="create-pitch-copy" ui-column="gap-md">
                       <p class="create-eyebrow">${t("Make your own")}</p>
                       <h2 class="create-title">${t("Make your own apps with AI")}</h2>
                       <p class="create-lede">
-                        ${t("Describe what you need in plain language. Rmix builds a working app in minutes — then you improve it by chatting. No code needed.")}
+                        ${t("Describe what you need in plain language. R⫶⫶MIX builds a working app in minutes — then you improve it by chatting. No code needed.")}
                       </p>
                       <div class="create-cta">
                         <a
@@ -286,31 +290,24 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                     </div>
                   </section>
 
-                  ${history.length > 0
+                  ${ownedApps.length > 0
                     ? html`
                       <section ui-column="gap-sm">
-                        <h2 ui-heading="sm">${t("Previously installed")}</h2>
+                        <h2 ui-heading="sm">${t("My Apps")}</h2>
                         <div class="rail" ui-row="gap-md">
-                          ${history.map(
-                            (item) => html`
-                              <a
-                                class="rail-tile history"
-                                href=${storeAppUrl(lang, item.slug)}
-                                ui-column="gap-xs x-center"
-                              >
-                                <${AppIcon}
-                                  app=${{
-                                    slug: item.slug,
-                                    title: item.title,
-                                    iconId: item.iconId,
-                                  }}
-                                  size="md"
-                                />
-                                <strong>${item.title}</strong>
-                                <small>${formatInstalledAt(item.installedAt, lang)}</small>
-                              </a>`,
+                          ${ownedApps.map(
+                            (app) => html`<${OwnedRailTile} app=${app} lang=${lang} />`,
                           )}
                         </div>
+                      </section>`
+                    : ""}
+
+                  ${featuredApps.length > 0
+                    ? html`
+                      <section class="today" ui-column="gap-md">
+                        ${featuredApps.map(
+                          (app) => html`<${TodayCard} app=${app} lang=${lang} />`,
+                        )}
                       </section>`
                     : ""}
 
@@ -358,6 +355,34 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                           )}
                         </div>
                       </section>`
+                    : ""}
+
+                  ${history.length > 0
+                    ? html`
+                      <section ui-column="gap-sm">
+                        <h2 ui-heading="sm">${t("Previously installed")}</h2>
+                        <div class="rail" ui-row="gap-md">
+                          ${history.map(
+                            (item) => html`
+                              <a
+                                class="rail-tile history"
+                                href=${storeAppUrl(lang, item.slug)}
+                                ui-column="gap-xs x-center"
+                              >
+                                <${AppIcon}
+                                  app=${{
+                                    slug: item.slug,
+                                    title: item.title,
+                                    iconId: item.iconId,
+                                  }}
+                                  size="md"
+                                />
+                                <strong>${item.title}</strong>
+                                <small>${formatInstalledAt(item.installedAt, lang)}</small>
+                              </a>`,
+                          )}
+                        </div>
+                      </section>`
                     : ""}`
                 : html`
                   <section ui-column="gap-sm">
@@ -401,7 +426,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
             <p class="about-pitch-lede">
               ${t("An app store where every app is remixable to fit you.")}
             </p>
-            <a href=${aboutUrl(lang)} ui-button="primary">${t("About Rmix")}</a>
+            <a href=${aboutUrl(lang)} ui-button="primary">${t("About R⫶⫶MIX")}</a>
           </div>
         </section>
       </div>

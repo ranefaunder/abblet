@@ -22,14 +22,14 @@ function isAboutPath(pathname: string): boolean {
 function metaCopy(lang: Language, pathname: string): { title: string; description: string } {
   if (isAboutPath(pathname)) {
     return {
-      title: metaPlainForTitleElement(t("Rmix — About", lang)),
+      title: metaPlainForTitleElement(t("R⫶⫶MIX — About", lang)),
       description: metaPlainForHtmlAttribute(
-        t("Rmix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.", lang),
+        t("R⫶⫶MIX is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.", lang),
       ),
     };
   }
   return {
-    title: metaPlainForTitleElement(t("Rmix — Remix any app, or make your own.", lang)),
+    title: metaPlainForTitleElement(t("R⫶⫶MIX — Remix any app, or make your own.", lang)),
     description: metaPlainForHtmlAttribute(
       t("Remix any app, or make your own.", lang),
     ),
@@ -50,7 +50,7 @@ export async function getMeta(req: BunRequest): Promise<string> {
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Rmix" />
+    <meta name="apple-mobile-web-app-title" content="R⫶⫶MIX" />
     <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
     <meta name="color-scheme" content="light" />
     <title>${title}</title>

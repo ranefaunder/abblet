@@ -3,20 +3,20 @@ import { AVAILABLE_LANGUAGES } from "/i18n/languages";
 export type Language = keyof typeof AVAILABLE_LANGUAGES;
 
 export const translations = {
-  "Rmix — Apply it.": {
-    fi: "Rmix — Toteuta se.",
+  "R⫶⫶MIX — Apply it.": {
+    fi: "R⫶⫶MIX — Toteuta se.",
   },
-  "Rmix — Remix any app, or make your own.": {
-    fi: "Rmix — Remixaa mikä tahansa appi, tai tee oma.",
+  "R⫶⫶MIX — Remix any app, or make your own.": {
+    fi: "R⫶⫶MIX — Remixaa mikä tahansa appi, tai tee oma.",
   },
   "Remix any app, or make your own.": {
     fi: "Remixaa mikä tahansa appi, tai tee oma.",
   },
-  "Describe what you need in plain language. Rmix builds your app in minutes — no code required.": {
-    fi: "Kuvaile mitä tarvitset arkikielellä. Rmix rakentaa sovelluksen minuuteissa — ei koodia.",
+  "Describe what you need in plain language. R⫶⫶MIX builds your app in minutes — no code required.": {
+    fi: "Kuvaile mitä tarvitset arkikielellä. R⫶⫶MIX rakentaa sovelluksen minuuteissa — ei koodia.",
   },
-  "Build personal apps for your needs. Describe what you need — Rmix builds it in minutes.": {
-    fi: "Tee henkilökohtaisia appeja tarpeisiisi. Kuvaile mitä tarvitset — Rmix rakentaa sen minuuteissa.",
+  "Build personal apps for your needs. Describe what you need — R⫶⫶MIX builds it in minutes.": {
+    fi: "Tee henkilökohtaisia appeja tarpeisiisi. Kuvaile mitä tarvitset — R⫶⫶MIX rakentaa sen minuuteissa.",
   },
   "Apply It": {
     fi: "Toteuta se",
@@ -176,8 +176,8 @@ export const translations = {
   "I couldn't update the app icon right now. Try again in a moment.": {
     fi: "En saanut app-kuvaketta päivitettyä juuri nyt. Kokeile hetken päästä uudelleen.",
   },
-  "Hey — I'm Rmix.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?": {
-    fi: "Hei — olen Rmix.\n\nRakennan appin siitä mitä kuvailet. Hyvän ensimmäisen version saat, kun kerrot mitä appin pitäisi tehdä ja miten käytät sitä — mitä selkeämmin, sen parempi tulos.\n\nMitä tehdään?",
+  "Hey — I'm R⫶⫶MIX.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?": {
+    fi: "Hei — olen R⫶⫶MIX.\n\nRakennan appin siitä mitä kuvailet. Hyvän ensimmäisen version saat, kun kerrot mitä appin pitäisi tehdä ja miten käytät sitä — mitä selkeämmin, sen parempi tulos.\n\nMitä tehdään?",
   },
   "Sign in to open your apps": {
     fi: "Kirjaudu avataksesi appisi",
@@ -209,8 +209,8 @@ export const translations = {
   "Manage your account and preferences.": {
     fi: "Hallitse tiliäsi ja asetuksiasi.",
   },
-  "Signed in to Rmix with this email.": {
-    fi: "Kirjautuneena Rmixiin tällä sähköpostilla.",
+  "Signed in to R⫶⫶MIX with this email.": {
+    fi: "Kirjautuneena R⫶⫶MIXiin tällä sähköpostilla.",
   },
   "Email": {
     fi: "Sähköposti",
@@ -218,14 +218,14 @@ export const translations = {
   "Preferences": {
     fi: "Viestintä",
   },
-  "Choose what email you want from Rmix.": {
-    fi: "Valitse, millaisia sähköposteja haluat Rmixiltä.",
+  "Choose what email you want from R⫶⫶MIX.": {
+    fi: "Valitse, millaisia sähköposteja haluat R⫶⫶MIXiltä.",
   },
   "Product updates": {
     fi: "Tuotepäivitykset",
   },
-  "Learn what Rmix is and how remixing works.": {
-    fi: "Lue mikä Rmix on ja miten remixaus toimii.",
+  "Learn what R⫶⫶MIX is and how remixing works.": {
+    fi: "Lue mikä R⫶⫶MIX on ja miten remixaus toimii.",
   },
   "Feedback": {
     fi: "Palaute",
@@ -236,8 +236,8 @@ export const translations = {
   "Describe your idea": {
     fi: "Kuvaile ideasi",
   },
-  "Tell Rmix what you need — a packing list, budget tracker, or anything else.": {
-    fi: "Kerro Rmixille mitä tarvitset — pakkauslista, budjettiseuranta tai mikä tahansa muu.",
+  "Tell R⫶⫶MIX what you need — a packing list, budget tracker, or anything else.": {
+    fi: "Kerro R⫶⫶MIXille mitä tarvitset — pakkauslista, budjettiseuranta tai mikä tahansa muu.",
   },
   "Apply it": {
     fi: "Toteuta se",
@@ -245,8 +245,8 @@ export const translations = {
   "Apply it.": {
     fi: "Toteuta se.",
   },
-  "Rmix applies your idea into a working app you can use right away.": {
-    fi: "Rmix toteuttaa ideasi toimivana sovelluksena, jota voit käyttää heti.",
+  "R⫶⫶MIX applies your idea into a working app you can use right away.": {
+    fi: "R⫶⫶MIX toteuttaa ideasi toimivana sovelluksena, jota voit käyttää heti.",
   },
   "Edit anytime": {
     fi: "Muokkaa milloin tahansa",
@@ -275,23 +275,23 @@ export const translations = {
   "No apps yet": {
     fi: "Ei vielä appeja",
   },
-  "Welcome to Rmix!": { fi: "Tervetuloa Rmixiin!" },
+  "Welcome to R⫶⫶MIX!": { fi: "Tervetuloa R⫶⫶MIXiin!" },
   "Hello,": { fi: "Hei," },
-  "Thank you for joining Rmix. Describe what you need and Rmix applies it — your first app in minutes.": {
-    fi: "Kiitos liittymisestä Rmixiin. Kuvaile mitä tarvitset — Rmix toteuttaa sen, ensimmäinen app minuuteissa.",
+  "Thank you for joining R⫶⫶MIX. Describe what you need and R⫶⫶MIX applies it — your first app in minutes.": {
+    fi: "Kiitos liittymisestä R⫶⫶MIXiin. Kuvaile mitä tarvitset — R⫶⫶MIX toteuttaa sen, ensimmäinen app minuuteissa.",
   },
-  "Open Rmix:\n$url": { fi: "Avaa Rmix:\n$url" },
-  "Best regards\nRane Faunder\nFounder of Rmix": { fi: "Ystävällisin terveisin\nRane Faunder\nRmixin perustaja" },
-  "Rmix - Login Code": { fi: "Rmix – kirjautumiskoodi" },
+  "Open R⫶⫶MIX:\n$url": { fi: "Avaa R⫶⫶MIX:\n$url" },
+  "Best regards\nRane Faunder\nFounder of R⫶⫶MIX": { fi: "Ystävällisin terveisin\nRane Faunder\nR⫶⫶MIXin perustaja" },
+  "R⫶⫶MIX - Login Code": { fi: "R⫶⫶MIX – kirjautumiskoodi" },
   "Hello!": { fi: "Hei!" },
-  "Use the following code to log in to Rmix:": { fi: "Käytä seuraavaa koodia kirjautuaksesi Rmixiin:" },
+  "Use the following code to log in to R⫶⫶MIX:": { fi: "Käytä seuraavaa koodia kirjautuaksesi R⫶⫶MIXiin:" },
   "Important:": { fi: "Tärkeää:" },
   "• Code is valid for 10 minutes": { fi: "• Koodi on voimassa 10 minuuttia" },
   "• Code can only be used once": { fi: "• Koodia voi käyttää vain kerran" },
   "• If you didn't request this code, you can safely ignore this message": {
     fi: "• Jos et pyytänyt tätä koodia, voit jättää viestin huomiotta",
   },
-  "Rmix Team": { fi: "Rmix-tiimi" },
+  "R⫶⫶MIX Team": { fi: "R⫶⫶MIX-tiimi" },
   "Email address required": { fi: "Sähköpostiosoite vaaditaan" },
   "Email address is too long": { fi: "Sähköpostiosoite on liian pitkä" },
   "Invalid email address": { fi: "Virheellinen sähköpostiosoite" },
@@ -378,8 +378,8 @@ export const translations = {
   },
   "Building": { fi: "Rakenteilla" },
   "Describe your app": { fi: "Kuvaile appisi" },
-  "Tell Rmix what you need — it builds a working app in minutes.": {
-    fi: "Kerro mitä tarvitset — Rmix rakentaa toimivan apin minuuteissa.",
+  "Tell R⫶⫶MIX what you need — it builds a working app in minutes.": {
+    fi: "Kerro mitä tarvitset — R⫶⫶MIX rakentaa toimivan apin minuuteissa.",
   },
   "Unsaved changes": { fi: "Tallentamattomia muutoksia" },
   "Saved": { fi: "Tallennettu" },
@@ -399,25 +399,25 @@ export const translations = {
   "Could not update app. Try again.": { fi: "Appin päivitys epäonnistui. Yritä uudelleen." },
   "Code must still register <$tag>.": { fi: "Koodin on yhä rekisteröitävä <$tag>." },
   "Applied in minutes": { fi: "Toteutettu minuuteissa" },
-  "Describe your idea and Rmix applies it instantly — no setup, no waiting.": {
-    fi: "Kuvaile ideasi — Rmix toteuttaa sen heti. Ei asennusta, ei odottelua.",
+  "Describe your idea and R⫶⫶MIX applies it instantly — no setup, no waiting.": {
+    fi: "Kuvaile ideasi — R⫶⫶MIX toteuttaa sen heti. Ei asennusta, ei odottelua.",
   },
   "Truly yours": { fi: "Täysin sinun" },
   "Your apps store data right in your browser. No accounts to wire up, no servers to manage.": {
     fi: "Appit tallentavat datan suoraan selaimeesi. Ei tilien kytkentää, ei palvelimien ylläpitoa.",
   },
   "No code required": { fi: "Ei koodia" },
-  "Just describe it in plain language. Rmix applies the rest.": {
-    fi: "Kuvaile arkikielellä. Rmix toteuttaa loput.",
+  "Just describe it in plain language. R⫶⫶MIX applies the rest.": {
+    fi: "Kuvaile arkikielellä. R⫶⫶MIX toteuttaa loput.",
   },
   "Make every idea an app": { fi: "Tee jokaisesta ideasta app" },
   "Describe it, apply it — right where you work.": {
     fi: "Kuvaile, toteuta — juuri siellä missä työskentelet.",
   },
   "Frequently asked questions": { fi: "Usein kysytyt kysymykset" },
-  "What is Rmix?": { fi: "Mikä on Rmix?" },
-  "Rmix lets you apply your ideas as small personal apps. Describe what you need and Rmix builds a working app that runs in your browser and keeps your data on your device.": {
-    fi: "Rmixilla toteutat ideasi pieninä henkilökohtaisina appeina. Kuvaile mitä tarvitset — Rmix rakentaa toimivan appin selaimeesi, data pysyy laitteellasi.",
+  "What is R⫶⫶MIX?": { fi: "Mikä on R⫶⫶MIX?" },
+  "R⫶⫶MIX lets you apply your ideas as small personal apps. Describe what you need and R⫶⫶MIX builds a working app that runs in your browser and keeps your data on your device.": {
+    fi: "R⫶⫶MIXilla toteutat ideasi pieninä henkilökohtaisina appeina. Kuvaile mitä tarvitset — R⫶⫶MIX rakentaa toimivan appin selaimeesi, data pysyy laitteellasi.",
   },
   "What kind of apps can I build?": { fi: "Millaisia appeja voin tehdä?" },
   "Anything small and personal: trackers, journals, calculators, checklists, simple games, or quick one-off tools that make your life easier.": {
@@ -428,8 +428,8 @@ export const translations = {
     fi: "Jokainen app tallentaa datansa paikallisesti selaimeesi. Mitään ei lähetetä palvelimelle — merkintäsi pysyvät yksityisinä.",
   },
   "What will you apply?": { fi: "Mitä toteutat seuraavaksi?" },
-  "Describe your idea and watch Rmix apply it in minutes.": {
-    fi: "Kuvaile ideasi ja katso Rmixin toteuttavan sen minuuteissa.",
+  "Describe your idea and watch R⫶⫶MIX apply it in minutes.": {
+    fi: "Kuvaile ideasi ja katso R⫶⫶MIXin toteuttavan sen minuuteissa.",
   },
   "Apply your first app": {
     fi: "Toteuta ensimmäinen appisi",
@@ -437,16 +437,16 @@ export const translations = {
   "Describe your idea and see your first app in minutes.": {
     fi: "Kuvaile ideasi ja näe ensimmäinen app minuuteissa.",
   },
-  "Email me about Rmix updates": {
-    fi: "Lähetä minulle sähköpostia Rmix-päivityksistä",
+  "Email me about R⫶⫶MIX updates": {
+    fi: "Lähetä minulle sähköpostia R⫶⫶MIX-päivityksistä",
   },
-  "Rmix is a platform for creating personal apps. By using the service you accept these terms.": {
-    fi: "Rmix on alusta henkilökohtaisten appien luomiseen. Käyttämällä palvelua hyväksyt nämä ehdot.",
+  "R⫶⫶MIX is a platform for creating personal apps. By using the service you accept these terms.": {
+    fi: "R⫶⫶MIX on alusta henkilökohtaisten appien luomiseen. Käyttämällä palvelua hyväksyt nämä ehdot.",
   },
-  "About Rmix": { fi: "Tietoa Rmixista" },
-  "Faunder — maker of Rmix": { fi: "Faunder — Rmixin tekijä" },
-  "Rmix is made by": { fi: "Rmixin on tehnyt" },
-  "Rmix — About": { fi: "Rmix — Tietoa" },
+  "About R⫶⫶MIX": { fi: "Tietoa R⫶⫶MIXista" },
+  "Faunder — maker of R⫶⫶MIX": { fi: "Faunder — R⫶⫶MIXin tekijä" },
+  "R⫶⫶MIX is made by": { fi: "R⫶⫶MIXin on tehnyt" },
+  "R⫶⫶MIX — About": { fi: "R⫶⫶MIX — Tietoa" },
   "Create an app": { fi: "Luo appi" },
   "Browse the Store": { fi: "Selaa Storea" },
   "An app store where every app is remixable to fit you.": {
@@ -465,8 +465,8 @@ export const translations = {
   "Open anything in the Store, then adapt it with a prompt until it matches how you actually work — lists, trackers, tools, and helpers that fit your life.": {
     fi: "Avaa mitä tahansa Storesta ja sovita se promptilla siihen, miten sinä oikeasti toimit — listat, seurannat, työkalut ja apurit omaan elämään.",
   },
-  "Describe what you need in plain language. Rmix builds a working app you can open, install, and keep improving — no code required.": {
-    fi: "Kuvaile tarve arkikielellä. Rmix rakentaa toimivan appin, jonka avaat, asennat ja jota parannat — ilman koodia.",
+  "Describe what you need in plain language. R⫶⫶MIX builds a working app you can open, install, and keep improving — no code required.": {
+    fi: "Kuvaile tarve arkikielellä. R⫶⫶MIX rakentaa toimivan appin, jonka avaat, asennat ja jota parannat — ilman koodia.",
   },
   "Designed for discovery.": { fi: "Tehty löytämiseen." },
   "Explore apps others have published. Remix the ones that almost fit. Or invent something only you would think of.": {
@@ -488,8 +488,8 @@ export const translations = {
     fi: "Remixaa appi Storesta, tai aloita omasta ideasta.",
   },
   "Shape it with a prompt": { fi: "Muotoile promptilla" },
-  "Say what you need in everyday words. Rmix builds and updates a real app — ready to open, not a mockup.": {
-    fi: "Sano tarpeesi arkikielellä. Rmix rakentaa ja päivittää oikean appin — avattavaksi, ei mockupiksi.",
+  "Say what you need in everyday words. R⫶⫶MIX builds and updates a real app — ready to open, not a mockup.": {
+    fi: "Sano tarpeesi arkikielellä. R⫶⫶MIX rakentaa ja päivittää oikean appin — avattavaksi, ei mockupiksi.",
   },
   "Install it, live with it, ask for changes anytime. Keep it private or publish it back to the Store.": {
     fi: "Asenna, käytä arjessa, pyydä muutoksia milloin tahansa. Pidä yksityisenä tai julkaise takaisin Storeen.",
@@ -497,21 +497,21 @@ export const translations = {
   "Instead of settling for software that almost fits, make software that does.": {
     fi: "Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.",
   },
-  "What Rmix is": { fi: "Mikä Rmix on" },
-  "Rmix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.": {
-    fi: "Rmix on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi appi nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.",
+  "What R⫶⫶MIX is": { fi: "Mikä R⫶⫶MIX on" },
+  "R⫶⫶MIX is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.": {
+    fi: "R⫶⫶MIX on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi appi nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.",
   },
-  "Rmix is a place to make small personal apps for your own life — lists, trackers, tools, and little helpers that fit how you actually work.": {
-    fi: "Rmix on paikka tehdä pieniä henkilökohtaisia appeja omaan elämään — listoja, seurantaa, työkaluja ja apureita, jotka sopivat siihen miten sinä oikeasti toimit.",
+  "R⫶⫶MIX is a place to make small personal apps for your own life — lists, trackers, tools, and little helpers that fit how you actually work.": {
+    fi: "R⫶⫶MIX on paikka tehdä pieniä henkilökohtaisia appeja omaan elämään — listoja, seurantaa, työkaluja ja apureita, jotka sopivat siihen miten sinä oikeasti toimit.",
   },
-  "You talk to Rmix like a person. It designs and builds a working app you can open on your phone and keep improving.": {
-    fi: "Puhut Rmixille kuin ihmiselle. Se suunnittelee ja rakentaa toimivan appin, jonka avaat puhelimessa ja jota voit parantaa.",
+  "You talk to R⫶⫶MIX like a person. It designs and builds a working app you can open on your phone and keep improving.": {
+    fi: "Puhut R⫶⫶MIXille kuin ihmiselle. Se suunnittelee ja rakentaa toimivan appin, jonka avaat puhelimessa ja jota voit parantaa.",
   },
   "Describe": { fi: "Kuvaile" },
   "Write what you need in everyday words — a shopping list, habit tracker, workout log, or something only you would invent.": {
     fi: "Kirjoita tarpeesi arkikielellä — ostoslista, tapaseuranta, treenipäiväkirja tai jotain mitä vain sinä keksit.",
   },
-  "Rmix builds": { fi: "Rmix rakentaa" },
+  "R⫶⫶MIX builds": { fi: "R⫶⫶MIX rakentaa" },
   "In minutes you get a finished app with its own look and icon — ready to open, not a mockup.": {
     fi: "Muutamassa minuutissa saat valmiin appin omalla ilmeellä ja kuvakkeella — avattavaksi, ei mockupiksi.",
   },
@@ -520,8 +520,8 @@ export const translations = {
     fi: "Pyydä muutoksia milloin tahansa. Julkaise Storeen jos haluat, tai pidä appi yksityisenä.",
   },
   "Who it's for": { fi: "Kenelle se on" },
-  "Rmix is for anyone who wants software that fits their life — without learning to code, waiting on a developer, or forcing a generic app to behave.": {
-    fi: "Rmix on kaikille, jotka haluavat ohjelmiston joka sopii omaan elämään — ilman koodaamista, kehittäjän odottelua tai geneerisen appin väkisin sovittamista.",
+  "R⫶⫶MIX is for anyone who wants software that fits their life — without learning to code, waiting on a developer, or forcing a generic app to behave.": {
+    fi: "R⫶⫶MIX on kaikille, jotka haluavat ohjelmiston joka sopii omaan elämään — ilman koodaamista, kehittäjän odottelua tai geneerisen appin väkisin sovittamista.",
   },
   "Start with one idea": { fi: "Aloita yhdellä idealla" },
   "Your first app can be tiny. The important part is that it's yours.": {
@@ -534,14 +534,14 @@ export const translations = {
   "Make your own apps with AI": {
     fi: "Tee omia appeja tekoälyllä",
   },
-  "Make your own apps with Rmix": {
-    fi: "Tee omia appeja Rmixillä",
+  "Make your own apps with R⫶⫶MIX": {
+    fi: "Tee omia appeja R⫶⫶MIXillä",
   },
   "Your idea. Your app.": {
     fi: "Sinun idea. Sinun appi.",
   },
-  "Describe what you need in plain language. Rmix builds a working app in minutes — then you improve it by chatting. No code needed.": {
-    fi: "Kuvaile mitä tarvitset arkikielellä. Rmix rakentaa toimivan appin minuuteissa — ja parannat sitä keskustellen. Ei koodia tarvita.",
+  "Describe what you need in plain language. R⫶⫶MIX builds a working app in minutes — then you improve it by chatting. No code needed.": {
+    fi: "Kuvaile mitä tarvitset arkikielellä. R⫶⫶MIX rakentaa toimivan appin minuuteissa — ja parannat sitä keskustellen. Ei koodia tarvita.",
   },
   "A habit tracker for my morning routine": {
     fi: "Tottumusseuranta aamurutiiniini",
@@ -567,8 +567,8 @@ export const translations = {
   "Chat to change it. Private or published.": {
     fi: "Muuta keskustellen. Yksityinen tai julkinen.",
   },
-  "Rmix builds working apps from plain language. Describe an idea, get an app in minutes, then improve it by chatting — no code.": {
-    fi: "Rmix rakentaa toimivia appeja arkikielestä. Kuvaile idea, saat appin minuuteissa ja parannat sitä keskustellen — ilman koodia.",
+  "R⫶⫶MIX builds working apps from plain language. Describe an idea, get an app in minutes, then improve it by chatting — no code.": {
+    fi: "R⫶⫶MIX rakentaa toimivia appeja arkikielestä. Kuvaile idea, saat appin minuuteissa ja parannat sitä keskustellen — ilman koodia.",
   },
   "Previously installed": { fi: "Aiemmin asennetut" },
   "Popular apps": { fi: "Suositut appit" },

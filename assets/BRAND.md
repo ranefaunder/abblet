@@ -1,27 +1,27 @@
-# Rmix brand
+# R⫶⫶MIX brand
 
 ## Slogan
 
 ```
-Rmix — Remix any app, or make your own.
+R⫶⫶MIX — Remix any app, or make your own.
 ```
 
 Finnish:
 
 ```
-Rmix — Remixaa mikä tahansa app tai tee oma.
+R⫶⫶MIX — Remixaa mikä tahansa app tai tee oma.
 ```
 
 ## Elevator pitch
 
 ```
-Rmix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.
+R⫶⫶MIX is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.
 ```
 
 Finnish:
 
 ```
-Rmix on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi appi nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.
+R⫶⫶MIX on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi appi nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.
 ```
 
 ## Where it belongs

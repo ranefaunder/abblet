@@ -132,7 +132,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
             <img
               class="hero-brand"
               src="/static/rmix.svg"
-              alt="Rmix"
+              alt="R⫶⫶MIX"
               width="280"
               height="66"
             />
@@ -155,7 +155,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
         <div class="wrap">
           <h2 class="display">${t("Software that fits — because you shape it.")}</h2>
           <p class="lead">
-            ${t("Rmix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.")}
+            ${t("R⫶⫶MIX is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.")}
           </p>
         </div>
       </section>
@@ -176,7 +176,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
             <p class="eyebrow">${t("Make your own")}</p>
             <h2 class="block-title">${t("Turn your idea into a new app from scratch.")}</h2>
             <p class="body">
-              ${t("Describe what you need in plain language. Rmix builds a working app you can open, install, and keep improving — no code required.")}
+              ${t("Describe what you need in plain language. R⫶⫶MIX builds a working app you can open, install, and keep improving — no code required.")}
             </p>
             <a href=${appEditUrl(lang)} ui-button="primary sm" onClick=${onCreateClick}>
               ${t("Create an app")}
@@ -225,7 +225,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
               <span class="step-num" aria-hidden="true">2</span>
               <div ui-column="gap-xs">
                 <h3 class="pillar-title">${t("Shape it with a prompt")}</h3>
-                <p class="body">${t("Say what you need in everyday words. Rmix builds and updates a real app — ready to open, not a mockup.")}</p>
+                <p class="body">${t("Say what you need in everyday words. R⫶⫶MIX builds and updates a real app — ready to open, not a mockup.")}</p>
               </div>
             </li>
             <li>
@@ -262,7 +262,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
             </a>
           </div>
           <p class="foot">
-            ${t("Rmix is made by")}
+            ${t("R⫶⫶MIX is made by")}
             ${" "}
             <a href="https://faunder.fi" target="_blank" rel="noopener noreferrer" ui-link>
               Faunder

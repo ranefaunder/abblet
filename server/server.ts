@@ -14,6 +14,8 @@ import { appPage, appRunRedirect, appModule, shortAppModule, appSubdomainModule,
 import connectRoute from "./routes/connect";
 import sdkExchange from "./api/sdk/exchange";
 import sdkAi from "./api/sdk/ai";
+import sdkSession from "./api/sdk/session";
+import sdkRemix from "./api/sdk/remix";
 import credits from "./api/credits";
 
 import authLogout from "./api/auth/logout";
@@ -116,6 +118,8 @@ const server = Bun.serve({
     "/api/:lang/auth/verify-login-code": authVerifyLoginCode,
     "/api/sdk/exchange": sdkExchange,
     "/api/sdk/ai": sdkAi,
+    "/api/sdk/session": sdkSession,
+    "/api/sdk/remix": sdkRemix,
 
     "/static/*": staticRoute,
     "/app.js": clientJsRoute,

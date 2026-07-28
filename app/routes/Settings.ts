@@ -60,7 +60,7 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
         <section class="panel" ui-column="gap-lg">
           <header ui-column="gap-xs">
             <h2 class="panel-title">${t("Account")}</h2>
-            <p class="panel-lede">${t("Signed in to Rmix with this email.")}</p>
+            <p class="panel-lede">${t("Signed in to R⫶⫶MIX with this email.")}</p>
           </header>
 
           <div ui-column="gap-md">
@@ -105,13 +105,13 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
         <section class="panel" ui-column="gap-lg">
           <header ui-column="gap-xs">
             <h2 class="panel-title">${t("Preferences")}</h2>
-            <p class="panel-lede">${t("Choose what email you want from Rmix.")}</p>
+            <p class="panel-lede">${t("Choose what email you want from R⫶⫶MIX.")}</p>
           </header>
 
           <label class="pref-row" ui-row="gap-md y-center x-between">
             <span ui-column="gap-xs">
               <strong>${t("Product updates")}</strong>
-              <small>${t("Email me about Rmix updates")}</small>
+              <small>${t("Email me about R⫶⫶MIX updates")}</small>
             </span>
             <input
               type="checkbox"
@@ -127,10 +127,10 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
         <section class="panel" ui-column="gap-md">
           <header ui-column="gap-xs">
             <h2 class="panel-title">${t("About")}</h2>
-            <p class="panel-lede">${t("Learn what Rmix is and how remixing works.")}</p>
+            <p class="panel-lede">${t("Learn what R⫶⫶MIX is and how remixing works.")}</p>
           </header>
           <div ui-row="gap-sm wrap">
-            <a href=${aboutUrl(lang)} ui-button>${t("About Rmix")}</a>
+            <a href=${aboutUrl(lang)} ui-button>${t("About R⫶⫶MIX")}</a>
             <a href=${storeUrl(lang)} ui-button="tertiary">${t("Store")}</a>
           </div>
         </section>

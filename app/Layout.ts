@@ -62,7 +62,7 @@ function SiteHeader() {
           </button>
           <div id="site-account-menu" popover="auto" role="menu">
             <a role="menuitem" href=${`/${lang}/settings`}>${t("Settings")}</a>
-            <a role="menuitem" href=${aboutUrl(lang)}>${t("About Rmix")}</a>
+            <a role="menuitem" href=${aboutUrl(lang)}>${t("About R⫶⫶MIX")}</a>
             <hr />
             <button type="button" role="menuitem" onClick=${() => void logout()}>
               ${t("Log out")}
@@ -77,8 +77,8 @@ function SiteHeader() {
   return html`
     <header class="site-header" ui-padding="inline-md block-md">
       <div class="site-header-inner" ui-row="gap-sm y-center x-between">
-        <a class="brand" href=${`/${lang}/`} aria-label="Rmix">
-          <img src="/static/rmix.svg" alt="Rmix" width="96" height="22" />
+        <a class="brand" href=${`/${lang}/`} aria-label="R⫶⫶MIX">
+          <img src="/static/rmix.svg" alt="R⫶⫶MIX" width="96" height="22" />
         </a>
         <div class="actions" ui-row="gap-sm y-center">
           ${searchOpen.value

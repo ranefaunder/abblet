@@ -1,7 +1,7 @@
 /**
- * Rmix app-runtime SDK — inlined into the app page HTML by server/routes/app-page.ts.
+ * R⫶⫶MIX app-runtime SDK — inlined into the app page HTML by server/routes/app-page.ts.
  * Expects window.__ABBLET__ = { appSlug, platformOrigin, connectHref, tagName, moduleUrl, lang, published, title }.
- * Mounts the corner Rmix Patch (share/store if published + edit + about) after the app loads.
+ * Mounts the corner R⫶⫶MIX badge (share/store if published + edit + about) after the app loads.
  */
 const cfg = window.__ABBLET__;
 const appSlug = cfg.appSlug;
@@ -11,43 +11,49 @@ const tagName = cfg.tagName;
 const moduleUrl = cfg.moduleUrl;
 const lang = cfg.lang || "en";
 const published = cfg.published === true;
-const appTitle = typeof cfg.title === "string" && cfg.title.trim() ? cfg.title.trim() : "Rmix";
+const appTitle = typeof cfg.title === "string" && cfg.title.trim() ? cfg.title.trim() : "R⫶⫶MIX";
 
 const TOKEN_KEY = "abblet.token";
 const TOKEN_EXP_KEY = "abblet.tokenExpiresAt";
 
 const COPY = {
   en: {
-    title: "Use AI with your Rmix account",
-    body: "This app needs AI. It will use your Rmix account — AI credits and usage are charged to you, not the app creator.",
+    title: "Use AI with your R⫶⫶MIX account",
+    body: "This app needs AI. It will use your R⫶⫶MIX account — AI credits and usage are charged to you, not the app creator.",
     continue: "Continue",
     cancel: "Cancel",
     offlineTitle: "You're offline",
     offlineBody: "AI needs an internet connection. Your app data still works offline.",
     offlineOk: "OK",
-    patchAria: "Rmix",
-    share: "Share",
+    patchAria: "R⫶⫶MIX",
+    install: "Install",
+    share: "Share app",
     shareCopied: "Link copied",
-    store: "View in Store",
+    store: "Open in Store",
     edit: "Edit app",
-    about: "About Rmix",
+    remix: "Remix app",
+    remixing: "Remixing…",
+    about: "About R⫶⫶MIX",
     update: "Update",
     updating: "Updating…",
   },
   fi: {
-    title: "Käytä tekoälyä Rmix-tililläsi",
-    body: "Tämä appi tarvitsee tekoälyä. Se käyttää Rmix-tiliäsi — AI-creditit ja käyttö veloitetaan sinulta, ei appin tekijältä.",
+    title: "Käytä tekoälyä R⫶⫶MIX-tililläsi",
+    body: "Tämä appi tarvitsee tekoälyä. Se käyttää R⫶⫶MIX-tiliäsi — AI-creditit ja käyttö veloitetaan sinulta, ei appin tekijältä.",
     continue: "Jatka",
     cancel: "Peruuta",
     offlineTitle: "Olet offline",
     offlineBody: "Tekoäly tarvitsee nettiyhteyden. Appisi data toimii silti offline.",
     offlineOk: "OK",
-    patchAria: "Rmix",
-    share: "Jaa",
+    patchAria: "R⫶⫶MIX",
+    install: "Asenna",
+    share: "Jaa appi",
     shareCopied: "Linkki kopioitu",
-    store: "Näytä Storessa",
+    store: "Avaa Storessa",
     edit: "Muokkaa appia",
-    about: "Tietoa Rmixistä",
+    remix: "Remixaa appi",
+    remixing: "Remixataan…",
+    about: "Tietoa R⫶⫶MIXista",
     update: "Päivitä",
     updating: "Päivitetään…",
   },
@@ -164,6 +170,8 @@ function isProbablyOffline() {
 window.Rmix = {
   appSlug,
   platformOrigin,
+  user: null,
+  isOwner: false,
   connect() {
     location.href = connectHref;
   },
@@ -236,6 +244,31 @@ window.Rmix = {
   },
 };
 
+/** Platform cookie session (same user as rmix.app /user/me) + ownership for this app. */
+async function loadPlatformSession() {
+  if (isProbablyOffline()) return null;
+  try {
+    const res = await fetch(platformOrigin + "/api/sdk/session", {
+      method: "GET",
+      credentials: "include",
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!data.success || !data.data) return null;
+    const session = {
+      user: data.data.user ?? null,
+      isOwner: data.data.isOwner === true,
+      published: data.data.published === true,
+    };
+    window.Rmix.user = session.user;
+    window.Rmix.isOwner = session.isOwner;
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+const sessionPromise = loadPlatformSession();
+
 /** Backward-compatible alias for apps generated against Abblet.ai(). */
 window.Abblet = window.Rmix;
 
@@ -260,40 +293,84 @@ if (code) {
   }
 }
 
+const platformSession = await sessionPromise;
+
 const mount = document.getElementById("mount");
 await import(moduleUrl);
 mount.appendChild(document.createElement(tagName));
 
-mountRmixPatch();
+mountRmixPatch(platformSession);
 
 const PRECACHE_URLS = ["/", "/module.js", "/manifest.webmanifest"];
 
-/** Rmix Patch — share + store (if published), edit, about, optional Update. */
-function mountRmixPatch() {
+function isStandalonePwa() {
+  try {
+    if (window.matchMedia("(display-mode: standalone)").matches) return true;
+    if (window.matchMedia("(display-mode: minimal-ui)").matches) return true;
+  } catch {
+    // ignore
+  }
+  return window.navigator.standalone === true;
+}
+
+/** R⫶⫶MIX badge — edit/remix, share + store (if published), about, optional Update/Install. */
+function mountRmixPatch(session) {
   if (document.getElementById("abblet-patch")) return;
 
   const t = uiCopy();
   const storeHref = platformOrigin + "/" + lang + "/store/" + encodeURIComponent(appSlug);
   const editHref = platformOrigin + "/" + lang + "/edit/" + encodeURIComponent(appSlug);
   const aboutHref = platformOrigin + "/" + lang + "/about";
+  const canOfferInstall = !isStandalonePwa();
+  let deferredPrompt = null;
+
+  const isOwner = session?.isOwner === true;
+  const sessionKnown = session != null;
+  // Offline / failed session: keep Edit so owners can still reach the editor.
+  const showEdit = sessionKnown ? isOwner : true;
+  const showRemix = sessionKnown && !isOwner && (session.published === true || published);
 
   const menuItems = [];
-  menuItems.push(
-    `<button type="button" role="menuitem" data-abblet-update hidden>${t.update || "Update"}</button>`,
-  );
+  if (showEdit) {
+    menuItems.push(`<a role="menuitem" href="${editHref}" data-abblet-edit>${t.edit}</a>`);
+  }
+  if (showRemix) {
+    menuItems.push(
+      `<button type="button" role="menuitem" data-abblet-remix>${t.remix}</button>`,
+    );
+  }
   if (published) {
     menuItems.push(`<button type="button" role="menuitem" data-abblet-share>${t.share}</button>`);
     menuItems.push(`<a role="menuitem" href="${storeHref}">${t.store}</a>`);
   }
-  menuItems.push(`<a role="menuitem" href="${editHref}">${t.edit}</a>`);
   menuItems.push(`<a role="menuitem" href="${aboutHref}">${t.about}</a>`);
+  menuItems.push(
+    `<button type="button" role="menuitem" data-abblet-update class="abblet-patch-primary" hidden>${t.update || "Update"}</button>`,
+  );
+  if (canOfferInstall) {
+    menuItems.push(
+      `<button type="button" role="menuitem" data-abblet-install class="abblet-patch-primary">${t.install}</button>`,
+    );
+  }
+
+  // Brand mark: 2×3 grid from favicon / wordmark (inline so PWAs work offline).
+  const mark = `
+    <svg class="abblet-patch-mark" viewBox="0 0 32 44" width="18" height="24" aria-hidden="true">
+      <rect x="0" y="0" width="12" height="12" rx="3.5" fill="currentColor"/>
+      <rect x="20" y="0" width="12" height="12" rx="3.5" fill="currentColor"/>
+      <rect x="0" y="16" width="12" height="12" rx="3.5" fill="currentColor"/>
+      <rect x="20" y="16" width="12" height="12" rx="3.5" fill="currentColor"/>
+      <rect x="0" y="32" width="12" height="12" rx="3.5" fill="currentColor"/>
+      <rect x="20" y="32" width="12" height="12" rx="3.5" fill="currentColor"/>
+    </svg>
+  `;
 
   const root = document.createElement("div");
   root.id = "abblet-patch";
   root.innerHTML = `
     <button type="button" class="abblet-patch-btn" aria-haspopup="menu" aria-expanded="false" aria-label="${t.patchAria}">
-      <span class="abblet-patch-label">
-        <span class="abblet-patch-word">Rmix</span>
+      <span class="abblet-patch-face">
+        ${mark}
         <span class="abblet-patch-dot" data-abblet-update-dot hidden aria-hidden="true"></span>
       </span>
     </button>
@@ -307,10 +384,9 @@ function mountRmixPatch() {
     #abblet-patch {
       position: fixed;
       z-index: 2147483646;
-      right: calc(10px + env(safe-area-inset-right, 0px));
-      bottom: 0;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+      right: calc(16px + env(safe-area-inset-right, 0px));
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      font-family: "Geist", -apple-system, "SF Pro Text", system-ui, sans-serif;
     }
     #abblet-patch .abblet-patch-btn {
       appearance: none;
@@ -320,79 +396,83 @@ function mountRmixPatch() {
       background: transparent;
       cursor: pointer;
       display: block;
-      filter: drop-shadow(-2px -2px 6px rgba(40, 30, 20, 0.16));
-      transition: filter 0.15s ease;
+      border-radius: 50%;
+      transition: transform 0.22s ease, filter 0.22s ease;
     }
     #abblet-patch .abblet-patch-btn:hover {
-      filter: drop-shadow(-3px -3px 8px rgba(40, 30, 20, 0.22));
+      transform: scale(1.06) translateY(-1px);
+      filter: brightness(1.02);
     }
-    #abblet-patch .abblet-patch-label {
+    #abblet-patch .abblet-patch-btn:active {
+      transform: scale(0.98);
+    }
+    #abblet-patch .abblet-patch-face {
       position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 9px 14px 10px 16px;
-      border-radius: 6px 6px 0 0;
-      color: #2a241c;
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      color: #0a0a0a;
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.2), transparent 42%),
-        repeating-linear-gradient(
-          90deg,
-          #ebe3d4 0px,
-          #ebe3d4 1px,
-          #e4dccb 1px,
-          #e4dccb 2px
-        ),
-        linear-gradient(135deg, #f0e8d8 0%, #e6ddcc 48%, #ddd3c0 100%);
+        radial-gradient(ellipse 70% 50% at 50% 0%, #f5f5f5, transparent 60%),
+        #ffffff;
+      border: 1px solid #e5e5e5;
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.4),
-        inset 1px 0 0 rgba(255, 255, 255, 0.15),
-        -1px -1px 0 rgba(90, 70, 40, 0.14);
-      outline: 1px dashed rgba(70, 55, 35, 0.26);
-      outline-offset: -4px;
-      clip-path: inset(0 0 0 0);
+        0 10px 28px rgba(15, 20, 25, 0.12),
+        0 1px 0 rgba(255, 255, 255, 0.35) inset;
     }
-    #abblet-patch .abblet-patch-word {
-      font-size: 0.6875rem;
-      font-weight: 700;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      line-height: 1;
-      color: #2a241c;
-      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+    #abblet-patch .abblet-patch-mark {
+      display: block;
+      color: inherit;
     }
     #abblet-patch .abblet-patch-dot {
       position: absolute;
-      top: 5px;
-      right: 5px;
-      width: 8px;
-      height: 8px;
+      top: 3px;
+      right: 3px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
-      background: #007aff;
-      box-shadow: 0 0 0 2px rgba(240, 232, 216, 0.95);
+      background: #6366f1;
+      box-shadow: 0 0 0 2px #ffffff;
+      animation: abblet-patch-dot-pulse 2s ease-in-out infinite;
     }
     #abblet-patch .abblet-patch-dot[hidden] {
       display: none;
+      animation: none;
+    }
+    @keyframes abblet-patch-dot-pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.18);
+        opacity: 0.72;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #abblet-patch .abblet-patch-dot {
+        animation: none;
+      }
     }
     #abblet-patch .abblet-patch-menu {
       position: absolute;
       right: 0;
-      bottom: calc(100% + 8px);
-      min-width: 11.5rem;
+      bottom: calc(100% + 10px);
+      min-width: 12rem;
       padding: 6px;
-      border-radius: 3px;
+      border-radius: 14px;
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.35), transparent 35%),
-        #f4eee3;
+        radial-gradient(ellipse 80% 60% at 100% 0%, #f5f5f5, transparent 55%),
+        #ffffff;
+      border: 1px solid #e5e5e5;
       box-shadow:
-        0 0 0 1px rgba(90, 70, 40, 0.16),
-        0 10px 28px rgba(40, 30, 20, 0.18);
-      outline: 1px dashed rgba(70, 55, 35, 0.22);
-      outline-offset: -4px;
+        0 10px 28px rgba(15, 20, 25, 0.12),
+        0 1px 0 rgba(255, 255, 255, 0.5) inset;
       display: flex;
       flex-direction: column;
       gap: 2px;
-      font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
     }
     #abblet-patch .abblet-patch-menu[hidden] {
       display: none;
@@ -405,24 +485,36 @@ function mountRmixPatch() {
       margin: 0;
       padding: 10px 12px;
       border: none;
-      border-radius: 2px;
+      border-radius: 10px;
       background: transparent;
-      color: #2a241c;
+      color: #0a0a0a;
       text-align: left;
       text-decoration: none;
       font: inherit;
-      font-size: 0.8125rem;
+      font-size: 0.875rem;
       font-weight: 600;
+      letter-spacing: -0.02em;
       line-height: 1.25;
       cursor: pointer;
     }
     #abblet-patch .abblet-patch-menu a:hover,
     #abblet-patch .abblet-patch-menu button:hover {
-      background: rgba(90, 70, 40, 0.08);
+      background: #f5f5f5;
     }
-    #abblet-patch .abblet-patch-menu [data-abblet-update] {
-      color: #007aff;
+    #abblet-patch .abblet-patch-menu .abblet-patch-primary {
+      background: #6366f1;
+      color: #ffffff;
+      text-align: center;
+      margin-top: 4px;
     }
+    #abblet-patch .abblet-patch-menu .abblet-patch-primary:hover {
+      background: #4f46e5;
+      filter: brightness(1.02);
+    }
+    #abblet-patch .abblet-patch-menu .abblet-patch-primary + .abblet-patch-primary {
+      margin-top: 2px;
+    }
+    #abblet-patch .abblet-patch-menu [data-abblet-install][hidden],
     #abblet-patch .abblet-patch-menu [data-abblet-update][hidden] {
       display: none;
     }
@@ -433,9 +525,11 @@ function mountRmixPatch() {
 
   const btn = root.querySelector(".abblet-patch-btn");
   const menu = root.querySelector(".abblet-patch-menu");
+  const installBtn = root.querySelector("[data-abblet-install]");
+  const remixBtn = root.querySelector("[data-abblet-remix]");
   const shareBtn = root.querySelector("[data-abblet-share]");
   const updateBtn = root.querySelector("[data-abblet-update]");
-  const updateDot = root.querySelector("[data-abblet-update-dot]");
+  const actionDot = root.querySelector("[data-abblet-update-dot]");
 
   function closeMenu() {
     menu.hidden = true;
@@ -447,9 +541,71 @@ function mountRmixPatch() {
     btn.setAttribute("aria-expanded", "true");
   }
 
+  function isMenuActionVisible(el) {
+    return !!(el && !el.hidden);
+  }
+
+  function syncActionDot() {
+    if (!actionDot) return;
+    actionDot.hidden = !(isMenuActionVisible(updateBtn) || isMenuActionVisible(installBtn));
+  }
+
   function setUpdateAvailable(available) {
     if (updateBtn) updateBtn.hidden = !available;
-    if (updateDot) updateDot.hidden = !available;
+    syncActionDot();
+  }
+
+  function hideInstall() {
+    if (installBtn) installBtn.hidden = true;
+    deferredPrompt = null;
+    syncActionDot();
+  }
+
+  async function remixApp() {
+    if (!remixBtn || remixBtn.disabled) return;
+    closeMenu();
+    if (!window.Rmix.user) {
+      location.href = storeHref;
+      return;
+    }
+    remixBtn.disabled = true;
+    const prev = remixBtn.textContent;
+    remixBtn.textContent = t.remixing || "Remixing…";
+    try {
+      const res = await fetch(platformOrigin + "/api/sdk/remix", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401 || data.error?.code === "UNAUTHORIZED") {
+        location.href = storeHref;
+        return;
+      }
+      if (data.success && data.data?.slug) {
+        location.href = platformOrigin + "/" + lang + "/edit/" + encodeURIComponent(data.data.slug);
+        return;
+      }
+    } catch {
+      // ignore — restore button
+    }
+    remixBtn.disabled = false;
+    remixBtn.textContent = prev;
+  }
+
+  async function installApp() {
+    closeMenu();
+    if (deferredPrompt) {
+      try {
+        const promptEvent = deferredPrompt;
+        deferredPrompt = null;
+        promptEvent.prompt();
+        await promptEvent.userChoice;
+        return;
+      } catch {
+        // Fall through to install page.
+      }
+    }
+    location.href = "/install";
   }
 
   async function shareApp() {
@@ -530,6 +686,31 @@ function mountRmixPatch() {
     if (menu.hidden) openMenu();
     else closeMenu();
   });
+
+  if (installBtn) {
+    installBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      void installApp();
+    });
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.hidden = false;
+      syncActionDot();
+    });
+    window.addEventListener("appinstalled", () => {
+      hideInstall();
+    });
+  }
+
+  if (remixBtn) {
+    remixBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      void remixApp();
+    });
+  }
+
+  syncActionDot();
 
   if (shareBtn) {
     shareBtn.addEventListener("click", (e) => {

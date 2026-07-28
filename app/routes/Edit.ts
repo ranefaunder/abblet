@@ -56,7 +56,7 @@ function toolUsageLabel(tool: AppEditToolUsage["tool"]): string {
 }
 
 const WELCOME_KEY =
-  "Hey — I'm Rmix.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?";
+  "Hey — I'm R⫶⫶MIX.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?";
 
 /** New app: /:lang/edit — existing: /:lang/edit/:slug */
 export const EditPath = "/:lang/edit" as const;
@@ -459,7 +459,7 @@ function ChatPanel({
               <p ui-heading="sm">${creating ? t("Describe your app") : t("Describe a change")}</p>
               <p class="chat-empty-copy">
                 ${creating
-                  ? t("Tell Rmix what you need — it builds a working app in minutes.")
+                  ? t("Tell R⫶⫶MIX what you need — it builds a working app in minutes.")
                   : t("Ask the AI to tweak your app — colors, features, wording, anything.")}
               </p>
             </div>`
