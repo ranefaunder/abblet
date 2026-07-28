@@ -10,7 +10,7 @@ import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import { aboutUrl, appEditUrl, galleryUrl } from "/utils/app-url";
 import { galleryQuery, loadGallery } from "/app/stores/galleryStore";
-import { isLoggedIn, logout, openLoginDialog, requireLogin, user } from "/app/stores/userStore";
+import { isLoggedIn, logout, openLoginDialog, requireLogin } from "/app/stores/userStore";
 
 type LayoutProps = {
   children: ComponentChildren;
@@ -58,7 +58,7 @@ function SiteHeader() {
     ? html`
         <div ui-menu="bottom-right">
           <button type="button" ui-button="tertiary sm" popovertarget="site-account-menu">
-            ${user.value?.nickname || user.value?.email || t("Account")}
+            ${t("Account")}
           </button>
           <div id="site-account-menu" popover="auto" role="menu">
             <a role="menuitem" href=${`/${lang}/settings`}>${t("Settings")}</a>

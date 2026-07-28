@@ -254,7 +254,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
           )}
         </div>
         <div class="wrap" ui-column="gap-lg x-center">
-          <h2 class="closing-title">${t("Instead of settling for software that almost fits, make software that does.")}</h2>
+          <h2 class="closing-title">${t("Remix any app, or make your own.")}</h2>
           <div class="cta" ui-row="gap-sm wrap y-center x-center">
             <a href=${galleryUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
             <a href=${appEditUrl(lang)} ui-button onClick=${onCreateClick}>

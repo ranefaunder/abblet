@@ -206,6 +206,27 @@ export const translations = {
   "Settings": {
     fi: "Asetukset",
   },
+  "Manage your account and preferences.": {
+    fi: "Hallitse tiliäsi ja asetuksiasi.",
+  },
+  "Signed in to Rmix with this email.": {
+    fi: "Kirjautuneena Rmixiin tällä sähköpostilla.",
+  },
+  "Email": {
+    fi: "Sähköposti",
+  },
+  "Preferences": {
+    fi: "Viestintä",
+  },
+  "Choose what email you want from Rmix.": {
+    fi: "Valitse, millaisia sähköposteja haluat Rmixiltä.",
+  },
+  "Product updates": {
+    fi: "Tuotepäivitykset",
+  },
+  "Learn what Rmix is and how remixing works.": {
+    fi: "Lue mikä Rmix on ja miten remixaus toimii.",
+  },
   "Feedback": {
     fi: "Palaute",
   },
@@ -522,6 +543,21 @@ export const translations = {
   },
   "Describe what you need in plain language. Rmix builds a working app in minutes — then you improve it by chatting. No code needed.": {
     fi: "Kuvaile mitä tarvitset arkikielellä. Rmix rakentaa toimivan appin minuuteissa — ja parannat sitä keskustellen. Ei koodia tarvita.",
+  },
+  "A habit tracker for my morning routine": {
+    fi: "Tottumusseuranta aamurutiiniini",
+  },
+  "Building your app…": {
+    fi: "Rakennetaan appia…",
+  },
+  "Morning Habits": {
+    fi: "Aamutottumukset",
+  },
+  "Ready to open": {
+    fi: "Valmis avattavaksi",
+  },
+  "Done — open it, then ask for changes anytime.": {
+    fi: "Valmis — avaa se ja pyydä muutoksia milloin vain.",
   },
   "From plain language to a working app in minutes.": {
     fi: "Arkikielestä toimivaksi appiksi minuuteissa.",

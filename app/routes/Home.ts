@@ -5,7 +5,7 @@ import { useLocation } from "preact-iso";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import { type AppCategory, isAppCategory } from "/utils/app-categories";
-import { aboutUrl, appEditUrl, appPageUrl, galleryAppUrl } from "/utils/app-url";
+import { aboutUrl, appEditUrl, galleryAppUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter, draftAccentColor } from "/utils/app-preview";
 import type { GalleryAppCard } from "/types/app-types";
@@ -159,6 +159,10 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
     .slice(0, 8);
   const categoryGroups = isDefaultBrowse ? groupByCategory(apps).slice(0, 4) : [];
   const filteredList = !isDefaultBrowse ? apps : [];
+  const aboutPitchApps =
+    apps.length === 0
+      ? []
+      : Array.from({ length: 7 }, (_, i) => apps[(i * 2) % apps.length]!);
 
   useEffect(() => {
     void loadGallery();
@@ -231,14 +235,12 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                     : ""}
 
                   <section class="create-pitch">
-                    <div class="create-pitch-bg" aria-hidden="true"></div>
-                    <div class="create-pitch-inner" ui-column="gap-md">
-                      <header class="create-head" ui-column="gap-sm">
-                        <h2>${t("Make your own apps with AI")}</h2>
-                        <p class="create-lede">
-                          ${t("Describe what you need in plain language. Rmix builds a working app in minutes — then you improve it by chatting. No code needed.")}
-                        </p>
-                      </header>
+                    <div class="create-pitch-copy" ui-column="gap-md">
+                      <p class="create-eyebrow">${t("Make your own")}</p>
+                      <h2 class="create-title">${t("Make your own apps with AI")}</h2>
+                      <p class="create-lede">
+                        ${t("Describe what you need in plain language. Rmix builds a working app in minutes — then you improve it by chatting. No code needed.")}
+                      </p>
                       <div class="create-cta">
                         <a
                           href=${appEditUrl(lang)}
@@ -248,6 +250,38 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                             e.preventDefault();
                           }}
                         >${t("Create an app")}</a>
+                      </div>
+                    </div>
+                    <div class="create-demo" aria-hidden="true">
+                      <div class="create-demo-stage">
+                        <div class="create-demo-msg user" style="--d: 0.05s">
+                          <p>${t("A habit tracker for my morning routine")}</p>
+                        </div>
+                        <div class="create-demo-msg build" style="--d: 0.35s">
+                          <div class="create-demo-build">
+                            <span class="create-demo-dots" aria-hidden="true">
+                              <i></i><i></i><i></i>
+                            </span>
+                            <span>${t("Building your app…")}</span>
+                          </div>
+                          <div class="create-demo-bars">
+                            <span style="--w: 88%"></span>
+                            <span style="--w: 64%"></span>
+                            <span style="--w: 76%"></span>
+                          </div>
+                        </div>
+                        <div class="create-demo-msg result" style="--d: 0.7s">
+                          <div class="create-demo-app">
+                            <span class="create-demo-app-icon" aria-hidden="true">H</span>
+                            <div ui-column="gap-xs">
+                              <strong>${t("Morning Habits")}</strong>
+                              <small>${t("Ready to open")}</small>
+                            </div>
+                          </div>
+                          <p class="create-demo-reply">
+                            ${t("Done — open it, then ask for changes anytime.")}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </section>
@@ -261,7 +295,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                             (item) => html`
                               <a
                                 class="rail-tile history"
-                                href=${appPageUrl(lang, item.slug)}
+                                href=${galleryAppUrl(lang, item.slug)}
                                 ui-column="gap-xs x-center"
                               >
                                 <${AppIcon}
@@ -341,16 +375,36 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                       )}
                     </div>
                   </section>`}
-      </div>
 
-      <section class="about-banner">
-        <div class="about-banner-inner" ui-column="gap-lg x-center">
-          <h2 class="about-banner-title">
-            ${t("Instead of settling for software that almost fits, make software that does.")}
-          </h2>
-          <a href=${aboutUrl(lang)} ui-button="primary">${t("About Rmix")}</a>
-        </div>
-      </section>
+        <section class="about-pitch">
+          ${aboutPitchApps.length > 0
+            ? html`
+              <div class="about-pitch-icons" ui-row="gap-md y-center x-center wrap">
+                ${aboutPitchApps.map(
+                  (app, i) => html`
+                    <a
+                      class="about-pitch-icon"
+                      href=${galleryAppUrl(lang, app.slug)}
+                      aria-label=${app.title}
+                      title=${app.title}
+                      style=${`--icon-size: ${2.35 + (i % 3) * 0.22}rem`}
+                    >
+                      <${AppIcon} app=${app} />
+                    </a>`,
+                )}
+              </div>`
+            : ""}
+          <div class="about-pitch-inner" ui-column="gap-md x-center">
+            <h2 class="about-pitch-title">
+              ${t("Instead of settling for software that almost fits, make software that does.")}
+            </h2>
+            <p class="about-pitch-lede">
+              ${t("An app store where every app is remixable to fit you.")}
+            </p>
+            <a href=${aboutUrl(lang)} ui-button="primary">${t("About Rmix")}</a>
+          </div>
+        </section>
+      </div>
     </div>
   `;
 
@@ -358,7 +412,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
     @scope ([data-scope="Store"]) to ([data-scope]) {
       & {
         color: var(--neutral-900);
-        padding-bottom: 0;
+        padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
       }
 
       .chips-bar {
@@ -391,55 +445,50 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
       .create-pitch {
         position: relative;
         overflow: hidden;
-        border-radius: 1.25rem;
-        border: 1px solid color-mix(in oklab, var(--primary-200) 55%, var(--neutral-200));
-        background: var(--white);
-        isolation: isolate;
-      }
-
-      .create-pitch-bg {
-        position: absolute;
-        inset: 0;
-        z-index: 0;
+        display: grid;
+        gap: 1.75rem;
+        align-items: center;
+        border-radius: 1.35rem;
+        border: 1px solid var(--neutral-200);
         background:
-          radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--primary-200) 55%, transparent), transparent 55%),
-          radial-gradient(90% 80% at 100% 10%, color-mix(in oklab, var(--secondary-200) 40%, transparent), transparent 50%),
-          linear-gradient(165deg, color-mix(in oklab, var(--primary-50) 70%, var(--white)), var(--white) 58%, var(--neutral-50));
-        pointer-events: none;
+          radial-gradient(ellipse 80% 70% at 100% 0%, var(--neutral-100), transparent 55%),
+          radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in oklab, var(--primary-100) 55%, transparent), transparent 50%),
+          var(--white);
+        padding: 2rem 1.25rem 1.9rem;
       }
 
-      .create-pitch-bg::after {
-        content: "";
-        position: absolute;
-        inset: auto -10% -35% 35%;
-        height: 70%;
-        border-radius: 50%;
-        background: color-mix(in oklab, var(--primary-100) 45%, transparent);
-        filter: blur(28px);
-        opacity: 0.7;
-      }
-
-      .create-pitch-inner {
+      .create-pitch-copy {
         position: relative;
         z-index: 1;
-        padding: 1.5rem 1.25rem 1.4rem;
-        max-width: 28rem;
+        max-width: 24rem;
       }
 
-      .create-head h2 {
+      .create-eyebrow {
         margin: 0;
-        font-size: 1.55rem;
+        font-size: 0.75rem;
         font-weight: 700;
-        letter-spacing: -0.035em;
-        line-height: 1.12;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--neutral-500);
+      }
+
+      .create-title {
+        margin: 0;
+        max-width: 12ch;
+        font-size: clamp(1.85rem, 5.5vw, 2.55rem);
+        font-weight: 700;
+        letter-spacing: -0.045em;
+        line-height: 1.02;
         color: var(--neutral-950);
+        text-wrap: balance;
       }
 
       .create-lede {
         margin: 0;
         color: var(--neutral-600);
-        font-size: 1rem;
+        font-size: 1.05rem;
         line-height: 1.45;
+        text-wrap: pretty;
       }
 
       .create-cta {
@@ -450,46 +499,293 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
         min-width: 9.5rem;
       }
 
-      .about-banner {
-        margin-top: 2.5rem;
-        padding: clamp(2.75rem, 7vw, 4.5rem) 1.25rem
-          calc(2.75rem + env(safe-area-inset-bottom, 0px));
+      .create-demo {
+        position: relative;
+        z-index: 1;
+        justify-self: stretch;
+        min-width: 0;
+      }
+
+      .create-demo-stage {
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        padding: 1rem;
+        border-radius: 1.15rem;
+        background:
+          linear-gradient(160deg, var(--neutral-100), var(--white) 45%, var(--neutral-50));
+        border: 1px solid var(--neutral-200);
+        box-shadow:
+          0 18px 40px rgba(15, 20, 25, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        transform: rotate(1.25deg);
+      }
+
+      .create-demo-msg {
+        animation: create-demo-in 0.55s ease-out both;
+        animation-delay: var(--d, 0s);
+      }
+
+      .create-demo-msg.user {
+        align-self: flex-end;
+        max-width: 92%;
+      }
+
+      .create-demo-msg.user p {
+        margin: 0;
+        padding: 0.7rem 0.9rem;
+        border-radius: 1.05rem 1.05rem 0.3rem 1.05rem;
+        background: var(--neutral-950);
+        color: var(--white);
+        font-size: 0.8125rem;
+        font-weight: 550;
+        line-height: 1.35;
+        box-shadow: 0 8px 18px rgba(15, 20, 25, 0.18);
+      }
+
+      .create-demo-msg.build,
+      .create-demo-msg.result {
+        align-self: stretch;
+        max-width: 100%;
+      }
+
+      .create-demo-build {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin-bottom: 0.55rem;
+        font-size: 0.75rem;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+        color: var(--neutral-600);
+      }
+
+      .create-demo-dots {
+        display: inline-flex;
+        gap: 0.22rem;
+      }
+
+      .create-demo-dots i {
+        width: 0.35rem;
+        height: 0.35rem;
+        border-radius: 999px;
+        background: var(--primary-500);
+        animation: create-demo-dot 1.1s ease-in-out infinite;
+      }
+
+      .create-demo-dots i:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+
+      .create-demo-dots i:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+
+      .create-demo-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        padding: 0.75rem;
+        border-radius: 0.95rem;
+        background: color-mix(in oklab, var(--white) 70%, var(--neutral-50));
+        border: 1px solid var(--neutral-200);
+      }
+
+      .create-demo-bars span {
+        display: block;
+        height: 0.4rem;
+        width: var(--w, 70%);
+        border-radius: 999px;
+        background: linear-gradient(
+          90deg,
+          var(--neutral-200),
+          var(--primary-200),
+          var(--neutral-200)
+        );
+        background-size: 200% 100%;
+        animation: create-demo-shimmer 1.6s linear infinite;
+      }
+
+      .create-demo-msg.result {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+
+      .create-demo-app {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.7rem 0.8rem;
+        border-radius: 1rem;
+        background: var(--white);
+        border: 1px solid var(--neutral-200);
+        box-shadow: 0 10px 24px rgba(15, 20, 25, 0.08);
+      }
+
+      .create-demo-app-icon {
+        flex: none;
+        width: 2.6rem;
+        height: 2.6rem;
+        border-radius: 0.7rem;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: var(--white);
+        background: linear-gradient(145deg, var(--primary-500), var(--primary-700));
+        box-shadow: 0 6px 14px color-mix(in oklab, var(--primary-600) 35%, transparent);
+      }
+
+      .create-demo-app strong {
+        font-size: 0.875rem;
+        letter-spacing: -0.02em;
+        color: var(--neutral-950);
+      }
+
+      .create-demo-app small {
+        font-size: 0.75rem;
+        color: var(--success-700, var(--primary-700));
+        font-weight: 600;
+      }
+
+      .create-demo-reply {
+        margin: 0;
+        padding: 0.65rem 0.85rem;
+        border-radius: 0.3rem 1.05rem 1.05rem 1.05rem;
+        background: var(--white);
+        border: 1px solid var(--neutral-200);
+        font-size: 0.8125rem;
+        line-height: 1.4;
+        color: var(--neutral-700);
+      }
+
+      @keyframes create-demo-in {
+        from {
+          opacity: 0;
+          transform: translateY(12px) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes create-demo-dot {
+        0%,
+        80%,
+        100% {
+          opacity: 0.35;
+          transform: translateY(0);
+        }
+        40% {
+          opacity: 1;
+          transform: translateY(-2px);
+        }
+      }
+
+      @keyframes create-demo-shimmer {
+        from {
+          background-position: 100% 0;
+        }
+        to {
+          background-position: -100% 0;
+        }
+      }
+
+      .about-pitch {
+        margin-top: 0.5rem;
+        padding: 2rem 1.25rem 1.85rem;
+        border-radius: 1.25rem;
         background: var(--neutral-950);
         color: var(--white);
         text-align: center;
       }
 
-      .about-banner-inner {
-        max-width: 28rem;
+      .about-pitch-icons {
+        margin-bottom: 1.5rem;
+      }
+
+      .about-pitch-icon {
+        display: block;
+        width: var(--icon-size, 2.5rem);
+        height: var(--icon-size, 2.5rem);
+        border-radius: calc(var(--icon-size, 2.5rem) * 0.24);
+        overflow: hidden;
+        flex: none;
+        text-decoration: none;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+        transition: transform 0.15s ease;
+      }
+
+      .about-pitch-icon:hover {
+        transform: scale(1.08) translateY(-2px);
+      }
+
+      .about-pitch-icon .app-icon {
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        font-size: calc(var(--icon-size, 2.5rem) * 0.38);
+      }
+
+      .about-pitch-inner {
+        max-width: 26rem;
         margin-inline: auto;
       }
 
-      .about-banner-title {
+      .about-pitch-title {
         margin: 0;
         max-width: 18ch;
-        font-size: clamp(1.5rem, 4.5vw, 2.25rem);
+        font-size: clamp(1.45rem, 4.2vw, 2rem);
         font-weight: 700;
         letter-spacing: -0.035em;
         line-height: 1.12;
         text-wrap: balance;
       }
 
-      .about-banner a[ui-button="primary"] {
+      .about-pitch-lede {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.45;
+        color: rgba(255, 255, 255, 0.62);
+        text-wrap: balance;
+      }
+
+      .about-pitch a[ui-button="primary"] {
         --_btn-bg: var(--white);
         --_btn-fg: var(--neutral-950);
       }
 
       @media (min-width: 640px) {
-        .create-pitch-inner {
-          padding: 1.75rem 1.5rem 1.55rem;
+        .create-pitch {
+          grid-template-columns: minmax(0, 1.15fr) minmax(11rem, 0.85fr);
+          gap: 2rem;
+          padding: 2.5rem 1.75rem 2.35rem;
         }
 
-        .create-head h2 {
-          font-size: 1.85rem;
+        .create-title {
+          font-size: 2.55rem;
         }
 
         .create-lede {
-          font-size: 1.05rem;
+          font-size: 1.1rem;
+        }
+
+        .create-demo-stage {
+          transform: rotate(2deg);
+        }
+
+        .about-pitch {
+          padding: 2.35rem 1.5rem 2.1rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .create-demo-msg,
+        .create-demo-dots i,
+        .create-demo-bars span {
+          animation: none;
         }
       }
 
