@@ -3,10 +3,10 @@ import type { BunRequest } from "bun";
 import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 import {
   getRequestHost,
-  isAppRuntimeApex,
-  isAppRuntimeHost,
   parseAppSubdomain,
   redirectToPlatformFromRequest,
+  shouldBounceRuntimeApexToPlatform,
+  isAppOnlyHost,
 } from "/utils/app-host";
 import { appSubdomainPage } from "/server/routes/app-page";
 
@@ -35,7 +35,8 @@ export default async function (req: BunRequest): Promise<Response> {
     return appSubdomainPage(req);
   }
 
-  if (isAppRuntimeApex(host) || isAppRuntimeHost(host)) {
+  // Dedicated runtime apex (e.g. abblet.app ≠ platform) or unknown runtime subdomain.
+  if (shouldBounceRuntimeApexToPlatform(host) || isAppOnlyHost(host)) {
     return redirectToPlatformFromRequest(req);
   }
 

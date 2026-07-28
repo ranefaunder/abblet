@@ -4,12 +4,15 @@ import {
   connectUrl,
   getAppRuntimeHost,
   getAppRuntimeHosts,
+  isAppOnlyHost,
   isAppRuntimeApex,
   isAppRuntimeHost,
   isAppRuntimeOrigin,
   isOriginForAppSlug,
+  isPlatformHost,
   parseAppSubdomain,
   redirectLegacyHost,
+  shouldBounceRuntimeApexToPlatform,
   stripHostPort,
 } from "/utils/app-host";
 import { appModuleUrl, appPageUrl, appRuntimeModulePath } from "/utils/app-url";
@@ -62,6 +65,24 @@ describe("app-host", () => {
       expect(isAppRuntimeHost("73850.rmix.app")).toBe(true);
       expect(isAppRuntimeApex("rmix.app")).toBe(true);
       expect(appOrigin("73850")).toBe("https://73850.rmix.app");
+    } finally {
+      process.env.APP_RUNTIME_HOST = prevHost;
+      process.env.PLATFORM_ORIGIN = prevOrigin;
+    }
+  });
+
+  test("shared platform+runtime apex does not bounce (no redirect loop)", () => {
+    const prevHost = process.env.APP_RUNTIME_HOST;
+    const prevOrigin = process.env.PLATFORM_ORIGIN;
+    process.env.APP_RUNTIME_HOST = "rmix.app";
+    process.env.PLATFORM_ORIGIN = "https://rmix.app";
+    try {
+      expect(isPlatformHost("rmix.app")).toBe(true);
+      expect(isAppRuntimeApex("rmix.app")).toBe(true);
+      expect(shouldBounceRuntimeApexToPlatform("rmix.app")).toBe(false);
+      expect(isAppOnlyHost("rmix.app")).toBe(false);
+      expect(isAppOnlyHost("73850.rmix.app")).toBe(true);
+      expect(parseAppSubdomain("73850.rmix.app")).toBe("73850");
     } finally {
       process.env.APP_RUNTIME_HOST = prevHost;
       process.env.PLATFORM_ORIGIN = prevOrigin;

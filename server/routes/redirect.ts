@@ -2,7 +2,7 @@ import type { BunRequest } from "bun";
 import { AVAILABLE_LANGUAGES } from "/i18n/languages";
 import { isNumericAppSlug } from "/server/database/queries/apps";
 import { shortAppPage } from "/server/routes/app-page";
-import { getRequestHost, isAppRuntimeHost, parseAppSubdomain } from "/utils/app-host";
+import { getRequestHost, isAppOnlyHost, parseAppSubdomain } from "/utils/app-host";
 
 /**
  * Single-segment path:
@@ -19,7 +19,7 @@ export default function redirectRoute(req: BunRequest<"/:lang">) {
     return Response.redirect(`/${new URL(req.url).search}`, 302);
   }
 
-  if (isAppRuntimeHost(host)) {
+  if (isAppOnlyHost(host)) {
     return new Response("Not Found", { status: 404 });
   }
 

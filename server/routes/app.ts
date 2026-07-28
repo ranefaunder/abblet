@@ -5,13 +5,14 @@ import { serverSideRender } from "/utils/ssr.server";
 import { createSsrContext } from "/server/ssr";
 import { AVAILABLE_LANGUAGES } from "/i18n/languages";
 import { escapeHtmlAttribute } from "/utils/sanitize.server";
-import { getRequestHost, isAppRuntimeHost } from "/utils/app-host";
+import { getRequestHost, parseAppSubdomain } from "/utils/app-host";
 import App from "/app/App";
 
 const LANGUAGE_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 
 export default async function (req: BunRequest<"/:lang/"> | BunRequest<"/:lang/*">): Promise<Response> {
-  if (isAppRuntimeHost(getRequestHost(req))) {
+  // On an app subdomain, /en/… → canonical runtime /
+  if (parseAppSubdomain(getRequestHost(req))) {
     const url = new URL(req.url);
     return Response.redirect(`/${url.search}`, 302);
   }

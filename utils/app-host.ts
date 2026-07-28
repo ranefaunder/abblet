@@ -88,6 +88,40 @@ export function isAppRuntimeHost(hostHeader: string): boolean {
   );
 }
 
+/** Hostname of PLATFORM_ORIGIN (no port). */
+export function getPlatformHost(): string {
+  return stripHostPort(new URL(getPlatformOrigin()).host);
+}
+
+/** True when Host is the platform site (e.g. rmix.app), including www. */
+export function isPlatformHost(hostHeader: string): boolean {
+  const host = stripHostPort(hostHeader);
+  const platform = getPlatformHost();
+  return host === platform || host === `www.${platform}`;
+}
+
+/**
+ * True when Host is a dedicated runtime apex that is not the platform
+ * (e.g. abblet.app while platform is abblet.com). When platform and runtime
+ * share a host (rmix.app), the apex serves the platform — never redirect-loop.
+ */
+export function shouldBounceRuntimeApexToPlatform(hostHeader: string): boolean {
+  const host = stripHostPort(hostHeader);
+  if (!isAppRuntimeApex(host)) return false;
+  return !isPlatformHost(host);
+}
+
+/**
+ * True when Host is an app-runtime hostname that should not serve the platform SPA:
+ * numeric app subdomain, or a non-platform runtime apex/subdomain.
+ */
+export function isAppOnlyHost(hostHeader: string): boolean {
+  const host = stripHostPort(hostHeader);
+  if (parseAppSubdomain(host)) return true;
+  if (isPlatformHost(host)) return false;
+  return isAppRuntimeHost(host);
+}
+
 /**
  * Absolute origin for an app on the canonical runtime host, e.g.
  * `https://34211.rmix.app` or `http://34211.app.localhost:8090`.
