@@ -1,4 +1,5 @@
 import { initDb } from "./database/db";
+import { redirectLegacyHost } from "/utils/app-host";
 
 import staticRoute from "./routes/static";
 import clientJsRoute from "./routes/client-js";
@@ -41,11 +42,48 @@ import meta from "./api/meta";
 
 await initDb();
 
+type RouteHandler = (req: Request, ...args: unknown[]) => Response | Promise<Response>;
+type RouteMethods = Record<string, RouteHandler | undefined>;
+
+function withLegacyHostRedirect(
+  handler: RouteHandler | RouteMethods,
+): RouteHandler | RouteMethods {
+  if (typeof handler === "function") {
+    return (req, ...args) => {
+      const redirected = redirectLegacyHost(req);
+      if (redirected) return redirected;
+      return handler(req, ...args);
+    };
+  }
+
+  const wrapped: RouteMethods = {};
+  for (const [method, fn] of Object.entries(handler)) {
+    if (typeof fn !== "function") {
+      wrapped[method] = fn;
+      continue;
+    }
+    wrapped[method] = (req, ...args) => {
+      const redirected = redirectLegacyHost(req);
+      if (redirected) return redirected;
+      return fn(req, ...args);
+    };
+  }
+  return wrapped;
+}
+
+function wrapRoutes<T extends Record<string, RouteHandler | RouteMethods>>(routes: T): T {
+  const out = {} as T;
+  for (const [path, handler] of Object.entries(routes)) {
+    (out as Record<string, RouteHandler | RouteMethods>)[path] = withLegacyHostRedirect(handler);
+  }
+  return out;
+}
+
 const server = Bun.serve({
   port: Number(process.env.PORT) || 8090,
   development: process.env.NODE_ENV !== "production",
 
-  routes: {
+  routes: wrapRoutes({
     "/robots.txt": robotsTxt,
     "/sitemap.xml": sitemapXml,
     "/:lang/site.webmanifest": siteWebmanifest,
@@ -92,7 +130,7 @@ const server = Bun.serve({
     "/:lang/": appRoute,
     "/:lang/*": appRoute,
     "/": rootRoute,
-  },
+  }),
 });
 
 console.log(`🚀 Rmix running at http://localhost:${server.port}`);

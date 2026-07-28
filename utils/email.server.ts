@@ -1,10 +1,9 @@
+import { getPlatformOrigin } from "/utils/app-host";
 import { t } from "/utils/i18n";
 import type { Language } from "/types/i18n-types";
 
-const ABBLET_SITE_ORIGIN = "https://abblet.com";
-
 export function createWelcomeEmail(language: Language): { subject: string; text: string } {
-  const siteUrl = `${ABBLET_SITE_ORIGIN}/${language}/`;
+  const siteUrl = `${getPlatformOrigin()}/${language}/`;
   return {
     subject: t("Welcome to Rmix!", language),
     text: `${t("Hello,", language)}
