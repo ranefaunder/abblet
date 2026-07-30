@@ -33,7 +33,7 @@ export function trackRecipeEdited(
   language: string,
   editPrompt: string,
 ) {
-  trackEvent("recipe-forked", {
+  trackEvent("recipe-remixed", {
     originalRecipeId,
     newRecipeId,
     language,
@@ -46,7 +46,7 @@ export function trackRecipeSaved(params: {
   recipeId: string;
   sourceRecipeId: string;
   language: string;
-  forked: boolean;
+  remixed: boolean;
 }) {
   trackEvent("recipe-saved", {
     ...params,

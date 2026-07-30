@@ -5,17 +5,21 @@ import {
   dbGetAppBySlug,
   dbUpdateApp,
 } from "/server/database/queries/apps";
+import { resolveSourceConfigForRemix } from "/server/database/queries/app-versions";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
+import { generateAppName } from "/utils/ai-apps.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { isAppRuntimeOrigin } from "/utils/app-host";
 import { getAuthenticatedUser } from "/utils/auth.server";
-import { isDraftConfig, parseAppConfig } from "/types/app-config-types";
+import { isDraftConfig } from "/types/app-config-types";
 import { getClientIP } from "/utils/request.server";
+import { remixFallbackTitle } from "/utils/remix-title";
 import { sdkCredentialCorsOptions, withSdkCredentialCors } from "/utils/sdk-cors.server";
 
 /**
  * POST /api/sdk/remix — remix the app identified by Origin into the signed-in user's library.
  * Cookie auth + credentialed CORS (same as /api/sdk/session).
+ * Remix gets a new name + icon; code becomes v1 of the new app.
  */
 export default {
   OPTIONS(req: BunRequest) {
@@ -46,7 +50,7 @@ export default {
       );
     }
 
-    const config = parseAppConfig(source.config_json);
+    const config = resolveSourceConfigForRemix(source, user.id);
     if (!config || isDraftConfig(config)) {
       return withSdkCredentialCors(apiError({ code: "NOT_READY", status: 404 }), origin);
     }
@@ -55,8 +59,34 @@ export default {
     const tagName = `${config.tagName}-${suffix}`.replace(/[^a-z0-9-]/g, "");
     const code = config.code.split(config.tagName).join(tagName);
 
+    let title = remixFallbackTitle(source.title);
+    let description = config.description;
+    let tagline = config.tagline ?? source.tagline ?? null;
+    let category = config.category ?? source.category ?? null;
+
+    try {
+      const renamed = await generateAppName({
+        current: { ...config, title: source.title },
+        instruction:
+          "This is a remix of another app. Give it a fresh short home-screen name related to the same idea.",
+        language: "en",
+      });
+      if (renamed) {
+        title = renamed.title;
+        description = renamed.description;
+        tagline = renamed.tagline || tagline;
+        category = renamed.category || category;
+      }
+    } catch {
+      // Keep fallback.
+    }
+
     const remixedConfig = {
       ...config,
+      title,
+      description,
+      tagline: tagline || undefined,
+      category: category as typeof config.category,
       tagName,
       code,
       status: "ready" as const,
@@ -67,20 +97,20 @@ export default {
     dbCreateApp({
       id,
       ownerId: user.id,
-      title: remixedConfig.title,
-      description: remixedConfig.description,
+      title,
+      description,
       slug: newSlug,
-      configJson: JSON.stringify(remixedConfig),
+      config: remixedConfig,
       sourceAppId: source.id,
       isDraft: false,
-      category: remixedConfig.category ?? source.category ?? null,
-      tagline: remixedConfig.tagline ?? source.tagline ?? null,
+      category,
+      tagline,
     });
 
     const clientIP = getClientIP(req);
     const iconResult = await generateAppIcon({
-      title: remixedConfig.title,
-      description: remixedConfig.description,
+      title,
+      description,
       clientIP,
     });
     if (iconResult) {

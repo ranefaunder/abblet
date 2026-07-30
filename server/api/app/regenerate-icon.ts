@@ -2,17 +2,18 @@ import type { BunRequest } from "bun";
 import { withAuth } from "/utils/auth.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { dbGetAppBySlug, dbUpdateApp } from "/server/database/queries/apps";
+import { resolveAppConfig } from "/server/database/queries/app-versions";
 import { dbAddAppMessage, dbListAppMessages } from "/server/database/queries/app-messages";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
 import { assertHasCredits, debitOpenRouterUsage } from "/utils/credits.server";
-import { isDraftConfig, parseAppConfig, type AppDetail } from "/types/app-config-types";
+import { isDraftConfig, type AppDetail } from "/types/app-config-types";
 import type { Language } from "/types/i18n-types";
 import { getLang } from "/utils/lang";
 import { t } from "/utils/i18n";
 import { getClientIP } from "/utils/request.server";
 
-/** Regenerate the launcher icon on explicit user request (button in the editor). */
+/** Regenerate the launcher icon on explicit user request (button in the editor). Icon is not versioned. */
 export default {
   async POST(req: BunRequest) {
     return withAuth(req, async (user) => {
@@ -34,7 +35,7 @@ export default {
       if (!row) return apiError({ code: "NOT_FOUND", status: 404 });
       if (row.owner_id !== user.id) return apiError({ code: "FORBIDDEN", status: 403 });
 
-      const config = parseAppConfig(row.config_json);
+      const config = resolveAppConfig(row, { asOwner: true });
       if (!config || isDraftConfig(config)) {
         return apiError({ code: "APP_NOT_READY", status: 409 });
       }
@@ -48,8 +49,8 @@ export default {
       }
 
       const iconResult = await generateAppIcon({
-        title: config.title,
-        description: config.description,
+        title: row.title,
+        description: row.description || config.description,
         clientIP: getClientIP(req),
       });
       if (!iconResult) {
@@ -96,12 +97,13 @@ export default {
         description: updated.description,
         visibility: updated.visibility,
         ownerId: updated.owner_id,
-        config,
+        config: { ...config, title: updated.title },
         canEdit: true,
         isDraft: updated.is_draft === 1,
         iconId: updated.icon_id ?? null,
         category: updated.category ?? config.category ?? null,
         tagline: updated.tagline ?? config.tagline ?? null,
+        nextPrompt: updated.next_prompt ?? null,
       };
 
       return apiSuccess({

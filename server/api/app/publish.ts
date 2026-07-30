@@ -2,31 +2,12 @@ import type { BunRequest } from "bun";
 import { withAuth } from "/utils/auth.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { dbGetAppBySlug, dbPublishApp, dbUpdateApp } from "/server/database/queries/apps";
-import { isDraftConfig, parseAppConfig, type AppDetail } from "/types/app-config-types";
+import { resolveAppConfig } from "/server/database/queries/app-versions";
+import { isDraftConfig, type AppDetail } from "/types/app-config-types";
 import { normalizeAppCategory } from "/utils/app-categories";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import type { Language } from "/types/i18n-types";
-
-function toDetail(
-  row: NonNullable<ReturnType<typeof dbGetAppBySlug>>,
-  config: NonNullable<ReturnType<typeof parseAppConfig>>,
-): AppDetail {
-  return {
-    id: row.id,
-    slug: row.slug,
-    title: row.title,
-    description: row.description,
-    visibility: row.visibility,
-    ownerId: row.owner_id,
-    config,
-    canEdit: true,
-    isDraft: row.is_draft === 1,
-    iconId: row.icon_id ?? null,
-    category: row.category ?? config.category ?? null,
-    tagline: row.tagline ?? config.tagline ?? null,
-  };
-}
 
 export default {
   async POST(req: BunRequest) {
@@ -49,7 +30,7 @@ export default {
       if (!row) return apiError({ code: "NOT_FOUND", status: 404 });
       if (row.owner_id !== user.id) return apiError({ code: "FORBIDDEN", status: 403 });
 
-      const config = parseAppConfig(row.config_json);
+      const config = resolveAppConfig(row, { asOwner: true });
       if (!config || isDraftConfig(config)) {
         return apiError({
           code: "NOT_READY",
@@ -58,15 +39,18 @@ export default {
         });
       }
 
-      // Ensure store metadata columns are filled before publishing.
       const category = normalizeAppCategory(row.category ?? config.category);
       const tagline = (row.tagline ?? config.tagline ?? config.description.slice(0, 40)).trim();
-      const nextConfig = { ...config, category, tagline: tagline || undefined };
+      const nextConfig = {
+        ...config,
+        title: row.title,
+        category,
+        tagline: tagline || undefined,
+      };
 
       dbUpdateApp(row.id, {
         category,
         tagline: tagline || null,
-        configJson: JSON.stringify(nextConfig),
       });
 
       if (!dbPublishApp(row.id, user.id)) {
@@ -74,7 +58,23 @@ export default {
       }
 
       const updated = dbGetAppBySlug(slug)!;
-      return apiSuccess({ data: { app: toDetail(updated, nextConfig) } });
+      const detail: AppDetail = {
+        id: updated.id,
+        slug: updated.slug,
+        title: updated.title,
+        description: updated.description,
+        visibility: updated.visibility,
+        ownerId: updated.owner_id,
+        config: nextConfig,
+        canEdit: true,
+        isDraft: updated.is_draft === 1,
+        iconId: updated.icon_id ?? null,
+        category: updated.category ?? nextConfig.category ?? null,
+        tagline: updated.tagline ?? nextConfig.tagline ?? null,
+        nextPrompt: updated.next_prompt ?? null,
+      };
+
+      return apiSuccess({ data: { app: detail } });
     });
   },
 };

@@ -27,11 +27,11 @@ export function appEditUrl(lang: string, slug?: string): string {
 }
 
 export function storeUrl(lang: string): string {
-  return `/${lang}/`;
+  return `/${lang}/store`;
 }
 
 export function aboutUrl(lang: string): string {
-  return `/${lang}/about`;
+  return `/${lang}/`;
 }
 
 export function storeAppUrl(lang: string, slug: string): string {

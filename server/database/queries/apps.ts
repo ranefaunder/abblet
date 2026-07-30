@@ -1,8 +1,11 @@
 import { db } from "/server/database/db";
+import { dbInsertAppVersion } from "/server/database/queries/app-versions";
+import type { AppConfig } from "/types/app-config-types";
 import type { AppSummary, AppVisibility, StoreAppCard, StoreAppDetail } from "/types/app-types";
+import { appConfigToVersionFields } from "/utils/app-config.server";
 import { isAppCategory } from "/utils/app-categories";
 
-type AppRow = {
+export type AppRow = {
   id: string;
   owner_id: string;
   title: string;
@@ -10,7 +13,6 @@ type AppRow = {
   slug: string;
   visibility: AppVisibility;
   source_app_id: string | null;
-  config_json: string;
   created_at: string;
   updated_at: string;
   published_at: string | null;
@@ -18,6 +20,9 @@ type AppRow = {
   icon_id: string | null;
   category: string | null;
   tagline: string | null;
+  latest_version_id: string | null;
+  published_version_id: string | null;
+  next_prompt: string | null;
   owner_nickname?: string | null;
   remix_count?: number;
   install_count?: number;
@@ -216,7 +221,8 @@ export const dbCreateApp = (data: {
   title: string;
   description: string;
   slug: string;
-  configJson: string;
+  /** Initial version content; title/icon stay on apps only. */
+  config: AppConfig;
   sourceAppId?: string | null;
   isDraft?: boolean;
   category?: string | null;
@@ -226,20 +232,23 @@ export const dbCreateApp = (data: {
   installForOwner?: boolean;
 }) => {
   const now = new Date().toISOString();
-  db.query(`
+  const versionId = crypto.randomUUID();
+  const fields = appConfigToVersionFields(data.config);
+
+  const run = db.transaction(() => {
+    db.query(`
       INSERT INTO apps (
-        id, owner_id, title, description, slug, config_json, source_app_id,
-        is_draft, category, tagline, icon_id, created_at, updated_at
+        id, owner_id, title, description, slug, source_app_id,
+        is_draft, category, tagline, icon_id, latest_version_id,
+        created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-    .run(
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
+    `).run(
       data.id,
       data.ownerId,
       data.title,
       data.description,
       data.slug,
-      data.configJson,
       data.sourceAppId ?? null,
       data.isDraft === true ? 1 : 0,
       data.category ?? null,
@@ -248,6 +257,18 @@ export const dbCreateApp = (data: {
       now,
       now,
     );
+
+    dbInsertAppVersion({
+      id: versionId,
+      appId: data.id,
+      versionNumber: 1,
+      fields,
+      createdAt: now,
+    });
+
+    db.query(`UPDATE apps SET latest_version_id = ? WHERE id = ?`).run(versionId, data.id);
+  });
+  run();
 
   if (data.installForOwner !== false) {
     dbInstallApp(data.ownerId, data.id);
@@ -285,17 +306,16 @@ export const dbUpdateApp = (
   data: {
     title?: string;
     description?: string;
-    configJson?: string;
     isDraft?: boolean;
     iconId?: string | null;
     category?: string | null;
     tagline?: string | null;
+    nextPrompt?: string | null;
   },
 ) => {
   const now = new Date().toISOString();
   const title = data.title;
   const description = data.description;
-  const configJson = data.configJson;
   const isDraft = data.isDraft === undefined ? null : data.isDraft ? 1 : 0;
   const hasIcon = data.iconId !== undefined;
   const iconId = data.iconId ?? null;
@@ -303,24 +323,25 @@ export const dbUpdateApp = (
   const category = data.category ?? null;
   const hasTagline = data.tagline !== undefined;
   const tagline = data.tagline ?? null;
+  const hasNextPrompt = data.nextPrompt !== undefined;
+  const nextPrompt = data.nextPrompt ?? null;
 
   return db
     .query(`
       UPDATE apps
       SET title = COALESCE(?, title),
           description = COALESCE(?, description),
-          config_json = COALESCE(?, config_json),
           is_draft = COALESCE(?, is_draft),
           icon_id = CASE WHEN ? THEN ? ELSE icon_id END,
           category = CASE WHEN ? THEN ? ELSE category END,
           tagline = CASE WHEN ? THEN ? ELSE tagline END,
+          next_prompt = CASE WHEN ? THEN ? ELSE next_prompt END,
           updated_at = ?
       WHERE id = ?
     `)
     .run(
       title ?? null,
       description ?? null,
-      configJson ?? null,
       isDraft,
       hasIcon ? 1 : 0,
       iconId,
@@ -328,11 +349,14 @@ export const dbUpdateApp = (
       category,
       hasTagline ? 1 : 0,
       tagline,
+      hasNextPrompt ? 1 : 0,
+      nextPrompt,
       now,
       id,
     );
 };
 
+/** Publish current latest version; title/icon stay as-is on apps. */
 export const dbPublishApp = (id: string, ownerId: string): boolean => {
   const now = new Date().toISOString();
   const result = db
@@ -340,9 +364,10 @@ export const dbPublishApp = (id: string, ownerId: string): boolean => {
       `
       UPDATE apps
       SET visibility = 'public',
+          published_version_id = latest_version_id,
           published_at = COALESCE(published_at, ?),
           updated_at = ?
-      WHERE id = ? AND owner_id = ? AND is_draft = 0
+      WHERE id = ? AND owner_id = ? AND is_draft = 0 AND latest_version_id IS NOT NULL
     `,
     )
     .run(now, now, id, ownerId);
@@ -356,6 +381,7 @@ export const dbUnpublishApp = (id: string, ownerId: string): boolean => {
       `
       UPDATE apps
       SET visibility = 'private',
+          published_version_id = NULL,
           published_at = NULL,
           updated_at = ?
       WHERE id = ? AND owner_id = ?

@@ -7,20 +7,17 @@ import { html, css } from "/utils/markup";
 import Dialogs from "/app/components/Dialogs";
 import SiteFooter from "/app/components/SiteFooter";
 import { t } from "/utils/i18n";
-import { getLang } from "/utils/lang";
+import { AVAILABLE_LANGUAGES, type Language } from "/i18n/languages";
+import { getLang, pathWithLang } from "/utils/lang";
 import { aboutUrl, appEditUrl, storeUrl } from "/utils/app-url";
 import { storeQuery, loadStore } from "/app/stores/storeListingStore";
-import { isLoggedIn, logout, openLoginDialog, requireLogin } from "/app/stores/userStore";
+import { isLoggedIn, openLoginDialog, requireLogin } from "/app/stores/userStore";
 
 type LayoutProps = {
   children: ComponentChildren;
 };
 
-function isEditPath(path: string): boolean {
-  return /\/[^/]+\/edit(\/|$)/.test(path);
-}
-
-/** Shared site chrome — brand, search, Create, account. */
+/** Shared site chrome — brand, search, Create App, account. */
 function SiteHeader() {
   const { path, route } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
@@ -54,31 +51,43 @@ function SiteHeader() {
     searchOpen.value = false;
   }
 
-  const accountMenu = loggedIn
+  const accountAction = loggedIn
     ? html`
-        <div ui-menu="bottom-right">
-          <button type="button" ui-button="tertiary sm" popovertarget="site-account-menu">
-            ${t("Account")}
-          </button>
-          <div id="site-account-menu" popover="auto" role="menu">
-            <a role="menuitem" href=${`/${lang}/settings`}>${t("Settings")}</a>
-            <a role="menuitem" href=${aboutUrl(lang)}>${t("About R⫶⫶MIX")}</a>
-            <hr />
-            <button type="button" role="menuitem" onClick=${() => void logout()}>
-              ${t("Log out")}
-            </button>
-          </div>
-        </div>`
+        <a href=${`/${lang}/account`} ui-button="tertiary sm">${t("Account")}</a>`
     : html`
       <button type="button" ui-button="tertiary sm" onClick=${openLoginDialog}>
         ${t("Sign in")}
       </button>`;
 
+  const languageMenu = html`
+    <div ui-menu="bottom-right">
+      <button
+        type="button"
+        ui-button="tertiary square sm"
+        ui-icon="globe"
+        popovertarget="site-lang-menu"
+        aria-label=${t("Language")}
+      ></button>
+      <div id="site-lang-menu" popover="auto" role="menu">
+        ${(Object.keys(AVAILABLE_LANGUAGES) as Language[]).map((code) => {
+          const current = code === lang;
+          return html`
+            <a
+              role="menuitem"
+              href=${pathWithLang(path ?? `/${lang}/`, code)}
+              aria-current=${current ? "true" : undefined}
+              lang=${code}
+            >${AVAILABLE_LANGUAGES[code].nativeName}</a>
+          `;
+        })}
+      </div>
+    </div>`;
+
   return html`
     <header class="site-header" ui-padding="inline-md block-md">
       <div class="site-header-inner" ui-row="gap-sm y-center x-between">
-        <a class="brand" href=${`/${lang}/`} aria-label="R⫶⫶MIX">
-          <img src="/static/rmix.svg" alt="R⫶⫶MIX" width="96" height="22" />
+        <a class="brand" href=${aboutUrl(lang)} aria-label="Remiix">
+          <img src="/static/images/remiix.svg" alt="Remiix" width="96" height="20" />
         </a>
         <div class="actions" ui-row="gap-sm y-center">
           ${searchOpen.value
@@ -113,8 +122,9 @@ function SiteHeader() {
               if (requireLogin()) return;
               e.preventDefault();
             }}
-          >${t("Create")}</a>
-          ${accountMenu}
+          >${t("Create App")}</a>
+          ${accountAction}
+          ${languageMenu}
         </div>
       </div>
     </header>
@@ -123,12 +133,9 @@ function SiteHeader() {
 
 /** App shell — document scrolls; pages that need a fixed viewport handle it themselves. */
 export default function Layout({ children }: LayoutProps) {
-  const { path } = useLocation();
-  const hideHeader = isEditPath(path ?? "");
-
   const view = html`
     <div data-scope="Layout">
-      ${hideHeader ? null : html`<${SiteHeader} />`}
+      <${SiteHeader} />
       <main class="shell">${children}</main>
       <${SiteFooter} />
       <${Dialogs} />
@@ -146,7 +153,6 @@ export default function Layout({ children }: LayoutProps) {
 
       .shell {
         flex: 1;
-        min-height: 0;
         display: flex;
         flex-direction: column;
       }

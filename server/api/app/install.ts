@@ -7,7 +7,8 @@ import {
   dbIsAppInstalled,
   dbLogInstallEvent,
 } from "/server/database/queries/apps";
-import { isDraftConfig, parseAppConfig } from "/types/app-config-types";
+import { isDraftConfig } from "/types/app-config-types";
+import { resolveAppConfig } from "/server/database/queries/app-versions";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import type { Language } from "/types/i18n-types";
@@ -30,11 +31,11 @@ export default {
       if (!slug) return apiError({ code: "SLUG_REQUIRED" });
 
       const row = dbGetAppBySlug(slug);
-      if (!row || row.visibility !== "public" || row.is_draft === 1) {
+      if (!row || row.visibility !== "public" || row.is_draft === 1 || !row.published_version_id) {
         return apiError({ code: "NOT_FOUND", status: 404 });
       }
 
-      const config = parseAppConfig(row.config_json);
+      const config = resolveAppConfig(row, { asOwner: false });
       if (!config || isDraftConfig(config)) {
         return apiError({
           code: "NOT_READY",

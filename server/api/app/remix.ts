@@ -7,16 +7,19 @@ import {
   dbGetAppBySlug,
   dbUpdateApp,
 } from "/server/database/queries/apps";
+import { resolveSourceConfigForRemix } from "/server/database/queries/app-versions";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
-import { isDraftConfig, parseAppConfig, type AppDetail } from "/types/app-config-types";
+import { generateAppName } from "/utils/ai-apps.server";
+import { isDraftConfig, type AppDetail } from "/types/app-config-types";
 import { getClientIP } from "/utils/request.server";
+import { remixFallbackTitle } from "/utils/remix-title";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import type { Language } from "/types/i18n-types";
 
 /**
- * Remix = clone a public app into the current user's library as an editable copy.
- * Generates a fresh launcher icon for the clone.
+ * Remix = clone into a new owned app project with a fresh name + icon.
+ * Code/content starts as v1 of the new app.
  */
 export default {
   async POST(req: BunRequest) {
@@ -40,7 +43,7 @@ export default {
         return apiError({ code: "NOT_FOUND", status: 404 });
       }
 
-      const config = parseAppConfig(source.config_json);
+      const config = resolveSourceConfigForRemix(source, user.id);
       if (!config || isDraftConfig(config)) {
         return apiError({
           code: "NOT_READY",
@@ -49,16 +52,38 @@ export default {
         });
       }
 
-      // Give the clone a unique tagName so customElements.define won't clash if both
-      // source and remix ever load in the same document.
       const suffix = Math.random().toString(36).slice(2, 6);
       const tagName = `${config.tagName}-${suffix}`.replace(/[^a-z0-9-]/g, "");
-      let code = config.code;
-      // Replace define("old-tag" …) and string literals of the old tag carefully.
-      code = code.split(config.tagName).join(tagName);
+      let code = config.code.split(config.tagName).join(tagName);
+
+      let title = remixFallbackTitle(source.title);
+      let description = config.description;
+      let tagline = config.tagline ?? source.tagline ?? null;
+      let category = config.category ?? source.category ?? null;
+
+      try {
+        const renamed = await generateAppName({
+          current: { ...config, title: source.title },
+          instruction:
+            "This is a remix of another app. Give it a fresh short home-screen name related to the same idea.",
+          language,
+        });
+        if (renamed) {
+          title = renamed.title;
+          description = renamed.description;
+          tagline = renamed.tagline || tagline;
+          category = renamed.category || category;
+        }
+      } catch {
+        // Keep fallback title/description.
+      }
 
       const remixedConfig = {
         ...config,
+        title,
+        description,
+        tagline: tagline || undefined,
+        category: category as typeof config.category,
         tagName,
         code,
         status: "ready" as const,
@@ -69,20 +94,20 @@ export default {
       dbCreateApp({
         id,
         ownerId: user.id,
-        title: remixedConfig.title,
-        description: remixedConfig.description,
+        title,
+        description,
         slug: newSlug,
-        configJson: JSON.stringify(remixedConfig),
+        config: remixedConfig,
         sourceAppId: source.id,
         isDraft: false,
-        category: remixedConfig.category ?? source.category ?? null,
-        tagline: remixedConfig.tagline ?? source.tagline ?? null,
+        category,
+        tagline,
       });
 
       const clientIP = getClientIP(req);
       const iconResult = await generateAppIcon({
-        title: remixedConfig.title,
-        description: remixedConfig.description,
+        title,
+        description,
         clientIP,
       });
       if (iconResult) {
@@ -97,12 +122,13 @@ export default {
         description: row.description,
         visibility: row.visibility,
         ownerId: row.owner_id,
-        config: remixedConfig,
+        config: { ...remixedConfig, title: row.title },
         canEdit: true,
         isDraft: false,
         iconId: row.icon_id ?? null,
         category: row.category ?? remixedConfig.category ?? null,
         tagline: row.tagline ?? remixedConfig.tagline ?? null,
+        nextPrompt: row.next_prompt ?? null,
       };
 
       return apiSuccess({ data: { app: detail }, status: 201 });

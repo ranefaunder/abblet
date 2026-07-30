@@ -23,7 +23,7 @@ import {
 import { apps as libraryApps, loadApps } from "/app/stores/appStore";
 import { requireLogin } from "/app/stores/userStore";
 
-export const HomePath = "/:lang" as const;
+export const HomePath = "/:lang/store" as const;
 
 function categoryLabel(category: AppCategory): string {
   return t(category);
@@ -238,58 +238,6 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                 </div>`
               : isDefaultBrowse
                 ? html`
-                  <section class="create-pitch">
-                    <div class="create-pitch-copy" ui-column="gap-md">
-                      <p class="create-eyebrow">${t("Make your own")}</p>
-                      <h2 class="create-title">${t("Make your own apps with AI")}</h2>
-                      <p class="create-lede">
-                        ${t("Describe what you need in plain language. R⫶⫶MIX builds a working app in minutes — then you improve it by chatting. No code needed.")}
-                      </p>
-                      <div class="create-cta">
-                        <a
-                          href=${appEditUrl(lang)}
-                          ui-button="primary"
-                          onClick=${(e: Event) => {
-                            if (requireLogin()) return;
-                            e.preventDefault();
-                          }}
-                        >${t("Create an app")}</a>
-                      </div>
-                    </div>
-                    <div class="create-demo" aria-hidden="true">
-                      <div class="create-demo-stage">
-                        <div class="create-demo-msg user" style="--d: 0.05s">
-                          <p>${t("A habit tracker for my morning routine")}</p>
-                        </div>
-                        <div class="create-demo-msg build" style="--d: 0.35s">
-                          <div class="create-demo-build">
-                            <span class="create-demo-dots" aria-hidden="true">
-                              <i></i><i></i><i></i>
-                            </span>
-                            <span>${t("Building your app…")}</span>
-                          </div>
-                          <div class="create-demo-bars">
-                            <span style="--w: 88%"></span>
-                            <span style="--w: 64%"></span>
-                            <span style="--w: 76%"></span>
-                          </div>
-                        </div>
-                        <div class="create-demo-msg result" style="--d: 0.7s">
-                          <div class="create-demo-app">
-                            <span class="create-demo-app-icon" aria-hidden="true">H</span>
-                            <div ui-column="gap-xs">
-                              <strong>${t("Morning Habits")}</strong>
-                              <small>${t("Ready to open")}</small>
-                            </div>
-                          </div>
-                          <p class="create-demo-reply">
-                            ${t("Done — open it, then ask for changes anytime.")}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-
                   ${ownedApps.length > 0
                     ? html`
                       <section ui-column="gap-sm">
@@ -426,7 +374,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
             <p class="about-pitch-lede">
               ${t("An app store where every app is remixable to fit you.")}
             </p>
-            <a href=${aboutUrl(lang)} ui-button="primary">${t("About R⫶⫶MIX")}</a>
+            <a href=${aboutUrl(lang)} ui-button="primary">${t("About Remiix")}</a>
           </div>
         </section>
       </div>
@@ -465,258 +413,6 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
         padding-top: 1.25rem;
         max-width: 48rem;
         margin-inline: auto;
-      }
-
-      .create-pitch {
-        position: relative;
-        overflow: hidden;
-        display: grid;
-        gap: 1.75rem;
-        align-items: center;
-        border-radius: 1.35rem;
-        border: 1px solid var(--neutral-200);
-        background:
-          radial-gradient(ellipse 80% 70% at 100% 0%, var(--neutral-100), transparent 55%),
-          radial-gradient(ellipse 60% 50% at 0% 100%, color-mix(in oklab, var(--primary-100) 55%, transparent), transparent 50%),
-          var(--white);
-        padding: 2rem 1.25rem 1.9rem;
-      }
-
-      .create-pitch-copy {
-        position: relative;
-        z-index: 1;
-        max-width: 24rem;
-      }
-
-      .create-eyebrow {
-        margin: 0;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--neutral-500);
-      }
-
-      .create-title {
-        margin: 0;
-        max-width: 12ch;
-        font-size: clamp(1.85rem, 5.5vw, 2.55rem);
-        font-weight: 700;
-        letter-spacing: -0.045em;
-        line-height: 1.02;
-        color: var(--neutral-950);
-        text-wrap: balance;
-      }
-
-      .create-lede {
-        margin: 0;
-        color: var(--neutral-600);
-        font-size: 1.05rem;
-        line-height: 1.45;
-        text-wrap: pretty;
-      }
-
-      .create-cta {
-        display: flex;
-      }
-
-      .create-cta [ui-button] {
-        min-width: 9.5rem;
-      }
-
-      .create-demo {
-        display: none;
-        position: relative;
-        z-index: 1;
-        justify-self: stretch;
-        min-width: 0;
-      }
-
-      .create-demo-stage {
-        display: flex;
-        flex-direction: column;
-        gap: 0.7rem;
-        padding: 1rem;
-        border-radius: 1.15rem;
-        background:
-          linear-gradient(160deg, var(--neutral-100), var(--white) 45%, var(--neutral-50));
-        border: 1px solid var(--neutral-200);
-        box-shadow:
-          0 18px 40px rgba(15, 20, 25, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.8);
-        transform: rotate(1.25deg);
-      }
-
-      .create-demo-msg {
-        animation: create-demo-in 0.55s ease-out both;
-        animation-delay: var(--d, 0s);
-      }
-
-      .create-demo-msg.user {
-        align-self: flex-end;
-        max-width: 92%;
-      }
-
-      .create-demo-msg.user p {
-        margin: 0;
-        padding: 0.7rem 0.9rem;
-        border-radius: 1.05rem 1.05rem 0.3rem 1.05rem;
-        background: var(--neutral-950);
-        color: var(--white);
-        font-size: 0.8125rem;
-        font-weight: 550;
-        line-height: 1.35;
-        box-shadow: 0 8px 18px rgba(15, 20, 25, 0.18);
-      }
-
-      .create-demo-msg.build,
-      .create-demo-msg.result {
-        align-self: stretch;
-        max-width: 100%;
-      }
-
-      .create-demo-build {
-        display: flex;
-        align-items: center;
-        gap: 0.55rem;
-        margin-bottom: 0.55rem;
-        font-size: 0.75rem;
-        font-weight: 650;
-        letter-spacing: 0.02em;
-        color: var(--neutral-600);
-      }
-
-      .create-demo-dots {
-        display: inline-flex;
-        gap: 0.22rem;
-      }
-
-      .create-demo-dots i {
-        width: 0.35rem;
-        height: 0.35rem;
-        border-radius: 999px;
-        background: var(--primary-500);
-        animation: create-demo-dot 1.1s ease-in-out infinite;
-      }
-
-      .create-demo-dots i:nth-child(2) {
-        animation-delay: 0.15s;
-      }
-
-      .create-demo-dots i:nth-child(3) {
-        animation-delay: 0.3s;
-      }
-
-      .create-demo-bars {
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-        padding: 0.75rem;
-        border-radius: 0.95rem;
-        background: color-mix(in oklab, var(--white) 70%, var(--neutral-50));
-        border: 1px solid var(--neutral-200);
-      }
-
-      .create-demo-bars span {
-        display: block;
-        height: 0.4rem;
-        width: var(--w, 70%);
-        border-radius: 999px;
-        background: linear-gradient(
-          90deg,
-          var(--neutral-200),
-          var(--primary-200),
-          var(--neutral-200)
-        );
-        background-size: 200% 100%;
-        animation: create-demo-shimmer 1.6s linear infinite;
-      }
-
-      .create-demo-msg.result {
-        display: flex;
-        flex-direction: column;
-        gap: 0.55rem;
-      }
-
-      .create-demo-app {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.7rem 0.8rem;
-        border-radius: 1rem;
-        background: var(--white);
-        border: 1px solid var(--neutral-200);
-        box-shadow: 0 10px 24px rgba(15, 20, 25, 0.08);
-      }
-
-      .create-demo-app-icon {
-        flex: none;
-        width: 2.6rem;
-        height: 2.6rem;
-        border-radius: 0.7rem;
-        display: grid;
-        place-items: center;
-        font-weight: 700;
-        font-size: 1.05rem;
-        color: var(--white);
-        background: linear-gradient(145deg, var(--primary-500), var(--primary-700));
-        box-shadow: 0 6px 14px color-mix(in oklab, var(--primary-600) 35%, transparent);
-      }
-
-      .create-demo-app strong {
-        font-size: 0.875rem;
-        letter-spacing: -0.02em;
-        color: var(--neutral-950);
-      }
-
-      .create-demo-app small {
-        font-size: 0.75rem;
-        color: var(--success-700, var(--primary-700));
-        font-weight: 600;
-      }
-
-      .create-demo-reply {
-        margin: 0;
-        padding: 0.65rem 0.85rem;
-        border-radius: 0.3rem 1.05rem 1.05rem 1.05rem;
-        background: var(--white);
-        border: 1px solid var(--neutral-200);
-        font-size: 0.8125rem;
-        line-height: 1.4;
-        color: var(--neutral-700);
-      }
-
-      @keyframes create-demo-in {
-        from {
-          opacity: 0;
-          transform: translateY(12px) scale(0.96);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-      }
-
-      @keyframes create-demo-dot {
-        0%,
-        80%,
-        100% {
-          opacity: 0.35;
-          transform: translateY(0);
-        }
-        40% {
-          opacity: 1;
-          transform: translateY(-2px);
-        }
-      }
-
-      @keyframes create-demo-shimmer {
-        from {
-          background-position: 100% 0;
-        }
-        to {
-          background-position: -100% 0;
-        }
       }
 
       .about-pitch {
@@ -784,38 +480,8 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
       }
 
       @media (min-width: 640px) {
-        .create-pitch {
-          grid-template-columns: minmax(0, 1.15fr) minmax(11rem, 0.85fr);
-          gap: 2rem;
-          padding: 2.5rem 1.75rem 2.35rem;
-        }
-
-        .create-title {
-          font-size: 2.55rem;
-        }
-
-        .create-lede {
-          font-size: 1.1rem;
-        }
-
-        .create-demo {
-          display: block;
-        }
-
-        .create-demo-stage {
-          transform: rotate(2deg);
-        }
-
         .about-pitch {
           padding: 2.35rem 1.5rem 2.1rem;
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .create-demo-msg,
-        .create-demo-dots i,
-        .create-demo-bars span {
-          animation: none;
         }
       }
 

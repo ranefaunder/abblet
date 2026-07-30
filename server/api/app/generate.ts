@@ -91,7 +91,7 @@ export default {
         title: generated.config.title,
         description: generated.config.description,
         slug,
-        configJson: JSON.stringify(generated.config),
+        config: generated.config,
         isDraft: false,
         category: generated.config.category ?? null,
         tagline: generated.config.tagline ?? null,
@@ -159,6 +159,9 @@ export default {
         ],
       });
 
+      const defaultNext = t("Write what you want to change…", language);
+      dbUpdateApp(id, { nextPrompt: defaultNext });
+
       const row = dbGetAppBySlug(slug)!;
       const detail: AppDetail = {
         id: row.id,
@@ -173,12 +176,14 @@ export default {
         iconId: row.icon_id ?? null,
         category: row.category ?? generated.config.category ?? null,
         tagline: row.tagline ?? generated.config.tagline ?? null,
+        nextPrompt: row.next_prompt ?? defaultNext,
       };
 
       return apiSuccess({
         data: {
           app: detail,
           messages: dbListAppMessages(id),
+          nextPrompt: defaultNext,
         },
       });
     });

@@ -21,7 +21,7 @@ describe("app-host", () => {
   test("stripHostPort removes port", () => {
     expect(stripHostPort("34211.app.localhost:8090")).toBe("34211.app.localhost");
     expect(stripHostPort("localhost:8090")).toBe("localhost");
-    expect(stripHostPort("rmix.app")).toBe("rmix.app");
+    expect(stripHostPort("remiix.app")).toBe("remiix.app");
   });
 
   test("parseAppSubdomain matches numeric slug", () => {
@@ -55,16 +55,16 @@ describe("app-host", () => {
   test("comma-separated APP_RUNTIME_HOST accepts aliases", () => {
     const prevHost = process.env.APP_RUNTIME_HOST;
     const prevOrigin = process.env.PLATFORM_ORIGIN;
-    process.env.APP_RUNTIME_HOST = "rmix.app,abblet.app";
-    process.env.PLATFORM_ORIGIN = "https://rmix.app";
+    process.env.APP_RUNTIME_HOST = "remiix.app,abblet.app";
+    process.env.PLATFORM_ORIGIN = "https://remiix.app";
     try {
-      expect(getAppRuntimeHosts()).toEqual(["rmix.app", "abblet.app"]);
-      expect(getAppRuntimeHost()).toBe("rmix.app");
-      expect(parseAppSubdomain("73850.rmix.app")).toBe("73850");
+      expect(getAppRuntimeHosts()).toEqual(["remiix.app", "abblet.app"]);
+      expect(getAppRuntimeHost()).toBe("remiix.app");
+      expect(parseAppSubdomain("73850.remiix.app")).toBe("73850");
       expect(parseAppSubdomain("73850.abblet.app")).toBe("73850");
-      expect(isAppRuntimeHost("73850.rmix.app")).toBe(true);
-      expect(isAppRuntimeApex("rmix.app")).toBe(true);
-      expect(appOrigin("73850")).toBe("https://73850.rmix.app");
+      expect(isAppRuntimeHost("73850.remiix.app")).toBe(true);
+      expect(isAppRuntimeApex("remiix.app")).toBe(true);
+      expect(appOrigin("73850")).toBe("https://73850.remiix.app");
     } finally {
       process.env.APP_RUNTIME_HOST = prevHost;
       process.env.PLATFORM_ORIGIN = prevOrigin;
@@ -74,51 +74,63 @@ describe("app-host", () => {
   test("shared platform+runtime apex does not bounce (no redirect loop)", () => {
     const prevHost = process.env.APP_RUNTIME_HOST;
     const prevOrigin = process.env.PLATFORM_ORIGIN;
-    process.env.APP_RUNTIME_HOST = "rmix.app";
-    process.env.PLATFORM_ORIGIN = "https://rmix.app";
+    process.env.APP_RUNTIME_HOST = "remiix.app";
+    process.env.PLATFORM_ORIGIN = "https://remiix.app";
     try {
-      expect(isPlatformHost("rmix.app")).toBe(true);
-      expect(isAppRuntimeApex("rmix.app")).toBe(true);
-      expect(shouldBounceRuntimeApexToPlatform("rmix.app")).toBe(false);
-      expect(isAppOnlyHost("rmix.app")).toBe(false);
-      expect(isAppOnlyHost("73850.rmix.app")).toBe(true);
-      expect(parseAppSubdomain("73850.rmix.app")).toBe("73850");
+      expect(isPlatformHost("remiix.app")).toBe(true);
+      expect(isAppRuntimeApex("remiix.app")).toBe(true);
+      expect(shouldBounceRuntimeApexToPlatform("remiix.app")).toBe(false);
+      expect(isAppOnlyHost("remiix.app")).toBe(false);
+      expect(isAppOnlyHost("73850.remiix.app")).toBe(true);
+      expect(parseAppSubdomain("73850.remiix.app")).toBe("73850");
     } finally {
       process.env.APP_RUNTIME_HOST = prevHost;
       process.env.PLATFORM_ORIGIN = prevOrigin;
     }
   });
 
-  test("redirectLegacyHost maps abblet domains to rmix", () => {
+  test("redirectLegacyHost maps abblet domains to remiix", () => {
     const prevHost = process.env.APP_RUNTIME_HOST;
     const prevOrigin = process.env.PLATFORM_ORIGIN;
-    process.env.APP_RUNTIME_HOST = "rmix.app";
-    process.env.PLATFORM_ORIGIN = "https://rmix.app";
+    process.env.APP_RUNTIME_HOST = "remiix.app";
+    process.env.PLATFORM_ORIGIN = "https://remiix.app";
     try {
       const platform = redirectLegacyHost({
         headers: new Headers({ host: "abblet.com" }),
         url: "https://abblet.com/en/about?x=1",
       });
       expect(platform?.status).toBe(301);
-      expect(platform?.headers.get("location")).toBe("https://rmix.app/en/about?x=1");
+      expect(platform?.headers.get("location")).toBe("https://remiix.app/en/about?x=1");
 
       const app = redirectLegacyHost({
         headers: new Headers({ host: "73850.abblet.app" }),
         url: "https://73850.abblet.app/install",
       });
       expect(app?.status).toBe(301);
-      expect(app?.headers.get("location")).toBe("https://73850.rmix.app/install");
+      expect(app?.headers.get("location")).toBe("https://73850.remiix.app/install");
 
       const apex = redirectLegacyHost({
         headers: new Headers({ host: "abblet.app" }),
         url: "https://abblet.app/",
       });
-      expect(apex?.headers.get("location")).toBe("https://rmix.app/");
+      expect(apex?.headers.get("location")).toBe("https://remiix.app/");
+
+      const rmixApex = redirectLegacyHost({
+        headers: new Headers({ host: "rmix.app" }),
+        url: "https://rmix.app/en/",
+      });
+      expect(rmixApex?.headers.get("location")).toBe("https://remiix.app/en/");
+
+      const rmixApp = redirectLegacyHost({
+        headers: new Headers({ host: "73850.rmix.app" }),
+        url: "https://73850.rmix.app/install",
+      });
+      expect(rmixApp?.headers.get("location")).toBe("https://73850.remiix.app/install");
 
       expect(
         redirectLegacyHost({
-          headers: new Headers({ host: "rmix.app" }),
-          url: "https://rmix.app/en/",
+          headers: new Headers({ host: "remiix.app" }),
+          url: "https://remiix.app/en/",
         }),
       ).toBeNull();
     } finally {

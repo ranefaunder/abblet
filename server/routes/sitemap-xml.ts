@@ -4,7 +4,10 @@ import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 export default async function (req: BunRequest): Promise<Response> {
   const origin = new URL(req.url).origin;
   const langs = Object.keys(AVAILABLE_LANGUAGES);
-  const urls = langs.map((lang) => `${origin}/${lang}/`);
+  const urls = [
+    ...langs.map((lang) => `${origin}/${lang}/`),
+    ...langs.map((lang) => `${origin}/${lang}/store`),
+  ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

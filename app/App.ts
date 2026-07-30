@@ -16,7 +16,7 @@ import { initAppStore } from "./stores/appStore";
 import { initEditStore } from "./stores/editStore";
 import DevStores from "./components/headless/DevStores";
 import Home, { HomePath } from "./routes/Home";
-import Settings, { SettingsPath } from "./routes/Settings";
+import Account, { AccountPath } from "./routes/Account";
 import Login, { LoginPath } from "./routes/Login";
 import Edit, { EditPath, EditSlugPath } from "./routes/Edit";
 import StoreApp, { StoreAppPath } from "./routes/StoreApp";
@@ -58,10 +58,10 @@ export default function App() {
       >
         <div data-scope="App" ui-column>
           <${Router}>
-            <${Route} path=${HomePath} component=${withLayout(Home)} />
             <${Route} path=${StoreAppPath} component=${withLayout(StoreApp)} />
+            <${Route} path=${HomePath} component=${withLayout(Home)} />
             <${Route} path=${AboutPath} component=${withLayout(About)} />
-            <${Route} path=${SettingsPath} component=${withLayout(Settings)} />
+            <${Route} path=${AccountPath} component=${withLayout(Account)} />
             <${Route} path=${LoginPath} component=${withLayout(Login)} />
             <${Route} path=${EditSlugPath} component=${withLayout(Edit)} />
             <${Route} path=${EditPath} component=${withLayout(Edit)} />

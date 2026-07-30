@@ -1,8 +1,9 @@
 import type { BunRequest } from "bun";
 import { withAuth } from "/utils/auth.server";
 import { apiError, apiSuccess } from "/utils/api.server";
-import { dbGetAppBySlug, dbUpdateApp } from "/server/database/queries/apps";
-import { isDraftConfig, parseAppConfig, type AppConfig, type AppDetail } from "/types/app-config-types";
+import { dbGetAppBySlug } from "/server/database/queries/apps";
+import { dbCommitAppVersion, resolveAppConfig } from "/server/database/queries/app-versions";
+import { isDraftConfig, type AppConfig, type AppDetail } from "/types/app-config-types";
 import type { Language } from "/types/i18n-types";
 import { getLang } from "/utils/lang";
 import { t } from "/utils/i18n";
@@ -29,7 +30,7 @@ export default {
       if (!row) return apiError({ code: "NOT_FOUND", status: 404 });
       if (row.owner_id !== user.id) return apiError({ code: "FORBIDDEN", status: 403 });
 
-      const current = parseAppConfig(row.config_json);
+      const current = resolveAppConfig(row, { asOwner: true });
       if (!current || isDraftConfig(current)) {
         return apiError({ code: "APP_NOT_READY", status: 409 });
       }
@@ -42,8 +43,7 @@ export default {
       }
 
       const config: AppConfig = { ...current, status: "ready", code };
-
-      dbUpdateApp(row.id, { configJson: JSON.stringify(config) });
+      dbCommitAppVersion(row.id, config, { fromVersionId: row.latest_version_id });
 
       const updated = dbGetAppBySlug(slug)!;
       const detail: AppDetail = {
@@ -53,12 +53,13 @@ export default {
         description: updated.description,
         visibility: updated.visibility,
         ownerId: updated.owner_id,
-        config,
+        config: { ...config, title: updated.title },
         canEdit: true,
         isDraft: updated.is_draft === 1,
         iconId: updated.icon_id ?? null,
         category: updated.category ?? config.category ?? null,
         tagline: updated.tagline ?? config.tagline ?? null,
+        nextPrompt: updated.next_prompt ?? null,
       };
 
       return apiSuccess({ data: { app: detail } });

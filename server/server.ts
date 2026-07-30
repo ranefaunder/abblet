@@ -6,6 +6,7 @@ import clientJsRoute from "./routes/client-js";
 import appRoute from "./routes/app";
 import rootRoute from "./routes/root";
 import redirectRoute from "./routes/redirect";
+import aboutRedirect from "./routes/about-redirect";
 import robotsTxt from "./routes/robots-txt";
 import sitemapXml from "./routes/sitemap-xml";
 import siteWebmanifest from "./routes/site-webmanifest";
@@ -40,6 +41,8 @@ import appUninstall from "./api/app/uninstall";
 import appPublish from "./api/app/publish";
 import appUnpublish from "./api/app/unpublish";
 import appRemix from "./api/app/remix";
+import appVersions from "./api/app/versions";
+import appRestore from "./api/app/restore";
 import meta from "./api/meta";
 
 await initDb();
@@ -109,6 +112,8 @@ const server = Bun.serve({
     "/api/:lang/app/publish": appPublish,
     "/api/:lang/app/unpublish": appUnpublish,
     "/api/:lang/app/remix": appRemix,
+    "/api/:lang/app/versions": appVersions,
+    "/api/:lang/app/restore": appRestore,
     "/api/:lang/user/me": userMe,
     "/api/:lang/user/marketing": userMarketing,
     "/api/:lang/credits": credits,
@@ -130,6 +135,8 @@ const server = Bun.serve({
     "/:lang/app/:slug/run.js": appModule,
     "/:lang/app/:slug/run": appRunRedirect,
     "/:lang/app/:slug": appPage,
+    "/:lang/about": aboutRedirect,
+    "/:lang/about/": aboutRedirect,
     "/:lang": redirectRoute,
     "/:lang/": appRoute,
     "/:lang/*": appRoute,
@@ -137,4 +144,4 @@ const server = Bun.serve({
   }),
 });
 
-console.log(`🚀 Rmix running at http://localhost:${server.port}`);
+console.log(`🚀 Remiix running at http://localhost:${server.port}`);

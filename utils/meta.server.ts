@@ -16,20 +16,21 @@ function ogLocale(lang: Language): string {
 }
 
 function isAboutPath(pathname: string): boolean {
-  return /\/[^/]+\/about\/?$/.test(pathname);
+  // Marketing front page: /{lang} or /{lang}/
+  return /^\/[^/]+\/?$/.test(pathname);
 }
 
 function metaCopy(lang: Language, pathname: string): { title: string; description: string } {
   if (isAboutPath(pathname)) {
     return {
-      title: metaPlainForTitleElement(t("R⫶⫶MIX — About", lang)),
+      title: metaPlainForTitleElement(t("Remiix — Remix any app, or make your own.", lang)),
       description: metaPlainForHtmlAttribute(
-        t("R⫶⫶MIX is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.", lang),
+        t("Remiix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.", lang),
       ),
     };
   }
   return {
-    title: metaPlainForTitleElement(t("R⫶⫶MIX — Remix any app, or make your own.", lang)),
+    title: metaPlainForTitleElement(t("Remiix — Remix any app, or make your own.", lang)),
     description: metaPlainForHtmlAttribute(
       t("Remix any app, or make your own.", lang),
     ),
@@ -50,7 +51,7 @@ export async function getMeta(req: BunRequest): Promise<string> {
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="R⫶⫶MIX" />
+    <meta name="apple-mobile-web-app-title" content="Remiix" />
     <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
     <meta name="color-scheme" content="light" />
     <title>${title}</title>
@@ -64,9 +65,9 @@ export async function getMeta(req: BunRequest): Promise<string> {
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${title}" />
     <meta name="twitter:description" content="${description}" />
-    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/favicon-dark.svg`)}" type="image/svg+xml" />
-    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/favicon-dark.svg`)}" type="image/svg+xml" media="(prefers-color-scheme: light)" />
-    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/favicon-light.svg`)}" type="image/svg+xml" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/images/remiix-icon-dark.svg`)}" type="image/svg+xml" />
+    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/images/remiix-icon-dark.svg`)}" type="image/svg+xml" media="(prefers-color-scheme: light)" />
+    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/images/remiix-icon-light.svg`)}" type="image/svg+xml" media="(prefers-color-scheme: dark)" />
     <link rel="apple-touch-icon" sizes="180x180" href="${escapeHtmlAttribute(`${staticRoot}/favicons/apple-touch-icon.png`)}" />
     <link rel="manifest" href="${escapeHtmlAttribute(`/${lang}/site.webmanifest`)}" />
     <meta name="theme-color" content="${themeColor}" media="(prefers-color-scheme: light)" />

@@ -1,6 +1,7 @@
 import { html, css } from "/utils/markup";
 import { getLang } from "/utils/lang";
 import { t } from "/utils/i18n";
+import { aboutUrl } from "/utils/app-url";
 
 /** Oletusreitillä ei ole path-mallia; router välittää matchPropsina. */
 type NotFoundPageProps = {
@@ -18,7 +19,7 @@ export default function NotFound({ path, params }: NotFoundPageProps) {
         <p class="code" aria-hidden="true">404</p>
         <h1 ui-heading="xl">${t("Page not found")}</h1>
         <p class="description">The page you are looking for does not exist or has been moved.</p>
-        <a href=${`/${currentLang}/`} ui-button="primary lg" ui-margin="top-md">
+        <a href=${aboutUrl(currentLang)} ui-button="primary lg" ui-margin="top-md">
           ${t("Go home")}
         </a>
       </div>

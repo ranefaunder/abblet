@@ -4,7 +4,8 @@ import { getAuthenticatedUser } from "/utils/auth.server";
 import { canViewApp } from "/utils/app-access.server";
 import { getRequestHost, parseAppSubdomain } from "/utils/app-host";
 import { appIconMimeType, appIconPngSrc, appIconSrc } from "/utils/app-icon";
-import { isDraftConfig, parseAppConfig } from "/types/app-config-types";
+import { isDraftConfig } from "/types/app-config-types";
+import { resolveAppConfig } from "/server/database/queries/app-versions";
 
 const FALLBACK_ICONS = [
   {
@@ -54,7 +55,9 @@ export default function appManifest(req: BunRequest): Response {
     return new Response(null, { status: 403 });
   }
 
-  const config = parseAppConfig(row.config_json);
+  const config = resolveAppConfig(row, {
+    asOwner: user?.id === row.owner_id,
+  });
   if (!config || isDraftConfig(config)) {
     return new Response(null, { status: 404 });
   }

@@ -1,7 +1,7 @@
-# Rmix — tavaramerkkiselvitys (alustava)
+# Remiix — tavaramerkkiselvitys (alustava)
 
 **Päiväys:** 2026-07-28  
-**Merkki:** `Rmix` / `RMIX` (sanamerkki + wordmark)  
+**Merkki:** `Remiix` (sanamerkki + wordmark)  
 **Käyttö:** App Store / SaaS — remiksattavat ja itse tehdyt henkilökohtaiset appit  
 **Alue (ensisijainen):** EU / Suomi; myöhemmin USA tarvittaessa  
 
@@ -14,7 +14,7 @@
 
 | Kysymys | Alustava arvio |
 |---------|----------------|
-| Löytyykö identtinen `Rmix`/`RMIX` app store / SaaS -tavaramerkki (luokat 9/42)? | **Ei selkeää osumaa** julkisissa hakutuloksissa (ei takaa tyhjyyttä) |
+| Löytyykö identtinen `Remiix`/`RMIX` app store / SaaS -tavaramerkki (luokat 9/42)? | **Ei selkeää osumaa** julkisissa hakutuloksissa (ei takaa tyhjyyttä) |
 | Onko samankaltaisuusriskejä? | **Kyllä** — erityisesti `Remix` / `R-MIX` / `rMIX` |
 | Onko merkki vahva rekisteröitäväksi? | **Kohtalainen / heikko** — selvästi johdettu sanasta *remix* (suggestive/descriptive) |
 | Voiko brändiä käyttää kaupallisesti nyt? | Käyttö on mahdollista, mutta **ei riskitöntä**; rekisteröinti kannattaa suunnitella aikaisin |
@@ -40,7 +40,7 @@ Täsmälliset ID:t TM5 / EUIPO-listasta asiamiehen kanssa.
 
 ### 1. Identtinen tai lähes identtinen kirjoitusasu
 
-| Merkki / toimija | Ala | Riski Rmix App Storelle |
+| Merkki / toimija | Ala | Riski Remiix App Storelle |
 |------------------|-----|-------------------------|
 | **rMIX** ([rmix.it](https://www.rmix.it/) — kierrätysalusta, IT) | B2B recycling marketplace | **Matala–keskitaso** (eri ala; sama kirjoitusasu verkossa) |
 | **株式会社RMIX** (Japani; lukutapa “リミックス”) | Yritysnimi | **Matala** (maantiede + todennäköisesti eri ala) |
@@ -55,22 +55,22 @@ Julkisessa haussa **ei löytynyt** selkeää, aktiivista EU/US-sanamerkkiä muod
 |------------------|-----|-------|
 | **Remix** ([remix.run](https://remix.run/)) | Web-framework / developer tools | **Keskitaso (maine + tech-yleisö)** — ei välttämättä rekisteröity estäväksi EUTM:ksi softassa, mutta sekaannus riski erityisesti “remix app” -viestinnässä |
 | Historiallinen **Remix Software, Inc.** vs Microsoft `REMIX` (USPTO TTAB, hylättyjä/hylättyjä hakemuksia) | Softa | Osoittaa että *Remix* on kilpaillut softa-tilassa; tarkista ajantasaiset live-merkinnät |
-| **Roland R-MIX** ([roland.com](https://www.roland.com/us/products/rc_r-mix/)) | Äänenkäsittelyohjelmisto (Class 9 -tyyppinen) | **Keskitaso** — lähes sama ääntäminen (`R-mix` / `Rmix`), eri käyttötarkoitus (musiikki vs. app store) |
+| **Roland R-MIX** ([roland.com](https://www.roland.com/us/products/rc_r-mix/)) | Äänenkäsittelyohjelmisto (Class 9 -tyyppinen) | **Keskitaso** — lähes sama ääntäminen (`R-mix` / `Remiix`), eri käyttötarkoitus (musiikki vs. app store) |
 | **R REMIX** / **remix PRELOVED FASHION** (Remix Global, EUIPO) | Muoti / retail | **Matala** (eri luokat) |
 | **REMIX** (Wm. Wrigley Jr. / Mars, USPTO) | Machinery / makeiset-konteksti | **Matala** (eri tavarat) |
 | Muut `REMIX` / `*MIX` -merkit (juomat, snacks, ym.) | Kuluttajatuotteet | **Matala**, jos luokat eivät mene päällekkäin |
 
 ### 3. Domains / brändiympäristö
 
-- Suunniteltu: `rmix.app` (tuotebrändi).
+- Suunniteltu: `remiix.app` (tuotebrändi).
 - Verkossa esiintyy jo `rmix.it`, `rmixservice.com`, japanilainen RMIX-yhtiö, sekä vahva **Remix**-assosiaatio developer-maailmassa.
-- Wordmarkin erottuvuus (kuusi neliötä) auttaa **figuratiivisena** merkkinä enemmän kuin pelkkä sana `Rmix`.
+- Wordmarkin erottuvuus (kuusi neliötä) auttaa **figuratiivisena** merkkinä enemmän kuin pelkkä sana `Remiix`.
 
 ---
 
 ## Arvio erottamiskyvystä
 
-`Rmix` = lyhennetty / stylized **remix**.
+`Remiix` = lyhennetty / stylized **remix**.
 
 - **Hyvä:** lyhyt, kirjoitettavissa, sopii sloganin “Remix any app…” -tarinaan.  
 - **Huono rekisteröinnin kannalta:** suggestive / lähes kuvaileva suhteessa remiksaus-palveluun → EUIPO/USPTO voi vaatia todisteita erottamiskyvystä tai rajoittaa suojaa.  
@@ -95,9 +95,9 @@ Julkisessa haussa **ei löytynyt** selkeää, aktiivista EU/US-sanamerkkiä muod
 
 ## Suositellut seuraavat askeleet
 
-1. **Asiamiehen clearance** (EU + FI; USA jos laajennetaan): identtinen + samankaltainen haku luokissa 9, 35, 42; myös `Remix`, `R-MIX`, `Rmix`, `R Mix`.  
-2. **Hae EUTM** (ja/tai kansallinen FI) — sanamerkki `Rmix` **ja** figuratiivinen logo.  
-3. **Käytä johdonmukaisesti** stylized muotoa `Rmix` (ei `Remix` tuotteen nimenä) — vähennä sekaannusta frameworkiin.  
+1. **Asiamiehen clearance** (EU + FI; USA jos laajennetaan): identtinen + samankaltainen haku luokissa 9, 35, 42; myös `Remix`, `R-MIX`, `Remiix`, `R Mix`.  
+2. **Hae EUTM** (ja/tai kansallinen FI) — sanamerkki `Remiix` **ja** figuratiivinen logo.  
+3. **Käytä johdonmukaisesti** stylized muotoa `Remiix` (ei `Remix` tuotteen nimenä) — vähennä sekaannusta frameworkiin.  
 4. **Älä väitä ™/®** ennen rekisteröintiä; `™` voidaan käyttää ilmoituksena claimistä, `®` vasta rekisteröinnin jälkeen.  
 5. Dokumentoi **ensimmäinen kaupallinen käyttö** (screenshotit, domain, julkaisut) prioriteettia varten.
 

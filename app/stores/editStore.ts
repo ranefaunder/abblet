@@ -6,8 +6,6 @@ import { getLang } from "/utils/lang";
 import { refreshOfflineAppCache } from "/app/stores/appStore";
 import { isLoggedIn, openLoginDialog } from "/app/stores/userStore";
 
-export type EditMode = "chat" | "code";
-
 export const editApp = signal<AppDetail | null>(null);
 export const editMessages = signal<AppEditMessage[]>([]);
 export const editLoading = signal(false);
@@ -18,12 +16,29 @@ export const editStatusSteps = signal<string[]>([]);
 export const editStatusIndex = signal(0);
 export const editSavingCode = signal(false);
 export const editError = signal<string | null>(null);
-export const editMode = signal<EditMode>("chat");
 export const codeDraft = signal<string>("");
 export const editRegeneratingIcon = signal(false);
 export const editPublishing = signal(false);
 /** User AI wallet (EUR), refreshed after grant/debit. */
 export const editCreditBalanceEur = signal<number | null>(null);
+/** Intent AI's suggested next user message — used as composer placeholder. */
+export const editSuggestedPrompt = signal<string | null>(null);
+/** Last failed chat prompt — when set, the UI can offer Try again. */
+export const editRetryPrompt = signal<string | null>(null);
+
+export type AppVersionSummary = {
+  id: string;
+  versionNumber: number;
+  status: string;
+  prompt: string;
+  createdAt: string;
+  isLatest: boolean;
+  isPublished: boolean;
+};
+
+export const editVersions = signal<AppVersionSummary[]>([]);
+export const editVersionsLoading = signal(false);
+export const editRestoring = signal(false);
 
 export async function refreshEditCredits(): Promise<void> {
   if (!isLoggedIn()) {
@@ -62,10 +77,13 @@ function resetEditRequestFlags(): void {
 /** Seed from the SSR snapshot so a direct page load renders without a flash. */
 export function initEditStore(): void {
   resetEditRequestFlags();
+  editSuggestedPrompt.value = null;
+  editRetryPrompt.value = null;
   const { initialApp } = ssrContext();
   if (initialApp && initialApp.canEdit) {
     editApp.value = initialApp;
     codeDraft.value = initialApp.config.code;
+    editSuggestedPrompt.value = initialApp.nextPrompt?.trim() || null;
   } else {
     editApp.value = null;
     codeDraft.value = "";
@@ -83,6 +101,8 @@ export async function loadEdit(slug: string): Promise<void> {
     editApp.value = null;
     codeDraft.value = "";
     editMessages.value = [];
+    editSuggestedPrompt.value = null;
+    editRetryPrompt.value = null;
   }
   editLoading.value = !alreadyLoaded;
 
@@ -97,6 +117,8 @@ export async function loadEdit(slug: string): Promise<void> {
     }
     editApp.value = appResult.data.app;
     codeDraft.value = appResult.data.app.config.code;
+    editSuggestedPrompt.value = appResult.data.app.nextPrompt?.trim() || null;
+    editRetryPrompt.value = null;
 
     if (appResult.data.app.canEdit) {
       const historyResult = await apiFetch<{ messages: AppEditMessage[] }>(
@@ -120,7 +142,8 @@ export function startNewEdit(): void {
   editApp.value = null;
   codeDraft.value = "";
   editMessages.value = [];
-  editMode.value = "chat";
+  editSuggestedPrompt.value = null;
+  editRetryPrompt.value = null;
   void refreshEditCredits();
 }
 
@@ -155,6 +178,7 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
     const result = await apiFetch<{
       app: AppDetail;
       messages: AppEditMessage[];
+      nextPrompt?: string | null;
     }>(
       `/api/${lang()}/app/generate`,
       {
@@ -168,7 +192,15 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
       editMessages.value = editMessages.value.filter((m) => m.id !== optimistic.id);
       return null;
     }
-    editApp.value = result.data.app;
+    if (typeof result.data.nextPrompt === "string" && result.data.nextPrompt.trim()) {
+      editSuggestedPrompt.value = result.data.nextPrompt.trim();
+      editApp.value = {
+        ...result.data.app,
+        nextPrompt: result.data.nextPrompt.trim(),
+      };
+    } else {
+      editApp.value = result.data.app;
+    }
     editMessages.value = result.data.messages;
     codeDraft.value = result.data.app.config.code;
     refreshOfflineAppCache(result.data.app);
@@ -199,6 +231,7 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
 
   editError.value = null;
   editSending.value = true;
+  editRetryPrompt.value = null;
   editStatusText.value = null;
   editStatusSteps.value = [];
   editStatusIndex.value = 0;
@@ -215,6 +248,7 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
   const failAsAssistant = (errorText: string, messages?: AppEditMessage[]) => {
     // Never surface chat failures in the top banner — keep them in the thread.
     editError.value = null;
+    editRetryPrompt.value = trimmed;
     if (messages && messages.length > 0) {
       editMessages.value = messages;
       return;
@@ -267,6 +301,7 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
         return true;
       }
       if (body.data) {
+        editRetryPrompt.value = null;
         editApp.value = body.data.app;
         codeDraft.value = body.data.app.config.code;
         editMessages.value = body.data.messages;
@@ -299,7 +334,11 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
           text?: string;
           steps?: string[];
           index?: number;
-          data?: { app: AppDetail; messages: AppEditMessage[] };
+          data?: {
+            app: AppDetail;
+            messages: AppEditMessage[];
+            nextPrompt?: string | null;
+          };
           error?: { message?: string; code?: string };
           messages?: AppEditMessage[];
         };
@@ -322,9 +361,15 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
           // Keepalive only — ignore.
         } else if (event.type === "done" && event.data) {
           gotDone = true;
+          editRetryPrompt.value = null;
           editApp.value = event.data.app;
           codeDraft.value = event.data.app.config.code;
           editMessages.value = event.data.messages;
+          if (typeof event.data.nextPrompt === "string" && event.data.nextPrompt.trim()) {
+            const prompt = event.data.nextPrompt.trim();
+            editSuggestedPrompt.value = prompt;
+            editApp.value = { ...event.data.app, nextPrompt: prompt };
+          }
           refreshOfflineAppCache(event.data.app);
           void refreshEditCredits();
         } else if (event.type === "error") {
@@ -357,6 +402,30 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
     editStatusSteps.value = [];
     editStatusIndex.value = 0;
   }
+}
+
+/** Retry the last failed chat turn (removes the failed turn from the UI first). */
+export async function retryLastChatMessage(slug: string): Promise<boolean> {
+  const prompt = editRetryPrompt.value?.trim();
+  if (!prompt || editSending.value) return false;
+
+  const msgs = editMessages.value;
+  let cutAt = -1;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const m = msgs[i]!;
+    if (m.role === "user" && m.content === prompt) {
+      cutAt = i;
+      break;
+    }
+  }
+  if (cutAt >= 0) {
+    editMessages.value = msgs.slice(0, cutAt);
+  } else if (msgs.at(-1)?.role === "assistant") {
+    editMessages.value = msgs.slice(0, -1);
+  }
+
+  editRetryPrompt.value = null;
+  return sendChatMessage(slug, prompt);
 }
 
 export async function saveCode(slug: string): Promise<void> {
@@ -426,6 +495,46 @@ export async function setAppPublished(slug: string, publish: boolean): Promise<b
     return true;
   } finally {
     editPublishing.value = false;
+  }
+}
+
+export async function loadEditVersions(slug: string): Promise<void> {
+  editVersionsLoading.value = true;
+  try {
+    const result = await apiFetch<{ versions: AppVersionSummary[] }>(
+      `/api/${lang()}/app/versions?slug=${encodeURIComponent(slug)}`,
+    );
+    if (!result.success) {
+      editError.value = result.error.message ?? result.error.code;
+      return;
+    }
+    editVersions.value = result.data.versions;
+  } finally {
+    editVersionsLoading.value = false;
+  }
+}
+
+/** Restore an old version as a new latest (immutable copy). Title/icon unchanged. */
+export async function restoreAppVersion(slug: string, versionId: string): Promise<boolean> {
+  if (editRestoring.value) return false;
+  editError.value = null;
+  editRestoring.value = true;
+  try {
+    const result = await apiFetch<{ app: AppDetail }>(`/api/${lang()}/app/restore`, {
+      method: "POST",
+      body: JSON.stringify({ slug, versionId }),
+    });
+    if (!result.success) {
+      editError.value = result.error.message ?? result.error.code;
+      return false;
+    }
+    editApp.value = result.data.app;
+    codeDraft.value = result.data.app.config.code;
+    refreshOfflineAppCache(result.data.app);
+    await loadEditVersions(slug);
+    return true;
+  } finally {
+    editRestoring.value = false;
   }
 }
 

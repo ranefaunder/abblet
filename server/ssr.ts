@@ -9,7 +9,7 @@ import { getLang } from "/utils/lang";
 import { resolveStaticRootFromUrl } from "/utils/static.server";
 import { translations } from "/i18n/translations";
 import { dbListLibraryApps, dbGetAppBySlug } from "/server/database/queries/apps";
-import { parseAppConfig } from "/types/app-config-types";
+import { resolveAppConfig } from "/server/database/queries/app-versions";
 
 export function createSsrContext(req: BunRequest): SsrContext {
   const language = getLang(req.url) ?? "en";
@@ -37,10 +37,11 @@ function getInitialApp(req: BunRequest, user: AuthenticatedUser | null): AppDeta
   const row = dbGetAppBySlug(slug);
   if (!row) return null;
 
-  const config = parseAppConfig(row.config_json);
-  if (!config) return null;
-
   if (!canViewApp(row, user?.id ?? null)) return null;
+
+  const isOwner = user?.id === row.owner_id;
+  const config = resolveAppConfig(row, { asOwner: isOwner });
+  if (!config) return null;
 
   return {
     id: row.id,
@@ -49,12 +50,13 @@ function getInitialApp(req: BunRequest, user: AuthenticatedUser | null): AppDeta
     description: row.description,
     visibility: row.visibility,
     ownerId: row.owner_id,
-    config,
-    canEdit: user?.id === row.owner_id,
+    config: { ...config, title: row.title },
+    canEdit: isOwner,
     isDraft: row.is_draft === 1,
     iconId: row.icon_id ?? null,
     category: row.category ?? config.category ?? null,
     tagline: row.tagline ?? config.tagline ?? null,
+    nextPrompt: row.next_prompt ?? null,
   };
 }
 

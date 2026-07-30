@@ -9,7 +9,7 @@ function isNumericAppSlug(slug: string): boolean {
  * Runtime hosts that serve apps on `{slug}.{host}`.
  * `APP_RUNTIME_HOST` may be a single host or a comma-separated list; the first
  * entry is the canonical host used when generating app URLs.
- * e.g. `rmix.app` or `rmix.app,abblet.app` or `app.localhost`.
+ * e.g. `remiix.app` or `remiix.app,abblet.app` or `app.localhost`.
  */
 export function getAppRuntimeHosts(): string[] {
   const raw = process.env.APP_RUNTIME_HOST?.trim().toLowerCase() ?? "";
@@ -18,7 +18,7 @@ export function getAppRuntimeHosts(): string[] {
     .map((h) => h.trim())
     .filter(Boolean);
   if (hosts.length === 0) {
-    throw new Error("APP_RUNTIME_HOST is required (e.g. rmix.app or app.localhost)");
+    throw new Error("APP_RUNTIME_HOST is required (e.g. remiix.app or app.localhost)");
   }
   return [...new Set(hosts)];
 }
@@ -28,11 +28,11 @@ export function getAppRuntimeHost(): string {
   return getAppRuntimeHosts()[0]!;
 }
 
-/** e.g. `https://abblet.com` / `https://rmix.app` or `http://localhost:8090`. */
+/** e.g. `https://abblet.com` / `https://remiix.app` or `http://localhost:8090`. */
 export function getPlatformOrigin(): string {
   const origin = process.env.PLATFORM_ORIGIN?.trim() ?? "";
   if (!origin) {
-    throw new Error("PLATFORM_ORIGIN is required (e.g. https://rmix.app or http://localhost:8090)");
+    throw new Error("PLATFORM_ORIGIN is required (e.g. https://remiix.app or http://localhost:8090)");
   }
   return origin.replace(/\/$/, "");
 }
@@ -93,7 +93,7 @@ export function getPlatformHost(): string {
   return stripHostPort(new URL(getPlatformOrigin()).host);
 }
 
-/** True when Host is the platform site (e.g. rmix.app), including www. */
+/** True when Host is the platform site (e.g. remiix.app), including www. */
 export function isPlatformHost(hostHeader: string): boolean {
   const host = stripHostPort(hostHeader);
   const platform = getPlatformHost();
@@ -103,7 +103,7 @@ export function isPlatformHost(hostHeader: string): boolean {
 /**
  * True when Host is a dedicated runtime apex that is not the platform
  * (e.g. abblet.app while platform is abblet.com). When platform and runtime
- * share a host (rmix.app), the apex serves the platform — never redirect-loop.
+ * share a host (remiix.app), the apex serves the platform — never redirect-loop.
  */
 export function shouldBounceRuntimeApexToPlatform(hostHeader: string): boolean {
   const host = stripHostPort(hostHeader);
@@ -124,7 +124,7 @@ export function isAppOnlyHost(hostHeader: string): boolean {
 
 /**
  * Absolute origin for an app on the canonical runtime host, e.g.
- * `https://34211.rmix.app` or `http://34211.app.localhost:8090`.
+ * `https://34211.remiix.app` or `http://34211.app.localhost:8090`.
  */
 export function appOrigin(slug: string): string {
   const runtimeHost = getAppRuntimeHost();
@@ -169,15 +169,22 @@ export function isAppRuntimeOrigin(originHeader: string | null): string | null {
   }
 }
 
-const LEGACY_PLATFORM_HOSTS = new Set(["abblet.com", "www.abblet.com"]);
-const LEGACY_RUNTIME_APEX = new Set(["abblet.app", "www.abblet.app"]);
-const LEGACY_RUNTIME_SUFFIX = ".abblet.app";
+const LEGACY_PLATFORM_HOSTS = new Set([
+  "abblet.com",
+  "www.abblet.com",
+  "rmix.app",
+  "www.rmix.app",
+]);
+const LEGACY_RUNTIME_REDIRECTS: Array<{ apex: Set<string>; suffix: string }> = [
+  { apex: new Set(["abblet.app", "www.abblet.app"]), suffix: ".abblet.app" },
+  { apex: new Set(["rmix.app", "www.rmix.app"]), suffix: ".rmix.app" },
+];
 
 /**
- * Permanent redirects from retired Abblet domains:
- * - abblet.com → PLATFORM_ORIGIN (rmix.app)
- * - {sub}.abblet.app → {sub}.{APP_RUNTIME_HOST} (rmix.app)
- * - abblet.app → PLATFORM_ORIGIN
+ * Permanent redirects from retired domains:
+ * - abblet.com / rmix.app → PLATFORM_ORIGIN (remiix.app)
+ * - {sub}.abblet.app / {sub}.rmix.app → {sub}.{APP_RUNTIME_HOST}
+ * - abblet.app / rmix.app apex → PLATFORM_ORIGIN
  */
 export function redirectLegacyHost(req: { headers: Headers; url: string }): Response | null {
   const host = getRequestHost(req);
@@ -191,18 +198,19 @@ export function redirectLegacyHost(req: { headers: Headers; url: string }): Resp
     return Response.redirect(`${platform}${pathSearch}`, 301);
   }
 
-  if (LEGACY_RUNTIME_APEX.has(host)) {
-    return Response.redirect(`${platform}${pathSearch}`, 301);
-  }
-
-  if (host.endsWith(LEGACY_RUNTIME_SUFFIX)) {
-    const sub = host.slice(0, -LEGACY_RUNTIME_SUFFIX.length);
-    if (!sub || sub.includes(".")) {
+  for (const { apex, suffix } of LEGACY_RUNTIME_REDIRECTS) {
+    if (apex.has(host)) {
       return Response.redirect(`${platform}${pathSearch}`, 301);
     }
-    const runtimeHost = getAppRuntimeHost();
-    const proto = new URL(platform).protocol;
-    return Response.redirect(`${proto}//${sub}.${runtimeHost}${pathSearch}`, 301);
+    if (host.endsWith(suffix)) {
+      const sub = host.slice(0, -suffix.length);
+      if (!sub || sub.includes(".")) {
+        return Response.redirect(`${platform}${pathSearch}`, 301);
+      }
+      const runtimeHost = getAppRuntimeHost();
+      const proto = new URL(platform).protocol;
+      return Response.redirect(`${proto}//${sub}.${runtimeHost}${pathSearch}`, 301);
+    }
   }
 
   return null;

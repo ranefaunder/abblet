@@ -4,11 +4,11 @@ import { useLocation } from "preact-iso";
 import { useEffect, useState } from "preact/hooks";
 import { t } from "/utils/i18n";
 import { user, logout, updateMarketingOptIn } from "/app/stores/userStore";
-import { aboutUrl, storeUrl } from "/utils/app-url";
+import { aboutUrl } from "/utils/app-url";
 
-export const SettingsPath = "/:lang/settings" as const;
+export const AccountPath = "/:lang/account" as const;
 
-export default function Settings({ params }: RoutePropsForPath<typeof SettingsPath>) {
+export default function Account({ params }: RoutePropsForPath<typeof AccountPath>) {
   const { route } = useLocation();
   const { lang } = params;
   const [marketingBusy, setMarketingBusy] = useState(false);
@@ -16,7 +16,7 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
 
   function redirectIfLoggedOut() {
     if (!user.value) {
-      route(`/${lang}/login?next=${encodeURIComponent(`/${lang}/settings`)}`, true);
+      route(`/${lang}/login?next=${encodeURIComponent(`/${lang}/account`)}`, true);
     }
   }
   useEffect(() => redirectIfLoggedOut(), [lang, route]);
@@ -30,7 +30,7 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
     setLogoutBusy(true);
     try {
       await logout();
-      route(`/${lang}/`, true);
+      route(aboutUrl(lang), true);
     } finally {
       setLogoutBusy(false);
     }
@@ -50,24 +50,23 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
   }
 
   const view = html`
-    <div data-scope="Settings">
+    <div data-scope="Account">
       <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
         <header class="page-head" ui-column="gap-sm">
-          <h1 class="page-title">${t("Settings")}</h1>
+          <h1 class="page-title">${t("Account")}</h1>
           <p class="page-lede">${t("Manage your account and preferences.")}</p>
         </header>
 
         <section class="panel" ui-column="gap-lg">
           <header ui-column="gap-xs">
-            <h2 class="panel-title">${t("Account")}</h2>
-            <p class="panel-lede">${t("Signed in to R⫶⫶MIX with this email.")}</p>
+            <p class="panel-lede">${t("Signed in to Remiix with this email.")}</p>
           </header>
 
           <div ui-column="gap-md">
             <div ui-field>
-              <label for="settings-email">${t("Email")}</label>
+              <label for="account-email">${t("Email")}</label>
               <input
-                id="settings-email"
+                id="account-email"
                 type="email"
                 value=${account.email}
                 readonly
@@ -77,9 +76,9 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
             ${account.nickname
               ? html`
                 <div ui-field>
-                  <label for="settings-nickname">${t("Name")}</label>
+                  <label for="account-nickname">${t("Name")}</label>
                   <input
-                    id="settings-nickname"
+                    id="account-nickname"
                     type="text"
                     value=${account.nickname}
                     readonly
@@ -105,13 +104,13 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
         <section class="panel" ui-column="gap-lg">
           <header ui-column="gap-xs">
             <h2 class="panel-title">${t("Preferences")}</h2>
-            <p class="panel-lede">${t("Choose what email you want from R⫶⫶MIX.")}</p>
+            <p class="panel-lede">${t("Choose what email you want from Remiix.")}</p>
           </header>
 
           <label class="pref-row" ui-row="gap-md y-center x-between">
             <span ui-column="gap-xs">
               <strong>${t("Product updates")}</strong>
-              <small>${t("Email me about R⫶⫶MIX updates")}</small>
+              <small>${t("Email me about Remiix updates")}</small>
             </span>
             <input
               type="checkbox"
@@ -123,23 +122,12 @@ export default function Settings({ params }: RoutePropsForPath<typeof SettingsPa
             />
           </label>
         </section>
-
-        <section class="panel" ui-column="gap-md">
-          <header ui-column="gap-xs">
-            <h2 class="panel-title">${t("About")}</h2>
-            <p class="panel-lede">${t("Learn what R⫶⫶MIX is and how remixing works.")}</p>
-          </header>
-          <div ui-row="gap-sm wrap">
-            <a href=${aboutUrl(lang)} ui-button>${t("About R⫶⫶MIX")}</a>
-            <a href=${storeUrl(lang)} ui-button="tertiary">${t("Store")}</a>
-          </div>
-        </section>
       </div>
     </div>
   `;
 
   const style = css`
-    @scope ([data-scope="Settings"]) to ([data-scope]) {
+    @scope ([data-scope="Account"]) to ([data-scope]) {
       & {
         color: var(--neutral-900);
         padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));

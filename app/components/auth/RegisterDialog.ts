@@ -90,7 +90,7 @@ export default function RegisterDialog() {
             checked=${marketingOptIn}
             onChange=${(e: Event) => setMarketingOptIn((e.target as HTMLInputElement).checked)}
           />
-          <span>${t("Email me about R⫶⫶MIX updates")}</span>
+          <span>${t("Email me about Remiix updates")}</span>
         </label>
       </form>
       <footer ui-column="gap-md x-center">

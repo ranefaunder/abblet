@@ -1,8 +1,8 @@
-# Abblet
+# Remiix
 
-**Apply it.** Build personal apps for your needs — in minutes, no code required.
+**Remix any app, or make your own.** An app store where every app is remixable to fit you.
 
-Abblet is a platform where anyone can apply their ideas as small personal apps. Describe what you need, use it immediately, and edit it anytime.
+Remiix is a platform where anyone can remix existing apps or build personal apps from scratch — in minutes, no code required.
 
 ## Development
 
@@ -13,12 +13,10 @@ bun dev
 
 Runs at http://localhost:8090
 
-Production: https://abblet.com — deploy with `./ops/deploy.sh` (server path `/home/faunder/apps/abblet`).
+Deploy with `./ops/deploy.sh`.
 
 ## Features
 
 - AI-generated personal apps (Web Components)
-- Local-first data storage in the browser
-- Edit mode with chat and code editor
-- My Apps
-- Multi-language support
+- Store, remix, install as PWA
+- Edit by chatting

@@ -2,6 +2,7 @@ import type { BunRequest } from "bun";
 import { withAuth } from "/utils/auth.server";
 import { apiError } from "/utils/api.server";
 import { dbGetAppBySlug, dbUpdateApp } from "/server/database/queries/apps";
+import { dbCommitAppVersion, resolveAppConfig } from "/server/database/queries/app-versions";
 import { dbAddAppMessage, dbListAppMessages } from "/server/database/queries/app-messages";
 import {
   addCost,
@@ -21,7 +22,6 @@ import {
 } from "/utils/ai-models";
 import {
   isDraftConfig,
-  parseAppConfig,
   type AppConfig,
   type AppDetail,
   type AppEditToolUsage,
@@ -37,7 +37,11 @@ export type EditStreamEvent =
   | { type: "heartbeat" }
   | {
       type: "done";
-      data: { app: AppDetail; messages: ReturnType<typeof dbListAppMessages> };
+      data: {
+        app: AppDetail;
+        messages: ReturnType<typeof dbListAppMessages>;
+        nextPrompt?: string | null;
+      };
     }
   | {
       type: "error";
@@ -60,12 +64,13 @@ function toDetail(
     description: row.description,
     visibility: row.visibility,
     ownerId: row.owner_id,
-    config,
+    config: { ...config, title: row.title },
     canEdit: true,
     isDraft: row.is_draft === 1,
     iconId: row.icon_id ?? null,
     category: row.category ?? config.category ?? null,
     tagline: row.tagline ?? config.tagline ?? null,
+    nextPrompt: row.next_prompt ?? null,
   };
 }
 
@@ -218,6 +223,7 @@ async function runEditTurn(opts: {
   let needsNewIcon = false;
   let costUsd: number | null = null;
   let modelUsed: string | null = null;
+  let nextPrompt: string | null = null;
   const replyParts: string[] = [];
 
   if (creating) {
@@ -256,6 +262,7 @@ async function runEditTurn(opts: {
     assistantReply = t("I built \"$title\" for you. Open the app or tell me what to change.", {
       title: generated.config.title,
     }, language);
+    nextPrompt = t("Write what you want to change…", language);
     needsNewIcon = true;
     send({ type: "progress", text: createSteps[1]!, steps: createSteps, index: 1 });
   } else {
@@ -295,6 +302,7 @@ async function runEditTurn(opts: {
     });
     costUsd = intent.costUsd;
     modelUsed = intent.modelUsed;
+    nextPrompt = intent.nextPrompt;
     const { tools, progress } = intent;
 
     const steps = progress.length > 0 ? progress : [t("Working on your app…", language)];
@@ -428,25 +436,42 @@ async function runEditTurn(opts: {
     }
   }
 
-  const configChanged =
+  // Versioned: runnable content. Title + icon are fixed per owned app (remixes get new ones).
+  const versionContentChanged =
     creating ||
     nextConfig.code !== current.code ||
-    nextConfig.title !== current.title ||
-    nextConfig.description !== current.description ||
-    nextConfig.tagline !== current.tagline ||
-    nextConfig.category !== current.category ||
+    nextConfig.prompt !== current.prompt ||
+    nextConfig.status !== current.status ||
+    nextConfig.tagName !== current.tagName;
+
+  const identityOrListingChanged =
+    nextConfig.title !== row.title ||
+    nextConfig.description !== row.description ||
+    (nextConfig.tagline ?? null) !== (row.tagline ?? null) ||
+    (nextConfig.category ?? null) !== (row.category ?? null) ||
     Boolean(iconId);
 
-  if (configChanged) {
+  // Title + icon are app-scoped (not versioned). Code/content edits insert a new version.
+  if (versionContentChanged) {
+    dbCommitAppVersion(
+      row.id,
+      { ...nextConfig, title: nextConfig.title },
+      { fromVersionId: creating ? null : row.latest_version_id },
+    );
+  }
+
+  if (versionContentChanged || identityOrListingChanged) {
     dbUpdateApp(row.id, {
       title: nextConfig.title,
       description: nextConfig.description,
-      configJson: JSON.stringify(nextConfig),
       isDraft: creating ? false : undefined,
       category: nextConfig.category ?? null,
       tagline: nextConfig.tagline ?? null,
       ...(iconId ? { iconId } : {}),
+      ...(nextPrompt?.trim() ? { nextPrompt: nextPrompt.trim() } : {}),
     });
+  } else if (nextPrompt?.trim()) {
+    dbUpdateApp(row.id, { nextPrompt: nextPrompt.trim() });
   }
 
   dbAddAppMessage({ id: crypto.randomUUID(), appId: row.id, role: "user", content: message });
@@ -478,6 +503,7 @@ async function runEditTurn(opts: {
     data: {
       app: toDetail(updated, nextConfig),
       messages: dbListAppMessages(row.id),
+      nextPrompt,
     },
   });
 }
@@ -517,7 +543,7 @@ export default {
         });
       }
 
-      const current = parseAppConfig(row.config_json);
+      const current = resolveAppConfig(row, { asOwner: true });
       if (!current) {
         return apiError({ code: "APP_NOT_READY", status: 409 });
       }

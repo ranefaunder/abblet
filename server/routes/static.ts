@@ -47,6 +47,10 @@ export default async function (req: BunRequest): Promise<Response> {
       headers.set("Service-Worker-Allowed", "/");
       headers.set("Cache-Control", "no-cache");
     }
+    // Remiix companion: revalidate so Patch/API updates apply without rebuilding apps.
+    if (filePath === "remiix-app.js") {
+      headers.set("Cache-Control", "no-cache");
+    }
     return new Response(file, { headers });
   }
 

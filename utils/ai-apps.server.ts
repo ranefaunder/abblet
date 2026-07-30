@@ -54,6 +54,11 @@ const editIntentSchema = z.object({
    * while tools run (e.g. "Updating the list layout…"). 1–5 lines, concrete.
    */
   progress: z.array(z.string().min(1).max(120)).min(1).max(5),
+  /**
+   * Suggested next user message in the user's language — shown as the chat
+   * input placeholder so the user always has a concrete idea of what to ask next.
+   */
+  nextPrompt: z.string().min(1).max(120),
 });
 
 const aiRenameSchema = z.object({
@@ -135,18 +140,17 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
 
 - Must call customElements.define("<tagName>", class extends HTMLElement { ... }) with the exact tagName you chose.
 - Vanilla JavaScript only. NO imports, NO external libraries, NO CDN links.
-- Network: do NOT use fetch, XMLHttpRequest, WebSocket, or any direct HTTP. The ONLY allowed network APIs are the host-injected global Rmix SDK:
-  - await Rmix.ai({ prompt: "…" }) — optional system: await Rmix.ai({ prompt: "…", system: "…" })
-  - Rmix.connect() — links the user session (redirect); call only when needed
-  - Rmix.getToken() — optional; usually unnecessary because Rmix.ai handles connect
-  Use Rmix.ai ONLY when the user's idea needs AI (summarize, rewrite, classify, generate text). Most apps need zero AI.
-  Compatibility: Abblet.ai / Abblet.connect are aliases for Rmix (do not use Abblet in new code).
+- Network: do NOT use fetch, XMLHttpRequest, WebSocket, or any direct HTTP. The ONLY allowed network APIs are the host-injected global Remiix companion (window.Remiix):
+  - await Remiix.ai({ prompt: "…" }) — optional system: await Remiix.ai({ prompt: "…", system: "…" })
+  - Remiix.connect() — links the user session (redirect); call only when needed
+  - Remiix.getToken() — optional; usually unnecessary because Remiix.ai handles connect
+  Use Remiix.ai ONLY when the user's idea needs AI (summarize, rewrite, classify, generate text). Most apps need zero AI.
   Example:
   \`\`\`
   btn.addEventListener("click", async () => {
     btn.setAttribute("aria-busy", "true");
     try {
-      const text = await Rmix.ai({ prompt: input.value.trim() });
+      const text = await Remiix.ai({ prompt: input.value.trim() });
       out.textContent = text;
     } catch (e) {
       if (e && (e.code === "CONNECT_REQUIRED" || e.code === "CONNECT_CANCELLED")) return;
@@ -173,7 +177,7 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
   6. Guard with try/catch; if OPFS is unavailable, show a friendly inline error (never alert()).
   7. OPFS is local-only — do not upload binaries; still no raw fetch/XHR.
 - Guard JSON.parse with try/catch; fall back to sensible defaults on corrupt data.
-- Do NOT rely on external CSS, fonts, or global variables except the injected Rmix SDK when using AI. Everything else self-contained.
+- Do NOT rely on external CSS, fonts, or global variables except the injected Remiix companion (window.Remiix) when using AI. Everything else self-contained.
 
 ## Visual design system — design like a native iOS app (PRIMARY GOAL)
 
@@ -245,7 +249,7 @@ Responsiveness & safe areas:
 - Perfect on iPhone widths (375–430px) first; scales to a centered column on desktop. Only add multi-column layouts on ≥760px if it truly helps.
 - Respect the notch/home indicator: use env(safe-area-inset-*) — sticky headers add padding-top: env(safe-area-inset-top); sticky bottom bars add padding-bottom: max(var(--space), env(safe-area-inset-bottom)).
 - Support Dynamic-Type feel by using rem/relative sizing where reasonable.
-- Light-first (matches Rmix). Optionally add a @media (prefers-color-scheme: dark) block reusing the same token names with iOS dark values (--bg:#000; --surface:#1c1c1e; --text:#fff; --separator:#54545899; keep systemBlue accent).
+- Light-first (matches Remiix). Optionally add a @media (prefers-color-scheme: dark) block reusing the same token names with iOS dark values (--bg:#000; --surface:#1c1c1e; --text:#fff; --separator:#54545899; keep systemBlue accent).
 
 Quality bar:
 - Accessible: <label> tied to inputs, aria-label on icon-only buttons, role="switch" for toggles, visible focus, semantic <button>/<form>.
@@ -285,7 +289,7 @@ export async function generateAppConfig(
 } | null> {
   const langName = AVAILABLE_LANGUAGES[language]?.name ?? "English";
 
-  const systemPrompt = `You build small personal apps for Rmix. Each app is a single, self-contained Web Component (custom element) written in vanilla JavaScript.
+  const systemPrompt = `You build small personal apps for Remiix. Each app is a single, self-contained Web Component (custom element) written in vanilla JavaScript.
 
 Return one JSON object with:
 - title: short app name, MAXIMUM 12 characters (including spaces). Must fit under a phone home-screen icon — prefer 1–2 words (e.g. "Budget", "Ostoslista", "Run Log"). Never use the raw user prompt if it is longer than 12 chars; invent a short label instead.
@@ -340,6 +344,7 @@ export async function classifyEditIntent(opts: {
   tools: EditTool[];
   reply: string;
   progress: string[];
+  nextPrompt: string;
   costUsd: number | null;
   modelUsed: string | null;
   responseJson: unknown | null;
@@ -347,7 +352,7 @@ export async function classifyEditIntent(opts: {
   const { current, history, instruction, language, model } = opts;
   const langName = AVAILABLE_LANGUAGES[language]?.name ?? "English";
 
-  const systemPrompt = `You route Rmix app-edit chat messages to tools. You do NOT edit code or icons yourself — you only choose tools, write a short chat reply, and status lines for the loading UI.
+  const systemPrompt = `You route Remiix app-edit chat messages to tools. You do NOT edit code or icons yourself — you only choose tools, write a short chat reply, status lines for the loading UI, and a suggested next user message.
 
 Available tools:
 - updateCode: change the app's features, UI, behavior, bugfixes, layout, text inside the app, or anything that requires modifying the Web Component source.
@@ -365,8 +370,12 @@ Rules:
     Make them specific to THIS request (not generic). Examples: "Updating the checklist colors…", "Renaming the app…", "Refreshing the home-screen icon…".
     If tools is empty, still return one friendly line like "Thinking about your question…".
     No markdown, no quotes around the lines, max ~80 characters each.
+- nextPrompt: one short suggested follow-up the USER might type next, in ${langName}.
+    Write it as if the user is speaking (imperative / request), not as a question to them.
+    Make it concrete and useful for THIS app right now (e.g. "Add a dark mode toggle", "Make the title larger", "Rename it to Focus List").
+    Max ~80 characters. No quotes, no markdown, no leading "e.g.".
 
-Return JSON: { "tools": [...], "reply": "...", "progress": ["...", "..."] }`;
+Return JSON: { "tools": [...], "reply": "...", "progress": ["...", "..."], "nextPrompt": "..." }`;
 
   const recent = history.slice(-12);
   const historyText = recent.length
@@ -384,7 +393,7 @@ ${historyText}
 Latest user message:
 ${instruction}
 
-Choose tools, write reply, and progress status lines.`;
+Choose tools, write reply, progress status lines, and nextPrompt.`;
 
   const { data, costUsd, model: modelUsed, responseJson } = await requestJsonFromAi({
     systemPrompt,
@@ -403,10 +412,13 @@ Choose tools, write reply, and progress status lines.`;
   const progress = data.progress.map((p) => p.trim()).filter(Boolean).slice(0, 5);
   if (progress.length === 0) progress.push(data.reply.trim().slice(0, 120) || "Working…");
 
+  const nextPrompt = data.nextPrompt.trim().replace(/^["'“”]+|["'“”]+$/g, "").slice(0, 120);
+
   return {
     tools,
     reply: data.reply.trim(),
     progress,
+    nextPrompt: nextPrompt || data.reply.trim().slice(0, 80),
     costUsd,
     modelUsed,
     responseJson,
@@ -432,7 +444,7 @@ export async function generateAppName(opts: {
   const { current, instruction, language, model } = opts;
   const langName = AVAILABLE_LANGUAGES[language]?.name ?? "English";
 
-  const systemPrompt = `You name Rmix apps for a phone home screen and Store listing.
+  const systemPrompt = `You name Remiix apps for a phone home screen and Store listing.
 
 Return JSON:
 - title: short app name, MAXIMUM 12 characters (including spaces). Prefer 1–2 words. Must fit under an icon.
@@ -519,7 +531,7 @@ export async function editAppConfig(opts: {
 - Keep the EXACT same custom element tagName: "${current.tagName}". The code must still call customElements.define("${current.tagName}", ...). Do NOT rename it.
 - Preserve existing user data compatibility: keep the same localStorage keys and data shape unless the request explicitly requires changing them.
 - Make the smallest change that fully satisfies the request; do not rewrite unrelated parts or regress existing features.
-- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Rmix.ai({ prompt }) / Rmix.connect() only when the request needs AI. Everything inside the Shadow DOM (except the host-injected Rmix global).
+- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Remiix.ai({ prompt }) / Remiix.connect() only when the request needs AI. Everything inside the Shadow DOM (except the host-host-injected Remiix global).
 - Do NOT change the home-screen title, description, or launcher icon — those are handled by other tools.
 
 ${designGuidelines(langName)}`;
@@ -546,7 +558,7 @@ ${instruction}`;
     modelUsed: string | null;
   } | null> {
     const started = Date.now();
-    const systemPrompt = `You are iterating on an existing Rmix app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
+    const systemPrompt = `You are iterating on an existing Remiix app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
 
 ${reason}
 
@@ -604,7 +616,7 @@ Return the complete updated code and a short summary of what you changed.`,
   }
 
   const patchStarted = Date.now();
-  const systemPrompt = `You are iterating on an existing Rmix app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
+  const systemPrompt = `You are iterating on an existing Remiix app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
 
 You will receive the current full source code and a conversation of change requests. Choose the smallest reliable edit mode:
 

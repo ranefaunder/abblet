@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Rmix-app on kokonainen Web Component (custom element).
+ * Remiix-app on kokonainen Web Component (custom element).
  * Tekoäly tuottaa `code`-kentässä täyden JS:n, joka rekisteröi elementin
  * `customElements.define(tagName, ...)` -kutsulla. Komponentti hoitaa oman
  * tilansa ja tallennuksensa itse (localStorage / IndexedDB).
@@ -56,6 +56,8 @@ export type AppDetail = {
   iconId: string | null;
   category: string | null;
   tagline: string | null;
+  /** Intent-suggested next user prompt — Edit composer placeholder. */
+  nextPrompt: string | null;
 };
 
 export type AppEditRole = "user" | "assistant";

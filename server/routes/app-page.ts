@@ -1,28 +1,15 @@
 import type { BunRequest } from "bun";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 import type { Language } from "/i18n/languages";
 import { dbGetAppBySlug, isNumericAppSlug } from "/server/database/queries/apps";
 import { getAuthenticatedUser } from "/utils/auth.server";
 import { canViewApp } from "/utils/app-access.server";
 import { escapeHtmlAttribute, escapeHtmlTextContent } from "/utils/sanitize.server";
-import { isDraftConfig, parseAppConfig } from "/types/app-config-types";
+import { isDraftConfig } from "/types/app-config-types";
+import { resolveAppConfig } from "/server/database/queries/app-versions";
 import { appOrigin, connectUrl, getPlatformOrigin, getRequestHost, parseAppSubdomain } from "/utils/app-host";
 import { appRuntimeModulePath } from "/utils/app-url";
 import { appIconMimeType, appIconPngSrc, appIconSrc } from "/utils/app-icon";
-
-const ABBLET_SDK_PATH = join(import.meta.dir, "../sdk/abblet-sdk.js");
-let abbletSdkCache: string | null = null;
-
-function loadRmixSdkSource(): string {
-  if (process.env.NODE_ENV === "production" && abbletSdkCache != null) {
-    return abbletSdkCache;
-  }
-  const source = readFileSync(ABBLET_SDK_PATH, "utf8");
-  if (process.env.NODE_ENV === "production") abbletSdkCache = source;
-  return source;
-}
 
 type LangAppRequest = BunRequest<"/:lang/app/:slug">;
 type ShortAppRequest = BunRequest<"/:appId">;
@@ -102,8 +89,8 @@ function resolveAppAccess(
   if (!row) return { kind: "error", status: 404 };
 
   const user = getAuthenticatedUser(req);
-  const config = parseAppConfig(row.config_json);
   const isOwner = user?.id === row.owner_id;
+  const config = resolveAppConfig(row, { asOwner: isOwner });
   const iconId = row.icon_id ?? null;
   const isDraft = !config || isDraftConfig(config);
 
@@ -136,7 +123,8 @@ function getReadyApp(lang: Language, slug: string, req: BunRequest) {
   const user = getAuthenticatedUser(req);
   if (!canViewApp(row, user?.id ?? null)) return { error: 403 as const };
 
-  const config = parseAppConfig(row.config_json);
+  const isOwner = user?.id === row.owner_id;
+  const config = resolveAppConfig(row, { asOwner: isOwner });
   if (!config || isDraftConfig(config)) return { error: 404 as const };
 
   return { lang, slug, config };
@@ -258,9 +246,9 @@ const INSTALL_COPY: Record<
     installed: "Asennettu",
     ready: "Asenna kotinäytölle — avaa milloin vain, myös ilman verkkoa.",
     offlineReady: "Tallennettu tälle laitteelle. Aukeaa myös ilman verkkoa.",
-    preparingOffline: "Tallennetaan appi tälle laitteelle…",
+    preparingOffline: "Tallennetaan app tälle laitteelle…",
     firefoxUnsupported:
-      "Firefoxilla ei voi asentaa tätä appiä. Avaa se selaimessa, tai asenna Chromella tai Safarilla.",
+      "Firefoxilla ei voi asentaa tätä appia. Avaa se selaimessa, tai asenna Chromella tai Safarilla.",
     manualTitle: "Näin asennat",
     iosSteps: [
       "Napauta {{share}} Jaa Safarissa (iPhonessa näytön alareunassa).",
@@ -286,7 +274,7 @@ const INSTALL_COPY: Record<
       "Etsi Asenna sovellus, Lisää aloitusnäytölle tai Lisää Dockiin.",
       "Vahvista asennus.",
     ],
-    openApp: "Avaa appi",
+    openApp: "Avaa app",
   },
   sv: {
     back: "Tillbaka",
@@ -729,7 +717,7 @@ function renderInstallPage(
         var precacheUrls = ${JSON.stringify(precacheUrls)};
         var platformOrigin = ${JSON.stringify(platformOrigin)};
         var appSlug = ${JSON.stringify(access.slug)};
-        var CACHE = "rmix-app-runtime-v3";
+        var CACHE = "remiix-app-runtime-v5";
         var installBtn = document.getElementById("install");
         var openBtn = document.getElementById("open");
         var ledeEl = document.getElementById("lede");
@@ -739,7 +727,7 @@ function renderInstallPage(
         var mainEl = document.querySelector("main.install");
         var deferredPrompt = null;
         var supportsBip = "onbeforeinstallprompt" in window;
-        var fromPlatformKey = "abblet.fromPlatform:" + appSlug;
+        var fromPlatformKey = "remiix.fromPlatform:" + appSlug;
 
         function isIos() {
           return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -1015,7 +1003,7 @@ function renderAppPage(
   const moduleUrl = appRuntimeModulePath();
   const platformOrigin = getPlatformOrigin();
   const connectHref = connectUrl(access.slug);
-  const abbletConfig = {
+  const remiixConfig = {
     appSlug: access.slug,
     platformOrigin,
     connectHref,
@@ -1025,10 +1013,15 @@ function renderAppPage(
     published: access.published,
     title: access.title,
   };
-  const sdkSource = loadRmixSdkSource();
   const runtimeIcon = appIconPngSrc(access.iconId) ?? appIconSrc(access.iconId);
   const runtimeIconSvg = appIconSrc(access.iconId);
-  const runtimePrecache = ["/", "/module.js", "/manifest.webmanifest"];
+  const runtimePrecache = [
+    "/",
+    "/module.js",
+    "/manifest.webmanifest",
+    "/static/remiix-app.js",
+    "/static/images/remiix-icon-light.svg",
+  ];
   if (runtimeIcon) runtimePrecache.push(runtimeIcon);
   if (runtimeIconSvg && runtimeIconSvg !== runtimeIcon) runtimePrecache.push(runtimeIconSvg);
 
@@ -1047,7 +1040,7 @@ function renderAppPage(
     <script>
       (function () {
         var urls = ${JSON.stringify(runtimePrecache)};
-        var CACHE = "rmix-app-runtime-v3";
+        var CACHE = "remiix-app-runtime-v5";
         async function warm() {
           try {
             if (navigator.storage && navigator.storage.persist) {
@@ -1075,10 +1068,10 @@ function renderAppPage(
         void warm();
       })();
     </script>
-    <script type="module">
-      window.__ABBLET__ = ${JSON.stringify(abbletConfig)};
-${sdkSource}
+    <script>
+      window.__REMIIX__ = ${JSON.stringify(remiixConfig)};
     </script>
+    <script type="module" src="/static/remiix-app.js"></script>
   </body>
 </html>`;
 

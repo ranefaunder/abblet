@@ -3,38 +3,14 @@ import { getAuthenticatedUser } from "/utils/auth.server";
 import { canViewApp } from "/utils/app-access.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { dbGetAppBySlug, dbUpdateApp } from "/server/database/queries/apps";
+import { dbCommitAppVersion, resolveAppConfig } from "/server/database/queries/app-versions";
 import { generateAppConfig } from "/utils/ai-apps.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
-import { isDraftConfig, parseAppConfig, type AppDetail } from "/types/app-config-types";
+import { buildAppDetail } from "/utils/app-detail.server";
+import { isDraftConfig } from "/types/app-config-types";
 import type { Language } from "/types/i18n-types";
 import { getLang } from "/utils/lang";
 import { t } from "/utils/i18n";
-
-function buildAppDetail(
-  row: NonNullable<ReturnType<typeof dbGetAppBySlug>>,
-  userId: string | null,
-): AppDetail | null {
-  const config = parseAppConfig(row.config_json);
-  if (!config) return null;
-
-  const isOwner = userId === row.owner_id;
-  if (!canViewApp(row, userId)) return null;
-
-  return {
-    id: row.id,
-    slug: row.slug,
-    title: row.title,
-    description: row.description,
-    visibility: row.visibility,
-    ownerId: row.owner_id,
-    config,
-    canEdit: isOwner,
-    isDraft: row.is_draft === 1,
-    iconId: row.icon_id ?? null,
-    category: row.category ?? config.category ?? null,
-    tagline: row.tagline ?? config.tagline ?? null,
-  };
-}
 
 export default {
   async GET(req: BunRequest) {
@@ -45,6 +21,10 @@ export default {
     const user = getAuthenticatedUser(req);
     const row = dbGetAppBySlug(slug);
     if (!row) return apiError({ code: "NOT_FOUND", status: 404 });
+
+    if (!canViewApp(row, user?.id ?? null)) {
+      return apiError({ code: "FORBIDDEN", status: 403 });
+    }
 
     const detail = buildAppDetail(row, user?.id ?? null);
     if (!detail) return apiError({ code: "FORBIDDEN", status: 403 });
@@ -70,9 +50,9 @@ export default {
     if (!row) return apiError({ code: "NOT_FOUND", status: 404 });
     if (row.owner_id !== user.id) return apiError({ code: "FORBIDDEN", status: 403 });
 
-    const existing = parseAppConfig(row.config_json);
+    const existing = resolveAppConfig(row, { asOwner: true });
     if (!isDraftConfig(existing)) {
-      const detail = buildAppDetail(row, user.id);
+      const detail = buildAppDetail(row, user.id, existing);
       return apiSuccess({ data: { app: detail } });
     }
 
@@ -95,14 +75,17 @@ export default {
     }
     const config = generated.config;
 
+    dbCommitAppVersion(row.id, config, { fromVersionId: row.latest_version_id });
     dbUpdateApp(row.id, {
       title: config.title,
       description: config.description,
-      configJson: JSON.stringify(config),
+      category: config.category ?? null,
+      tagline: config.tagline ?? null,
+      isDraft: false,
     });
 
     const updated = dbGetAppBySlug(slug)!;
-    const detail = buildAppDetail(updated, user.id);
+    const detail = buildAppDetail(updated, user.id, { ...config, title: updated.title });
     return apiSuccess({ data: { app: detail } });
   },
 };

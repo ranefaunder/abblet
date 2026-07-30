@@ -3,7 +3,7 @@ import { t } from "/utils/i18n";
 
 const FAUNDER_URL = "https://faunder.fi";
 
-/** Site-wide footer — R⫶⫶MIX is a Faunder product. */
+/** Site-wide footer — Remiix is a Faunder product. */
 export default function SiteFooter() {
   const view = html`
     <footer data-scope="SiteFooter" class="site-footer">
@@ -13,7 +13,7 @@ export default function SiteFooter() {
           href=${FAUNDER_URL}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label=${t("Faunder — maker of R⫶⫶MIX")}
+          aria-label=${t("Faunder — maker of Remiix")}
         >
           <img
             class="mark"
@@ -31,7 +31,7 @@ export default function SiteFooter() {
           />
         </a>
         <p class="credit">
-          ${t("R⫶⫶MIX is made by")}
+          ${t("Remiix is made by")}
           ${" "}
           <a href=${FAUNDER_URL} target="_blank" rel="noopener noreferrer">Faunder</a>
         </p>

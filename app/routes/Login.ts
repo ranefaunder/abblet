@@ -4,6 +4,7 @@ import { useLocation } from "preact-iso";
 import { useEffect } from "preact/hooks";
 import { t } from "/utils/i18n";
 import { isLoggedIn } from "/app/stores/userStore";
+import { aboutUrl } from "/utils/app-url";
 
 export const LoginPath = "/:lang/login" as const;
 
@@ -13,7 +14,7 @@ export default function Login({ params }: RoutePropsForPath<typeof LoginPath>) {
   const nextPath =
     query.next && query.next.startsWith("/") && !query.next.startsWith("//")
       ? query.next
-      : `/${lang}/`;
+      : aboutUrl(lang);
   const registered = isLoggedIn();
 
   function redirectIfLoggedIn() {

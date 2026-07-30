@@ -20,3 +20,10 @@ export function getLang(url: string): Language | null {
   }
   return null;
 }
+
+/** Vaihtaa polun kielisegmentin (`/fi/store` → `/en/store`). */
+export function pathWithLang(path: string, lang: Language): string {
+  const pathname = path.startsWith("/") ? path : `/${path}`;
+  const rest = pathname.replace(/^\/[^/]+/, "") || "/";
+  return rest === "/" ? `/${lang}/` : `/${lang}${rest}`;
+}

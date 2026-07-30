@@ -8,10 +8,11 @@ export interface AppRecord {
   slug: string;
   visibility: AppVisibility;
   sourceAppId: string | null;
-  configJson: string;
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
+  latestVersionId: string | null;
+  publishedVersionId: string | null;
 }
 
 export interface AppSummary {

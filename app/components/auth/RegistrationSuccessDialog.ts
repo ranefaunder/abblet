@@ -20,9 +20,9 @@ export default function RegistrationSuccessDialog() {
   const view = html`
     <dialog id="registration-success-dialog" ref=${dialogRef} ui-dialog="xs" closedby="any">
       <header>
-        <h2>${t("Welcome to R⫶⫶MIX!")}</h2>
+        <h2>${t("Welcome to Remiix!")}</h2>
       </header>
-      <p>${t("Thank you for joining R⫶⫶MIX. Describe what you need and R⫶⫶MIX applies it — your first app in minutes.")}</p>
+      <p>${t("Thank you for joining Remiix. Describe what you need and Remiix applies it — your first app in minutes.")}</p>
       <footer>
         <button
           type="button"

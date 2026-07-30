@@ -8,7 +8,7 @@ import type { AppEditMessage, AppEditToolUsage } from "/types/app-config-types";
 import { isDraftConfig } from "/types/app-config-types";
 import { t } from "/utils/i18n";
 import { highlightJavaScript } from "/utils/highlight-js";
-import { appEditUrl, appPageUrl } from "/utils/app-url";
+import { appEditUrl, appPageUrl, storeUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { draftLetter, previewGradient } from "/utils/app-preview";
 import { deleteApp } from "/app/stores/appStore";
@@ -23,20 +23,27 @@ import {
   editStatusIndex,
   editSavingCode,
   editError,
-  editMode,
   editRegeneratingIcon,
   codeDraft,
   loadEdit,
   startNewEdit,
   createAppFromPrompt,
   sendChatMessage,
+  retryLastChatMessage,
   saveCode,
   regenerateIcon,
   editPublishing,
   setAppPublished,
   editCreditBalanceEur,
+  editSuggestedPrompt,
+  editRetryPrompt,
+  editVersions,
+  editVersionsLoading,
+  editRestoring,
+  loadEditVersions,
+  restoreAppVersion,
 } from "/app/stores/editStore";
-import { formatAiRequestStats } from "/utils/ai-models";
+import { formatAiRequestStats, estimateEditCreditEur, sumUsageCostUsd } from "/utils/ai-models";
 
 function toolUsageLabel(tool: AppEditToolUsage["tool"]): string {
   switch (tool) {
@@ -56,7 +63,7 @@ function toolUsageLabel(tool: AppEditToolUsage["tool"]): string {
 }
 
 const WELCOME_KEY =
-  "Hey — I'm R⫶⫶MIX.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?";
+  "Hey — I'm Remiix.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?";
 
 /** New app: /:lang/edit — existing: /:lang/edit/:slug */
 export const EditPath = "/:lang/edit" as const;
@@ -100,7 +107,7 @@ export default function Edit(_props: EditRouteProps) {
     deleting.value = true;
     const success = await deleteApp(slug);
     deleting.value = false;
-    if (success) route(`/${lang}/`, true);
+    if (success) route(storeUrl(lang), true);
   }
 
   async function handlePublishToggle() {
@@ -120,134 +127,137 @@ export default function Edit(_props: EditRouteProps) {
     }
   }
 
+  function openCodeDialog() {
+    closeTopbarMenu();
+    const dialog = document.getElementById("edit-code-dialog") as HTMLDialogElement | null;
+    dialog?.showModal();
+  }
+
+  async function openHistoryDialog() {
+    closeTopbarMenu();
+    if (!slug) return;
+    const dialog = document.getElementById("edit-history-dialog") as HTMLDialogElement | null;
+    dialog?.showModal();
+    await loadEditVersions(slug);
+  }
+
   const showTools = Boolean(app?.canEdit && slug);
   const showReadyTools = Boolean(app?.canEdit && !creating && slug);
 
   const view = html`
     <div data-scope="Edit" ui-column>
-      <header class="top" ui-padding="inline-md block-md">
-        <div class="top-row">
-          <div class="top-start">
-            <a
-              href=${`/${lang}/`}
-              ui-button="tertiary square sm"
-              ui-icon="arrow-left"
-              aria-label=${t("Back")}
-            ></a>
-          </div>
-
-          <div class="top-center">
-            <div class="top-title" ui-row="y-center gap-sm x-center">
-              ${isNew
+      <div class="page-bar" ui-padding="inline-md block-sm">
+        <div class="page-bar-inner" ui-row="y-center x-between gap-sm">
+          <div class="page-title" ui-row="y-center gap-sm">
+            ${isNew
+              ? html`
+                <h1 ui-heading="sm">${t("New App")}</h1>
+                <span class="badge">${t("Building")}</span>`
+              : app
                 ? html`
-                  <h1 ui-heading="sm">${t("New App")}</h1>
-                  <span class="badge">${t("Building")}</span>`
-                : app
-                  ? html`
-                    ${iconSrc
-                      ? html`<img class="app-chip-icon" src=${iconSrc} alt="" width="28" height="28" />`
-                      : html`
-                        <span
-                          class="app-chip-fallback"
-                          style=${`background: ${previewGradient(slug)}`}
-                          aria-hidden="true"
-                        >${draftLetter(app.title)}</span>`}
-                    <div class="top-copy" ui-column>
-                      <h1 ui-heading="sm">${app.title}</h1>
-                      ${creating
-                        ? html`<span class="top-meta">${t("Building")}</span>`
-                        : isPublished
-                        ? html`<span class="top-meta published">${t("In Store")}</span>`
+                  ${iconSrc
+                    ? html`<img class="app-chip-icon" src=${iconSrc} alt="" width="28" height="28" />`
+                    : html`
+                      <span
+                        class="app-chip-fallback"
+                        style=${`background: ${previewGradient(slug)}`}
+                        aria-hidden="true"
+                      >${draftLetter(app.title)}</span>`}
+                  <div class="page-copy" ui-column>
+                    <h1 ui-heading="sm">${app.title}</h1>
+                    ${creating
+                      ? html`<span class="page-meta">${t("Building")}</span>`
+                      : isPublished
+                        ? html`<span class="page-meta published">${t("In Store")}</span>`
                         : ""}
-                    </div>`
-                  : html`<h1 ui-heading="sm" class="muted">${t("Editor")}</h1>`}
-            </div>
+                  </div>`
+                : html`<h1 ui-heading="sm" class="muted">${t("Editor")}</h1>`}
           </div>
 
-          <div class="top-end">
-            <div class="top-actions" ui-row="y-center gap-xs">
-              ${app && !creating && slug
-                ? html`
-                  <a ui-button="sm" href=${appPageUrl(lang, slug)}>
-                    ${t("Open")}
-                  </a>`
-                : ""}
-              ${showTools
-                ? html`
-                  <div class="top-menu" ui-menu="bottom-left">
+          <div class="page-actions" ui-row="y-center gap-xs">
+            ${app && !creating && slug
+              ? html`
+                <a ui-button="sm" href=${appPageUrl(lang, slug)}>
+                  ${t("Open")}
+                </a>`
+              : ""}
+            ${showTools
+              ? html`
+                <div class="page-menu" ui-menu="bottom-left">
+                  <button
+                    type="button"
+                    ui-button="tertiary square sm"
+                    ui-icon="dots-three-vertical"
+                    aria-label=${t("More")}
+                    popovertarget="edit-topbar-menu"
+                  ></button>
+                  <div id="edit-topbar-menu" popover="auto" role="menu">
+                    ${showReadyTools
+                      ? html`
+                        <button
+                          type="button"
+                          role="menuitem"
+                          disabled=${publishing}
+                          onClick=${() => {
+                            if (!requireLogin()) {
+                              closeTopbarMenu();
+                              return;
+                            }
+                            void handlePublishToggle();
+                          }}
+                        >
+                          <i ui-icon=${isPublished ? "prohibit" : "share"} aria-hidden="true"></i>
+                          ${isPublished ? t("Unpublish") : t("Publish to Store")}
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick=${openCodeDialog}
+                        >
+                          <i ui-icon="code" aria-hidden="true"></i>
+                          ${t("Show Code")}
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick=${() => void openHistoryDialog()}
+                        >
+                          <i ui-icon="clock-countdown" aria-hidden="true"></i>
+                          ${t("History")}
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          disabled=${regeneratingIcon}
+                          onClick=${() => {
+                            closeTopbarMenu();
+                            void regenerateIcon(slug);
+                          }}
+                        >
+                          <i ui-icon="image" aria-hidden="true"></i>
+                          ${t("Generate new icon")}
+                        </button>
+                        <hr />`
+                      : ""}
                     <button
                       type="button"
-                      ui-button="tertiary square sm"
-                      ui-icon="dots-three-vertical"
-                      aria-label=${t("More")}
-                      popovertarget="edit-topbar-menu"
-                    ></button>
-                    <div id="edit-topbar-menu" popover="auto" role="menu">
-                      ${showReadyTools
-                        ? html`
-                          <button
-                            type="button"
-                            role="menuitem"
-                            disabled=${publishing}
-                            onClick=${() => {
-                              if (!requireLogin()) {
-                                closeTopbarMenu();
-                                return;
-                              }
-                              void handlePublishToggle();
-                            }}
-                          >
-                            <i ui-icon=${isPublished ? "prohibit" : "share"} aria-hidden="true"></i>
-                            ${isPublished ? t("Remove from Store") : t("Publish to Store")}
-                          </button>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick=${() => {
-                              closeTopbarMenu();
-                              editMode.value = editMode.value === "chat" ? "code" : "chat";
-                            }}
-                          >
-                            <i
-                              ui-icon=${editMode.value === "chat" ? "code" : "message-circle"}
-                              aria-hidden="true"
-                            ></i>
-                            ${editMode.value === "chat" ? t("Show Code") : t("Show Chat")}
-                          </button>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            disabled=${regeneratingIcon}
-                            onClick=${() => {
-                              closeTopbarMenu();
-                              void regenerateIcon(slug);
-                            }}
-                          >
-                            <i ui-icon="image" aria-hidden="true"></i>
-                            ${t("Generate new icon")}
-                          </button>
-                          <hr />`
-                        : ""}
-                      <button
-                        type="button"
-                        role="menuitem"
-                        class="danger"
-                        disabled=${deleting.value}
-                        onClick=${() => {
-                          closeTopbarMenu();
-                          void handleDelete();
-                        }}
-                      >
-                        <i ui-icon="trash" aria-hidden="true"></i>
-                        ${t("Delete")}
-                      </button>
-                    </div>
-                  </div>`
-                : ""}
-            </div>
+                      role="menuitem"
+                      class="danger"
+                      disabled=${deleting.value}
+                      onClick=${() => {
+                        closeTopbarMenu();
+                        void handleDelete();
+                      }}
+                    >
+                      <i ui-icon="trash" aria-hidden="true"></i>
+                      ${t("Delete")}
+                    </button>
+                  </div>
+                </div>`
+              : ""}
           </div>
         </div>
-      </header>
+      </div>
 
       ${isNew
         ? html`<${EditWorkspace} slug="" creating=${true} lang=${lang} />`
@@ -266,9 +276,12 @@ export default function Edit(_props: EditRouteProps) {
               ? html`
                 <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
                   <p ui-heading="sm">${t("You can only edit your own apps.")}</p>
-                  <a href=${appPageUrl(lang, slug)} ui-button="primary">${t("Open app")}</a>
+                  <a href=${appPageUrl(lang, slug)} ui-button>${t("Open app")}</a>
                 </div>`
               : html`<${EditWorkspace} slug=${slug} creating=${creating} lang=${lang} />`}
+
+      ${showReadyTools ? html`<${CodeDialog} slug=${slug} />` : ""}
+      ${showReadyTools ? html`<${HistoryDialog} slug=${slug} />` : ""}
     </div>
   `;
 
@@ -285,13 +298,11 @@ function EditWorkspace({
   lang: string;
 }) {
   return html`
-    <div class="workspace" ui-column>
+    <div class="workspace">
       ${editError.value
         ? html`<div class="error-banner" role="alert" ui-margin="inline-md top-sm">${editError.value}</div>`
         : ""}
-      ${creating || editMode.value === "chat"
-        ? html`<${ChatPanel} slug=${slug} creating=${creating} lang=${lang} />`
-        : html`<${CodePanel} slug=${slug} />`}
+      <${ChatPanel} slug=${slug} creating=${creating} lang=${lang} />
     </div>
   `;
 }
@@ -311,7 +322,6 @@ function ChatPanel({
   const elapsedSec = useSignal(0);
   const inspectUsage = useSignal<AppEditToolUsage | null>(null);
   const copied = useSignal(false);
-  const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const jsonDialogRef = useRef<HTMLDialogElement>(null);
   const app = editApp.value;
@@ -348,8 +358,8 @@ function ChatPanel({
           : [];
 
   useEffect(() => {
-    const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    // Document scroll — keep the latest turn in view.
+    window.scrollTo({ top: document.documentElement.scrollHeight });
   }, [displayMessages.length, sending, statusText, statusIndex]);
 
   useEffect(() => {
@@ -451,7 +461,7 @@ function ChatPanel({
       : null;
 
   return html`
-    <div class="chat" ref=${listRef}>
+    <div class="chat">
       <div class="chat-inner" ui-column="gap-md">
         ${displayMessages.length === 0 && !sending
           ? html`
@@ -459,12 +469,19 @@ function ChatPanel({
               <p ui-heading="sm">${creating ? t("Describe your app") : t("Describe a change")}</p>
               <p class="chat-empty-copy">
                 ${creating
-                  ? t("Tell R⫶⫶MIX what you need — it builds a working app in minutes.")
+                  ? t("Tell Remiix what you need — it builds a working app in minutes.")
                   : t("Ask the AI to tweak your app — colors, features, wording, anything.")}
               </p>
             </div>`
-          : displayMessages.map(
-                (m, i) => {
+          : (() => {
+              const lastAssistantIdx = displayMessages.reduce(
+                (acc, msg, idx) =>
+                  msg.role === "assistant" && msg.id !== "welcome" ? idx : acc,
+                -1,
+              );
+              const canOpenApp = Boolean(app?.title && slug && !creating);
+              const canRetry = Boolean(editRetryPrompt.value) && !sending;
+              return displayMessages.map((m, i) => {
                   const usageLines =
                     m.role === "assistant" && m.usage && m.usage.length > 0
                       ? m.usage
@@ -482,79 +499,162 @@ function ChatPanel({
                               line != null,
                           )
                       : [];
+                  const creditEur = estimateEditCreditEur(
+                    sumUsageCostUsd(m.usage) ??
+                      (typeof m.costUsd === "number" || typeof m.iconCostUsd === "number"
+                        ? (m.costUsd ?? 0) + (m.iconCostUsd ?? 0)
+                        : null),
+                  );
+                  const showInfo = usageLines.length > 0 || creditEur != null;
+                  const isLastAssistant = i === lastAssistantIdx;
+                  const showAppCard = canOpenApp && isLastAssistant;
+                  const showRetry = canRetry && isLastAssistant && m.role === "assistant";
+                  const showActions = showAppCard || showRetry;
                   return html`
                   <div
-                    class=${`msg ${m.role === "user" ? "user" : "assistant"}`}
+                    class=${`msg ${m.role === "user" ? "user" : "assistant"}${showAppCard ? " result" : ""}`}
                     style=${`--i: ${i}`}
                   >
                     ${m.id === "original-prompt"
                       ? html`<p class="msg-label">${t("Original prompt")}</p>`
                       : ""}
-                    <div class="bubble">${m.content}</div>
-                    ${usageLines.map(
-                      (line) => html`
-                        <button
-                          type="button"
-                          class="msg-stats"
-                          title=${t("AI response")}
-                          onClick=${() => openUsageJson(line.usage)}
-                        >
-                          ${line.label} · ${line.stats}
-                        </button>
-                      `,
-                    )}
+                    <div class=${`bubble${showInfo ? " has-info" : ""}${showActions ? " has-open" : ""}`}>
+                      <div class="bubble-body">${m.content}</div>
+                      ${showActions
+                        ? html`
+                          <div class="bubble-open" ui-row="gap-sm y-center wrap">
+                            ${showAppCard
+                              ? html`
+                                <a href=${appPageUrl(lang, slug)} ui-button="sm">
+                                  ${t("Open App")}
+                                </a>`
+                              : ""}
+                            ${showRetry
+                              ? html`
+                                <button
+                                  type="button"
+                                  ui-button="sm"
+                                  disabled=${sending}
+                                  onClick=${() => {
+                                    if (!slug || sending) return;
+                                    void retryLastChatMessage(slug);
+                                  }}
+                                >
+                                  ${t("Try again")}
+                                </button>`
+                              : ""}
+                          </div>`
+                        : ""}
+                      ${showInfo
+                        ? html`
+                          <div class="msg-info" ui-menu="top-right">
+                            <button
+                              type="button"
+                              class="msg-info-btn"
+                              ui-off
+                              ui-icon="info"
+                              aria-label=${t("AI response")}
+                              title=${t("AI response")}
+                              popovertarget=${`msg-info-${m.id || i}`}
+                            ></button>
+                            <div
+                              id=${`msg-info-${m.id || i}`}
+                              class="msg-info-menu"
+                              popover="auto"
+                              role="menu"
+                            >
+                              ${usageLines.map(
+                                (line) => html`
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    class="msg-info-item"
+                                    onClick=${(e: Event) => {
+                                      const menu = (e.currentTarget as HTMLElement).closest(
+                                        "[popover]",
+                                      ) as HTMLElement & { hidePopover?: () => void } | null;
+                                      try {
+                                        menu?.hidePopover?.();
+                                      } catch {
+                                        // ignore
+                                      }
+                                      openUsageJson(line.usage);
+                                    }}
+                                  >
+                                    <span class="msg-info-tool">${line.label}</span>
+                                    <span class="msg-info-stats">${line.stats}</span>
+                                  </button>
+                                `,
+                              )}
+                              ${creditEur != null
+                                ? html`
+                                  <div class="msg-info-credit" role="note">
+                                    <span class="msg-info-tool">${t("AI credit")}</span>
+                                    <span class="msg-info-stats">
+                                      ${t("This request ≈ $amount", {
+                                        amount: `€${creditEur.toFixed(2)}`,
+                                      })}
+                                    </span>
+                                  </div>`
+                                : ""}
+                            </div>
+                          </div>`
+                        : ""}
+                    </div>
                   </div>`;
-                },
-              )}
+                });
+            })()}
           ${sending
             ? html`
-              <div class="msg assistant">
-                <div class="bubble status-bubble" aria-live="polite">
-                  <div class="status-bar" aria-hidden="true">
-                    <span class="status-bar-fill"></span>
-                  </div>
-                  <div class="status-headline-row">
-                    <p class="status-headline" key=${statusText ?? "default"}>
-                      ${statusText
-                        ?? (creating ? t("AI is building your app.") : t("AI is updating your app…"))}
-                    </p>
-                    <span class="status-elapsed" aria-label=${t("Elapsed time")}>
-                      ${formatElapsed(elapsedSec.value)}
-                    </span>
-                  </div>
-                  ${statusSteps.length > 0
-                    ? html`
-                      <ul class="status-steps">
-                        ${statusSteps.map(
-                          (step, i) => html`
-                            <li
-                              class=${i < statusIndex
-                                ? "done"
-                                : i === statusIndex
-                                  ? "active"
-                                  : "pending"}
-                            >
-                              <span class="status-dot" aria-hidden="true"></span>
-                              <span>${step}</span>
-                            </li>
-                          `,
-                        )}
-                      </ul>`
-                    : html`
-                      <div class="status-pulse" aria-hidden="true">
-                        <span></span><span></span><span></span>
-                      </div>`}
+              <div class="msg assistant build" aria-live="polite">
+                <div class="build-row">
+                  <span class="build-dots" aria-hidden="true">
+                    <i></i><i></i><i></i>
+                  </span>
+                  <span class="build-label">
+                    ${statusText
+                      ?? (creating ? t("Building your app…") : t("AI is updating your app…"))}
+                  </span>
+                  <span class="build-elapsed" aria-label=${t("Elapsed time")}>
+                    ${formatElapsed(elapsedSec.value)}
+                  </span>
                 </div>
+                <div class="build-bars" aria-hidden="true">
+                  <span style="--w: 88%"></span>
+                  <span style="--w: 64%"></span>
+                  <span style="--w: 76%"></span>
+                </div>
+                ${statusSteps.length > 0
+                  ? html`
+                    <ul class="status-steps">
+                      ${statusSteps.map(
+                        (step, i) => html`
+                          <li
+                            class=${i < statusIndex
+                              ? "done"
+                              : i === statusIndex
+                                ? "active"
+                                : "pending"}
+                          >
+                            <span class="status-dot" aria-hidden="true"></span>
+                            <span>${step}</span>
+                          </li>
+                        `,
+                      )}
+                    </ul>`
+                  : ""}
               </div>`
             : ""}
 
-        <form class="composer" ui-column="gap-xs" ui-padding="top-sm" onSubmit=${submit}>
-          <div class="composer-shell" ui-column="gap-sm" ui-padding="sm">
+        <form class="composer" onSubmit=${submit}>
+          <div class="composer-shell">
             <textarea
               ref=${inputRef}
               class="composer-input"
-              rows="1"
-              placeholder=${creating ? t("Create an app for…") : t("e.g. add a dark mode toggle")}
+              rows="2"
+              placeholder=${creating
+                ? t("Create an app for…")
+                : (editSuggestedPrompt.value ?? t("Write what you want to change…"))}
               value=${draft.value}
               disabled=${sending}
               onInput=${(e: Event) => {
@@ -568,7 +668,7 @@ function ChatPanel({
                 }
               }}
             ></textarea>
-            <div ui-row="x-end y-center gap-sm">
+            <div class="composer-bar" ui-row="x-between y-center gap-sm">
               ${typeof editCreditBalanceEur.value === "number"
                 ? html`
                   <span
@@ -579,14 +679,13 @@ function ChatPanel({
                       amount: `€${editCreditBalanceEur.value.toFixed(2)}`,
                     })}
                   </span>`
-                : ""}
+                : html`<span class="composer-cost"></span>`}
               <button
                 type="submit"
-                ui-button="primary square sm"
-                ui-icon="arrow-up"
-                disabled=${!canSend}
-                aria-label=${creating ? t("Apply It") : t("Send")}
-              ></button>
+                ui-button="primary sm"
+              >
+                ${creating ? t("Apply It") : t("Ask Changes")}
+              </button>
             </div>
           </div>
         </form>
@@ -632,7 +731,73 @@ function ChatPanel({
   `;
 }
 
-function CodePanel({ slug }: { slug: string }) {
+function HistoryDialog({ slug }: { slug: string }) {
+  const versions = editVersions.value;
+  const loading = editVersionsLoading.value;
+  const restoring = editRestoring.value;
+
+  return html`
+    <dialog id="edit-history-dialog" ui-dialog="sm" closedby="any">
+      <header ui-row="x-between y-center gap-md">
+        <h2 ui-heading="lg">${t("History")}</h2>
+        <button
+          type="button"
+          ui-button="inline"
+          ui-icon="x"
+          commandfor="edit-history-dialog"
+          command="close"
+          aria-label=${t("Close")}
+        ></button>
+      </header>
+      <p>${t("Restore an earlier version of the app code. Name and icon stay the same.")}</p>
+      ${loading
+        ? html`<p>${t("Loading…")}</p>`
+        : versions.length === 0
+          ? html`<p>${t("No versions yet.")}</p>`
+          : html`
+            <ul ui-off ui-column="gap-sm">
+              ${versions.map(
+                (v) => html`
+                  <li ui-row="x-between y-center gap-md" ui-padding="block-sm">
+                    <div ui-column="gap-xs">
+                      <strong>v${v.versionNumber}</strong>
+                      <span class="history-meta">
+                        ${new Date(v.createdAt).toLocaleString()}
+                        ${v.isLatest ? ` · ${t("Latest")}` : ""}
+                        ${v.isPublished ? ` · ${t("Published")}` : ""}
+                      </span>
+                      ${v.prompt
+                        ? html`<span class="history-prompt">${v.prompt.slice(0, 80)}${v.prompt.length > 80 ? "…" : ""}</span>`
+                        : ""}
+                    </div>
+                    ${v.isLatest
+                      ? html`<span class="history-current">${t("Current")}</span>`
+                      : html`
+                        <button
+                          type="button"
+                          ui-button="sm"
+                          disabled=${restoring}
+                          aria-busy=${restoring ? "true" : undefined}
+                          onClick=${() => void restoreAppVersion(slug, v.id).then((ok) => {
+                            if (ok) {
+                              const dialog = document.getElementById(
+                                "edit-history-dialog",
+                              ) as HTMLDialogElement | null;
+                              dialog?.close();
+                            }
+                          })}
+                        >
+                          ${t("Restore")}
+                        </button>`}
+                  </li>
+                `,
+              )}
+            </ul>`}
+    </dialog>
+  `;
+}
+
+function CodeDialog({ slug }: { slug: string }) {
   const saving = editSavingCode.value;
   const app = editApp.value;
   const dirty = app != null && codeDraft.value !== app.config.code;
@@ -650,34 +815,23 @@ function CodePanel({ slug }: { slug: string }) {
   const highlighted = highlightJavaScript(codeDraft.value);
 
   return html`
-    <div class="code" ui-column>
-      <div class="code-bar" ui-row="x-between y-center gap-md" ui-padding="inline-md block-sm">
+    <dialog id="edit-code-dialog" class="code-dialog" ui-dialog="right lg edge" closedby="any">
+      <header ui-row="x-between y-center gap-md" ui-padding="inline-md block-sm">
         <div ui-row="y-center gap-sm">
-          <span class="code-label">${t("Code")}</span>
+          <h2 ui-heading="sm">${t("Code")}</h2>
           ${dirty
             ? html`<span class="code-dirty">${t("Unsaved changes")}</span>`
             : html`<span class="code-clean">${t("Saved")}</span>`}
         </div>
-        <div ui-row="gap-xs">
-          <button
-            type="button"
-            ui-button="tertiary sm"
-            disabled=${!dirty || saving}
-            onClick=${() => app && (codeDraft.value = app.config.code)}
-          >
-            ${t("Revert")}
-          </button>
-          <button
-            type="button"
-            ui-button="primary sm"
-            disabled=${!dirty || saving}
-            aria-busy=${saving}
-            onClick=${() => void saveCode(slug)}
-          >
-            ${saving ? t("Saving…") : t("Save")}
-          </button>
-        </div>
-      </div>
+        <button
+          type="button"
+          ui-button="inline"
+          ui-icon="x"
+          commandfor="edit-code-dialog"
+          command="close"
+          aria-label=${t("Close")}
+        ></button>
+      </header>
       <div class="code-editor">
         <pre class="code-highlight" ref=${highlightRef} aria-hidden="true">
           ${h("code", { dangerouslySetInnerHTML: { __html: `${highlighted}\n` } })}
@@ -693,7 +847,26 @@ function CodePanel({ slug }: { slug: string }) {
           onScroll=${syncScroll}
         ></textarea>
       </div>
-    </div>
+      <footer ui-row="gap-sm x-end y-center" ui-padding="inline-md block-sm">
+        <button
+          type="button"
+          ui-button
+          disabled=${!dirty || saving}
+          onClick=${() => app && (codeDraft.value = app.config.code)}
+        >
+          ${t("Revert")}
+        </button>
+        <button
+          type="button"
+          ui-button="primary"
+          disabled=${!dirty || saving}
+          aria-busy=${saving}
+          onClick=${() => void saveCode(slug)}
+        >
+          ${saving ? t("Saving…") : t("Save")}
+        </button>
+      </footer>
+    </dialog>
   `;
 }
 
@@ -701,57 +874,32 @@ function style() {
   return css`
     @scope ([data-scope="Edit"]) to ([data-scope]) {
       & {
-        height: 100dvh;
-        max-height: 100dvh;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
         background: var(--neutral-50);
         color: var(--neutral-900);
       }
 
-      .top {
-        flex: none;
-        padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
+      .page-bar {
         border-bottom: 1px solid var(--neutral-200);
-        background: color-mix(in oklab, var(--neutral-50) 88%, var(--white));
-        backdrop-filter: blur(12px);
-        z-index: 2;
+        background: var(--neutral-50);
       }
 
-      .top-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        align-items: center;
-        gap: 0.5rem;
+      .page-bar-inner {
+        width: min(100%, 48rem);
+        margin-inline: auto;
         min-width: 0;
       }
 
-      .top-start {
-        justify-self: start;
-      }
-
-      .top-center {
-        justify-self: center;
+      .page-title {
         min-width: 0;
-        text-align: center;
       }
 
-      .top-title {
-        min-width: 0;
-        justify-content: center;
-      }
-
-      .top-copy {
+      .page-copy {
         min-width: 0;
         gap: 0.05rem;
-        align-items: center;
-        text-align: center;
       }
 
-      .top-copy h1,
-      .top-title h1,
-      .top-center h1 {
+      .page-copy h1,
+      .page-title h1 {
         margin: 0;
         min-width: 0;
         white-space: nowrap;
@@ -759,23 +907,16 @@ function style() {
         text-overflow: ellipsis;
       }
 
-      .top-title h1.muted {
+      .page-title h1.muted {
         color: var(--neutral-500);
       }
 
-      .top-end {
-        justify-self: stretch;
-        min-width: 0;
-        display: flex;
-        justify-content: flex-end;
-      }
-
-      .top-actions {
+      .page-actions {
         flex: none;
         justify-content: flex-end;
       }
 
-      .top-menu {
+      .page-menu {
         flex: none;
       }
 
@@ -797,7 +938,7 @@ function style() {
         letter-spacing: -0.02em;
       }
 
-      .top-meta {
+      .page-meta {
         font-size: 0.625rem;
         font-weight: 650;
         letter-spacing: 0.04em;
@@ -806,7 +947,7 @@ function style() {
         line-height: 1.2;
       }
 
-      .top-meta.published {
+      .page-meta.published {
         color: #007aff;
       }
 
@@ -828,24 +969,16 @@ function style() {
       }
 
       .state {
-        flex: 1;
-        min-height: 0;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
         color: var(--neutral-600);
         text-align: center;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-block: 3rem;
       }
 
       .workspace {
-        flex: 1;
-        min-height: 0;
         background: var(--neutral-50);
-        overflow: hidden;
       }
 
       .error-banner {
-        flex: none;
         width: min(100%, 36rem);
         margin: 0.75rem auto 0;
         padding: 0.625rem 0.875rem;
@@ -857,18 +990,15 @@ function style() {
       }
 
       .chat {
-        flex: 1;
-        min-height: 0;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-        background: var(--neutral-50);
+        background:
+          radial-gradient(ellipse 80% 50% at 100% 0%, var(--neutral-100), transparent 55%),
+          var(--neutral-50);
       }
 
       .chat-inner {
         width: min(100%, 36rem);
         margin: 0 auto;
-        padding: 1rem 1rem 0;
+        padding: 1rem 1rem 1.5rem;
         box-sizing: border-box;
       }
 
@@ -889,12 +1019,21 @@ function style() {
       .msg {
         display: flex;
         flex-direction: column;
-        gap: 0.3rem;
+        gap: 0.55rem;
         max-width: min(100%, 34rem);
       }
 
-      .msg.user { align-self: flex-end; align-items: flex-end; }
-      .msg.assistant { align-self: flex-start; align-items: flex-start; }
+      .msg.user {
+        align-self: flex-end;
+        align-items: flex-end;
+        max-width: 92%;
+      }
+
+      .msg.assistant {
+        align-self: flex-start;
+        align-items: stretch;
+        max-width: 88%;
+      }
 
       .msg-label {
         margin: 0;
@@ -906,134 +1045,253 @@ function style() {
       }
 
       .bubble {
-        padding: 0.7rem 0.95rem;
-        border-radius: 1.1rem;
-        font-size: 0.9375rem;
-        line-height: 1.5;
+        padding: 0.7rem 0.9rem;
+        border-radius: 1.05rem;
+        font-size: 0.875rem;
+        font-weight: 550;
+        line-height: 1.4;
+      }
+
+      .bubble-body {
         white-space: pre-wrap;
         word-break: break-word;
       }
 
-      .msg.user .bubble {
-        background: var(--neutral-900);
-        color: var(--white);
-        border-bottom-right-radius: 0.3rem;
+      .bubble.has-info {
+        position: relative;
+        padding-right: 1.85rem;
       }
 
-      .msg-stats {
-        margin: 0.35rem 0 0;
-        padding: 0 0.15rem;
-        border: 0;
-        background: transparent;
-        font: inherit;
-        font-size: 0.6875rem;
-        line-height: 1.3;
-        color: var(--neutral-400);
-        font-variant-numeric: tabular-nums;
-        cursor: pointer;
-        text-align: left;
-      }
-
-      .msg-stats:hover,
-      .msg-stats:focus-visible {
-        color: var(--neutral-700);
-        text-decoration: underline;
-        outline: none;
-      }
-
-      .msg-stats-total {
-        cursor: default;
-        font-weight: 600;
-        color: var(--neutral-500);
-        text-decoration: none;
-      }
-
-      .msg-stats-total:hover,
-      .msg-stats-total:focus-visible {
-        color: var(--neutral-500);
-        text-decoration: none;
-      }
-
-      .msg.assistant .msg-stats {
-        text-align: left;
-      }
-
-      .msg.assistant .bubble {
-        background: var(--white);
-        color: var(--neutral-800);
-        border: 1px solid var(--neutral-200);
-        border-bottom-left-radius: 0.3rem;
-      }
-
-      .status-bubble {
-        min-width: min(100%, 18rem);
+      .bubble.has-open {
         display: flex;
         flex-direction: column;
         gap: 0.65rem;
       }
 
-      .status-bar {
-        height: 3px;
-        border-radius: 999px;
-        background: var(--neutral-100);
-        overflow: hidden;
+      .bubble-open {
+        display: flex;
       }
 
-      .status-bar-fill {
-        display: block;
-        height: 100%;
-        width: 40%;
-        border-radius: inherit;
-        background: linear-gradient(
-          90deg,
-          color-mix(in oklab, var(--primary-400) 70%, white),
-          var(--primary-500, #3b82f6),
-          color-mix(in oklab, var(--primary-400) 70%, white)
-        );
-        animation: status-bar-slide 1.35s ease-in-out infinite;
+      .msg.user .bubble {
+        background: var(--neutral-950);
+        color: var(--white);
+        border-radius: 1.05rem 1.05rem 0.3rem 1.05rem;
+        box-shadow: 0 8px 18px rgba(15, 20, 25, 0.18);
       }
 
-      @keyframes status-bar-slide {
-        0% { transform: translateX(-120%); }
-        100% { transform: translateX(320%); }
+      .msg.assistant:not(.build) .bubble {
+        background: var(--white);
+        color: var(--neutral-700);
+        border: 1px solid var(--neutral-200);
+        border-radius: 1.05rem 1.05rem 1.05rem 0.3rem;
+        font-weight: 500;
       }
 
-      .status-headline {
+      .msg-info {
+        position: absolute;
+        top: 0.35rem;
+        right: 0.35rem;
+        z-index: 1;
+      }
+
+      .msg-info-btn {
+        appearance: none;
+        display: grid;
+        place-items: center;
+        width: 1.35rem;
+        height: 1.35rem;
+        min-height: 0;
         margin: 0;
-        font-size: 0.9375rem;
-        font-weight: 600;
+        padding: 0;
+        border: none;
+        border-radius: 999px;
+        background: transparent;
+        box-shadow: none;
+        color: inherit;
+        opacity: 0.45;
+        cursor: pointer;
+        line-height: 0;
+        --ui-icon-size: 1rem;
+      }
+
+      .msg-info-btn::before {
+        display: block;
+        width: var(--ui-icon-size, 1rem);
+        height: var(--ui-icon-size, 1rem);
+        margin: 0;
+        mask-image: var(--ui-icon, none);
+        mask-position: center;
+        mask-size: contain;
+        mask-repeat: no-repeat;
+        background-color: currentColor;
+        content: "";
+      }
+
+      .msg-info-btn:hover,
+      .msg-info-btn:focus-visible {
+        opacity: 0.9;
+        outline: none;
+      }
+
+      .msg-info-menu {
+        min-width: 11.5rem;
+        padding: 0.35rem;
+        border-radius: 0.85rem;
+        border: 1px solid var(--neutral-200);
+        background: var(--white);
+        box-shadow: 0 12px 28px rgba(15, 20, 25, 0.12);
+        line-height: normal;
+      }
+
+      .msg-info-item {
+        appearance: none;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+        width: 100%;
+        margin: 0;
+        padding: 0.55rem 0.65rem;
+        border: none;
+        border-radius: 0.6rem;
+        background: transparent;
+        box-shadow: none;
+        color: inherit;
+        font: inherit;
         line-height: 1.35;
-        color: var(--neutral-800);
-        animation: status-fade 0.35s ease;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .msg-info-item:hover,
+      .msg-info-item:focus-visible {
+        background: var(--neutral-50);
+        outline: none;
+      }
+
+      .msg-info-tool {
+        font-size: 0.75rem;
+        font-weight: 650;
+        color: var(--neutral-900);
+      }
+
+      .msg-info-stats {
+        font-size: 0.6875rem;
+        color: var(--neutral-500);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .msg-info-credit {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+        width: 100%;
+        margin: 0;
+        padding: 0.55rem 0.65rem;
+        border-top: 1px solid var(--neutral-100);
+        box-sizing: border-box;
+      }
+
+      .msg.build {
+        gap: 0.55rem;
+      }
+
+      .build-row {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-size: 0.75rem;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+        color: var(--neutral-600);
+      }
+
+      .build-label {
         flex: 1 1 auto;
         min-width: 0;
       }
 
-      .status-headline-row {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 0.75rem;
-      }
-
-      .status-elapsed {
+      .build-elapsed {
         flex: none;
-        font-size: 0.8125rem;
-        font-weight: 600;
         font-variant-numeric: tabular-nums;
         letter-spacing: 0.02em;
         color: var(--neutral-400);
       }
 
-      @keyframes status-fade {
-        from { opacity: 0.35; transform: translateY(2px); }
-        to { opacity: 1; transform: none; }
+      .build-dots {
+        display: inline-flex;
+        gap: 0.22rem;
+        flex: none;
+      }
+
+      .build-dots i {
+        width: 0.35rem;
+        height: 0.35rem;
+        border-radius: 999px;
+        background: var(--primary-500);
+        animation: chat-build-dot 1.1s ease-in-out infinite;
+      }
+
+      .build-dots i:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+
+      .build-dots i:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+
+      .build-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        padding: 0.75rem;
+        border-radius: 0.95rem;
+        background: color-mix(in oklab, var(--white) 70%, var(--neutral-50));
+        border: 1px solid var(--neutral-200);
+      }
+
+      .build-bars span {
+        display: block;
+        height: 0.4rem;
+        width: var(--w, 70%);
+        border-radius: 999px;
+        background: linear-gradient(
+          90deg,
+          var(--neutral-200),
+          var(--primary-200),
+          var(--neutral-200)
+        );
+        background-size: 200% 100%;
+        animation: chat-build-shimmer 1.6s linear infinite;
+      }
+
+      @keyframes chat-build-dot {
+        0%,
+        80%,
+        100% {
+          opacity: 0.35;
+          transform: translateY(0);
+        }
+        40% {
+          opacity: 1;
+          transform: translateY(-2px);
+        }
+      }
+
+      @keyframes chat-build-shimmer {
+        from {
+          background-position: 100% 0;
+        }
+        to {
+          background-position: -100% 0;
+        }
       }
 
       .status-steps {
         list-style: none;
         margin: 0;
-        padding: 0;
+        padding: 0.15rem 0.15rem 0;
         display: flex;
         flex-direction: column;
         gap: 0.35rem;
@@ -1088,50 +1346,32 @@ function style() {
         100% { box-shadow: 0 0 0 0 transparent; }
       }
 
-      .status-pulse {
-        display: flex;
-        gap: 0.35rem;
-        padding-top: 0.1rem;
-      }
-
-      .status-pulse span {
-        width: 0.4rem;
-        height: 0.4rem;
-        border-radius: 50%;
-        background: var(--neutral-300);
-        animation: status-bounce 1s ease-in-out infinite;
-      }
-
-      .status-pulse span:nth-child(2) { animation-delay: 0.15s; }
-      .status-pulse span:nth-child(3) { animation-delay: 0.3s; }
-
-      @keyframes status-bounce {
-        0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
-        40% { transform: translateY(-3px); opacity: 1; }
+      @media (prefers-reduced-motion: reduce) {
+        .build-dots i,
+        .build-bars span,
+        .status-steps li.active .status-dot {
+          animation: none;
+        }
       }
 
       .composer {
-        position: sticky;
-        bottom: 0;
-        z-index: 2;
         width: 100%;
-        margin: 0;
-        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-        background: linear-gradient(
-          to bottom,
-          color-mix(in oklab, var(--neutral-50) 0%, transparent),
-          var(--neutral-50) 28%
-        );
+        margin: 0.5rem 0 0;
+        padding: 0;
       }
 
       .composer-shell {
-        border-radius: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        padding: 0.85rem 0.95rem 0.8rem;
+        border-radius: 1.15rem;
         background: var(--white);
         border: 1px solid var(--neutral-200);
       }
 
       .composer-shell:focus-within {
-        border-color: color-mix(in oklab, var(--primary-400) 55%, var(--neutral-300));
+        border-color: color-mix(in oklab, var(--primary-400) 50%, var(--neutral-300));
       }
 
       .composer-input {
@@ -1139,13 +1379,18 @@ function style() {
         resize: none;
         border: none;
         background: transparent;
-        padding: 0.2rem 0.15rem;
+        padding: 0.15rem 0.1rem;
         font: inherit;
-        font-size: 16px;
+        font-size: 1rem;
         line-height: 1.45;
+        color: var(--neutral-900);
         max-height: 10rem;
         field-sizing: content;
-        min-height: 1.45em;
+        min-height: 2.9em;
+      }
+
+      .composer-input::placeholder {
+        color: var(--neutral-400);
       }
 
       .composer-input:focus {
@@ -1156,12 +1401,17 @@ function style() {
         opacity: 0.65;
       }
 
+      .composer-bar {
+        padding-top: 0.15rem;
+        border-top: 1px solid var(--neutral-100);
+      }
+
       .composer-cost {
-        font-size: 0.6875rem;
+        min-height: 1em;
+        font-size: 0.75rem;
         color: var(--neutral-400);
         font-variant-numeric: tabular-nums;
         letter-spacing: 0.01em;
-        opacity: 0.85;
         white-space: nowrap;
       }
 
@@ -1203,24 +1453,11 @@ function style() {
         border: 0;
       }
 
-      .code {
+      .code-dialog .code-editor {
+        position: relative;
         flex: 1;
         min-height: 0;
         background: #141414;
-      }
-
-      .code-bar {
-        flex: none;
-        background: var(--white);
-        border-bottom: 1px solid var(--neutral-200);
-      }
-
-      .code-label {
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--neutral-500);
       }
 
       .code-dirty,
@@ -1232,11 +1469,19 @@ function style() {
       .code-dirty { color: var(--warning, #b45309); }
       .code-clean { color: var(--neutral-400); }
 
-      .code-editor {
-        position: relative;
-        flex: 1;
-        min-height: 0;
-        overflow: hidden;
+      .history-meta {
+        font-size: 0.85rem;
+        color: var(--neutral-500);
+      }
+
+      .history-prompt {
+        font-size: 0.85rem;
+        color: var(--neutral-600);
+      }
+
+      .history-current {
+        font-size: 0.85rem;
+        color: var(--neutral-500);
       }
 
       .code-highlight,
@@ -1289,13 +1534,6 @@ function style() {
       .code-highlight .hl-function { color: #dcdcaa; }
       .code-highlight .hl-class { color: #4ec9b0; }
       .code-highlight .hl-builtin { color: #569cd6; }
-
-      @media (min-width: 720px) {
-        .top {
-          width: min(100%, 36rem);
-          margin-inline: auto;
-        }
-      }
     }
   `;
 }

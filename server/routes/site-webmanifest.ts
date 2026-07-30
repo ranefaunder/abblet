@@ -3,10 +3,10 @@ import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 
-/** PWA icons: white-background mark (favicon-light.svg). */
+/** PWA icons: white-background mark (remiix-icon-light.svg). */
 const ICONS = [
   {
-    src: "/static/favicon-light.svg",
+    src: "/static/images/remiix-icon-light.svg",
     sizes: "any",
     type: "image/svg+xml",
     purpose: "any",
@@ -37,8 +37,8 @@ export default async function (req: BunRequest): Promise<Response> {
   }
 
   const manifest = {
-    name: "R⫶⫶MIX",
-    short_name: "R⫶⫶MIX",
+    name: "Remiix",
+    short_name: "Remiix",
     description: t("Remix any app, or make your own.", lang),
     start_url: `/${lang}/`,
     scope: "/",

@@ -1,27 +1,27 @@
-# R⫶⫶MIX brand
+# Remiix brand
 
 ## Slogan
 
 ```
-R⫶⫶MIX — Remix any app, or make your own.
+Remiix — Remix any app, or make your own.
 ```
 
 Finnish:
 
 ```
-R⫶⫶MIX — Remixaa mikä tahansa app tai tee oma.
+Remiix — Remixaa mikä tahansa app tai tee oma.
 ```
 
 ## Elevator pitch
 
 ```
-R⫶⫶MIX is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.
+Remiix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.
 ```
 
 Finnish:
 
 ```
-R⫶⫶MIX on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi appi nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.
+Remiix on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi app nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.
 ```
 
 ## Where it belongs
@@ -30,14 +30,14 @@ R⫶⫶MIX on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonk
 
 - Document / tab title and default meta description
 - PWA / webmanifest short description (use the clause after the em dash, or the full line when space allows)
-- About / marketing page hero
+- Front page / marketing hero
 
 **Elevator pitch**
 
-- About marketing page body (primary home for the pitch)
+- Front page body (primary home for the pitch)
 - Longer marketing or share blurbs when a paragraph is needed
 
-The Store (`/`) stays a product UI. Marketing lives on About (`/:lang/about`).
+The front page (`/`) is marketing. The Store product UI lives at `/:lang/store`.
 
 ## Where it does not belong
 
@@ -49,11 +49,12 @@ The Store (`/`) stays a product UI. Marketing lives on About (`/:lang/about`).
 
 | File | Use |
 |------|-----|
-| [`rmix.svg`](rmix.svg) | Wordmark (`fill="currentColor"`) |
-| [`rmix.sketch`](rmix.sketch) | Design source |
+| [`../static/images/remiix.svg`](../static/images/remiix.svg) | Wordmark (header, About) |
+| [`../static/images/remiix-icon-dark.svg`](../static/images/remiix-icon-dark.svg) | Icon / favicon on light OS chrome |
+| [`../static/images/remiix-icon-light.svg`](../static/images/remiix-icon-light.svg) | Icon / favicon on dark OS chrome; Patch badge; PWA install icon |
+| [`../static/favicons/`](../static/favicons/) | Raster favicons (regenerate: `bun run gen:favicons`) |
+| [`rmix.sketch`](rmix.sketch) | Design source (legacy filename) |
 | [`TRADEMARK.md`](TRADEMARK.md) | Alustava tavaramerkkiselvitys |
-| [`../static/favicon-dark.svg`](../static/favicon-dark.svg) | Favicon on light OS chrome |
-| [`../static/favicon-light.svg`](../static/favicon-light.svg) | Favicon on dark OS chrome; PWA install icon (white background) |
 
 ## Voice (short)
 

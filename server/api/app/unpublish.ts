@@ -2,7 +2,8 @@ import type { BunRequest } from "bun";
 import { withAuth } from "/utils/auth.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { dbGetAppBySlug, dbUnpublishApp } from "/server/database/queries/apps";
-import { parseAppConfig, type AppDetail } from "/types/app-config-types";
+import { resolveAppConfig } from "/server/database/queries/app-versions";
+import type { AppDetail } from "/types/app-config-types";
 
 export default {
   async POST(req: BunRequest) {
@@ -29,7 +30,7 @@ export default {
       }
 
       const updated = dbGetAppBySlug(slug)!;
-      const config = parseAppConfig(updated.config_json);
+      const config = resolveAppConfig(updated, { asOwner: true });
       if (!config) return apiError({ code: "NOT_FOUND", status: 404 });
 
       const detail: AppDetail = {
@@ -45,6 +46,7 @@ export default {
         iconId: updated.icon_id ?? null,
         category: updated.category ?? config.category ?? null,
         tagline: updated.tagline ?? config.tagline ?? null,
+        nextPrompt: updated.next_prompt ?? null,
       };
 
       return apiSuccess({ data: { app: detail } });

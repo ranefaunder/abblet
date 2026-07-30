@@ -6,7 +6,7 @@
  * - CHECK_UPDATE compares network /module.js to cache; client shows Update UI
  * - Never treats `/install` as the app shell
  */
-const CACHE = "rmix-app-runtime-v3";
+const CACHE = "remiix-app-runtime-v5";
 const CORE = ["/", "/module.js", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -34,7 +34,7 @@ self.addEventListener("activate", (event) => {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((k) => k.startsWith("rmix-app-runtime-") && k !== CACHE)
+          .filter((k) => k.startsWith("remiix-app-runtime-") && k !== CACHE)
           .map((k) => caches.delete(k)),
       );
       await self.clients.claim();
@@ -55,6 +55,8 @@ function shouldHandle(url) {
   if (path === "/manifest.webmanifest") return true;
   if (path.startsWith("/static/app-icons/")) return true;
   if (path.startsWith("/static/favicons/")) return true;
+  if (path === "/static/remiix-app.js") return true;
+  if (path === "/static/images/remiix-icon-light.svg") return true;
   return false;
 }
 
