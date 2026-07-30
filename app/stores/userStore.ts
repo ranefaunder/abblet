@@ -86,26 +86,37 @@ export async function updateMarketingOptIn(marketingOptIn: boolean): Promise<boo
   }
 }
 
-export const login = async (email: string, code: string): Promise<boolean> => {
+export const login = async (
+  email: string,
+  code: string,
+): Promise<{ success: boolean; error?: string; errorMessage?: string }> => {
   try {
-    if (!email || !code) return false;
+    if (!email || !code) {
+      return { success: false, error: "EMAIL_AND_CODE_REQUIRED", errorMessage: "Email and code are required." };
+    }
     const lang = getLang(window.location.pathname) ?? "en";
     const result = await apiFetch<{ user: StoredUser }>(`/api/${lang}/auth/verify-login-code`, {
       method: "POST",
       body: JSON.stringify({ email, code }),
     });
-    if (!result.success) return false;
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error.code,
+        errorMessage: result.error.message,
+      };
+    }
     if (result.data.user) {
       const normalized = normalizeStoredUser(result.data.user);
       user.value = normalized;
       localStorage.setItem("appstudo-user", JSON.stringify(normalized));
       void loadApps();
-      return true;
+      return { success: true };
     }
-    return false;
+    return { success: false, error: "LOGIN_CODE_INVALID", errorMessage: "Invalid code" };
   } catch (error) {
     console.error("Login failed:", error);
-    return false;
+    return { success: false, error: "NETWORK_ERROR", errorMessage: "Network error" };
   }
 };
 
@@ -119,8 +130,8 @@ export const register = async (
   registration?: boolean;
   user?: LoggedInUser;
   existingUser?: boolean;
-  errorMessage?: string;
   error?: string;
+  errorMessage?: string;
 }> => {
   try {
     const result = await apiFetch<{
@@ -133,7 +144,11 @@ export const register = async (
     });
 
     if (!result.success) {
-      return { success: false, errorMessage: result.error.message ?? result.error.code };
+      return {
+        success: false,
+        error: result.error.code,
+        errorMessage: result.error.message,
+      };
     }
     if (result.data.existingUser) return { success: true, existingUser: true };
     if (result.data.registration && result.data.user) {
@@ -143,27 +158,31 @@ export const register = async (
       void loadApps();
       return { success: true, registration: true, user: normalized };
     }
-    return { success: false, errorMessage: undefined };
+    return { success: false };
   } catch (error) {
     console.error("Failed to register:", error);
-    return { success: false, error: "Network error" };
+    return { success: false, error: "NETWORK_ERROR", errorMessage: "Network error" };
   }
 };
 
 export const requestLoginCode = async (
   email: string,
   language: string = "en",
-): Promise<{ success: boolean; debugCode?: string; errorMessage?: string; error?: string }> => {
+): Promise<{ success: boolean; debugCode?: string; error?: string; errorMessage?: string }> => {
   try {
     const result = await apiFetch<{ debugCode?: string }>(`/api/${language}/auth/request-login-code`, {
       method: "POST",
       body: JSON.stringify({ email, language }),
     });
     if (result.success) return { success: true, debugCode: result.data.debugCode };
-    return { success: false, errorMessage: result.error.message ?? result.error.code };
+    return {
+      success: false,
+      error: result.error.code,
+      errorMessage: result.error.message,
+    };
   } catch (error) {
     console.error("Failed to request login code:", error);
-    return { success: false, error: "Network error" };
+    return { success: false, error: "NETWORK_ERROR", errorMessage: "Network error" };
   }
 };
 

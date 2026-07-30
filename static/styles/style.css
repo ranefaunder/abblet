@@ -40,3 +40,17 @@ body {
 ) {
   font-size: max(16px, 1em);
 }
+
+/*
+ * Dialog bodies use overflow-y: auto and dialogs use overflow: hidden (border-radius).
+ * Outward focus rings (outline-offset: 2px) get clipped near footers / edges.
+ * Draw rings inward inside dialogs so they stay visible.
+ */
+:where(dialog[ui-dialog] :focus-visible) {
+  outline-offset: -2px;
+}
+
+/* Extra room at the content/footer seam when actions live in <footer>. */
+:where(dialog[ui-dialog]:has(> footer) > :not(header):not(footer)) {
+  padding-bottom: 8px;
+}

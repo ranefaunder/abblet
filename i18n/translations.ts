@@ -212,6 +212,39 @@ export const translations = {
   "Login": {
     fi: "Kirjaudu",
   },
+  "Enter login code": {
+    fi: "Syötä kirjautumiskoodi",
+  },
+  "Login code": {
+    fi: "Kirjautumiskoodi",
+  },
+  "Send login code": {
+    fi: "Lähetä kirjautumiskoodi",
+  },
+  "Check your inbox and enter the 6-digit code.": {
+    fi: "Tarkista sähköpostisi ja syötä 6-numeroinen koodi.",
+  },
+  "Invalid code": {
+    fi: "Virheellinen koodi",
+  },
+  "This login code was already used. Request a new one.": {
+    fi: "Tämä kirjautumiskoodi on jo käytetty. Pyydä uusi.",
+  },
+  "Too many attempts. Wait a moment and try again.": {
+    fi: "Liian monta yritystä. Odota hetki ja yritä uudelleen.",
+  },
+  "No account found for this email. Please register first.": {
+    fi: "Tällä sähköpostilla ei ole tiliä. Rekisteröidy ensin.",
+  },
+  "Email and code are required.": {
+    fi: "Sähköposti ja koodi tarvitaan.",
+  },
+  "Network error": {
+    fi: "Verkkovirhe",
+  },
+  "No account yet? Register": {
+    fi: "Ei tiliä vielä? Rekisteröidy",
+  },
   "Register": {
     fi: "Rekisteröidy",
   },
@@ -307,6 +340,7 @@ export const translations = {
   "Email address required": { fi: "Sähköpostiosoite vaaditaan" },
   "Email address is too long": { fi: "Sähköpostiosoite on liian pitkä" },
   "Invalid email address": { fi: "Virheellinen sähköpostiosoite" },
+  "I accept the terms of use": { fi: "Hyväksyn käyttöehdot" },
   "You must accept the terms of use to register.": { fi: "Sinun on hyväksyttävä käyttöehdot rekisteröityäksesi." },
   "Too many requests. Wait a moment before retrying.": { fi: "Liian monta pyyntöä. Odota hetki ennen uudelleenyritystä." },
   "The AI took too long to respond. Try again or pick another model.": {

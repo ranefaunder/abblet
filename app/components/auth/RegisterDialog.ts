@@ -5,6 +5,22 @@ import { useLocation } from "preact-iso";
 import { getLang } from "/utils/lang";
 import { t } from "/utils/i18n";
 
+function registerErrorMessage(code?: string, message?: string): string {
+  switch (code) {
+    case "RATE_LIMIT_EXCEEDED":
+      return t("Too many requests. Wait a moment before retrying.");
+    case "INVALID_EMAIL":
+      return message || t("Invalid email address");
+    case "NETWORK_ERROR":
+      return t("Network error");
+    case "EMAIL_SEND_FAILED":
+      return message || t("Error sending code. Try again.");
+    default:
+      break;
+  }
+  return message || code || t("Error sending code. Try again.");
+}
+
 export default function RegisterDialog() {
   const { path } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
@@ -22,6 +38,7 @@ export default function RegisterDialog() {
 
   async function handleSubmit(e: Event) {
     e.preventDefault();
+    if (sending) return;
     setEmailError("");
     setTermsError("");
     if (!termsAccepted) {
@@ -39,7 +56,7 @@ export default function RegisterDialog() {
         window.dispatchEvent(new CustomEvent("open-registration-success-dialog"));
       }
     } else {
-      setEmailError(result.errorMessage ?? result.error ?? "");
+      setEmailError(registerErrorMessage(result.error, result.errorMessage));
     }
   }
 
@@ -60,30 +77,37 @@ export default function RegisterDialog() {
     <dialog id="register-dialog" data-scope="RegisterDialog" ref=${dialogRef} ui-dialog="xs" closedby="any">
       <header ui-row="x-between y-start gap-lg">
         <h2>${t("Register")}</h2>
-        <button ui-button="square inline" ui-icon="x" onClick=${closeDialog} aria-label="Close"></button>
+        <button ui-button="square inline" ui-icon="x" onClick=${closeDialog} aria-label=${t("Close")}></button>
       </header>
       <form id="register-form" ui-column="gap-md" onSubmit=${handleSubmit}>
         <div ui-field>
-          <label for="register-email">Email</label>
+          <label for="register-email">${t("Email")}</label>
           <input
             type="email"
             id="register-email"
             value=${email}
-            onInput=${(e: Event) => setEmail((e.target as HTMLInputElement).value)}
+            onInput=${(e: Event) => {
+              setEmail((e.target as HTMLInputElement).value);
+              if (emailError) setEmailError("");
+            }}
             required
             disabled=${sending}
+            aria-invalid=${emailError ? "true" : undefined}
           />
-          <p role="error">${emailError || ""}</p>
+          <p role="error">${emailError || "\u00a0"}</p>
         </div>
         <label ui-row="gap-sm">
           <input
             type="checkbox"
             checked=${termsAccepted}
-            onChange=${(e: Event) => setTermsAccepted((e.target as HTMLInputElement).checked)}
+            onChange=${(e: Event) => {
+              setTermsAccepted((e.target as HTMLInputElement).checked);
+              if (termsError) setTermsError("");
+            }}
           />
-          <span>I accept the terms of use</span>
+          <span>${t("I accept the terms of use")}</span>
         </label>
-        <p role="error">${termsError || ""}</p>
+        ${termsError ? html`<p class="terms-error">${termsError}</p>` : null}
         <label ui-row="gap-sm">
           <input
             type="checkbox"
@@ -92,14 +116,22 @@ export default function RegisterDialog() {
           />
           <span>${t("Email me about Remiix updates")}</span>
         </label>
-      </form>
-      <footer ui-column="gap-md x-center">
-        <button type="submit" form="register-form" ui-button="primary block" disabled=${sending}>
+        <button type="submit" ui-button="primary block" disabled=${sending} aria-busy=${sending}>
           ${t("Register")}
         </button>
-      </footer>
+      </form>
     </dialog>
   `;
 
-  return [view, css``];
+  const style = css`
+    @scope ([data-scope="RegisterDialog"]) to ([data-scope]) {
+      .terms-error {
+        margin: 0;
+        color: var(--error-700);
+        font-size: 0.875rem;
+      }
+    }
+  `;
+
+  return [view, style];
 }

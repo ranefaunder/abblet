@@ -4,10 +4,15 @@ import { dbGetLoginCode, dbGetUsedLoginCode, dbUpdateLoginCodeUsed } from "/serv
 import { dbGetUserByEmail, dbUpdateUserLastLogin } from "/server/database/queries/users";
 import { createAuthSession } from "/utils/auth.server";
 import { apiError, apiSuccess } from "/utils/api.server";
+import { getLang } from "/utils/lang";
+import { t } from "/utils/i18n";
+import type { Language } from "/types/i18n-types";
 import type { BunRequest } from "bun";
 
 export default {
   async POST(req: BunRequest) {
+    const language = (getLang(req.url) ?? "en") as Language;
+
     let body: unknown;
     try {
       body = await req.json();
@@ -19,13 +24,20 @@ export default {
     const code = b?.code;
 
     if (!email || !code) {
-      return apiError({ code: "EMAIL_AND_CODE_REQUIRED" });
+      return apiError({
+        code: "EMAIL_AND_CODE_REQUIRED",
+        message: t("Email and code are required.", language),
+      });
     }
 
     const clientIP = getClientIP(req);
     const isAllowed = checkRateLimit(clientIP, "login_attempt", 5, 10);
     if (!isAllowed) {
-      return apiError({ code: "RATE_LIMIT_EXCEEDED", status: 429 });
+      return apiError({
+        code: "RATE_LIMIT_EXCEEDED",
+        message: t("Too many attempts. Wait a moment and try again.", language),
+        status: 429,
+      });
     }
 
     const normalizedCode = String(code).trim();
@@ -34,16 +46,28 @@ export default {
     if (!loginCode) {
       const usedCode = dbGetUsedLoginCode(email, normalizedCode);
       if (usedCode) {
-        return apiError({ code: "LOGIN_CODE_ALREADY_USED", status: 401 });
+        return apiError({
+          code: "LOGIN_CODE_ALREADY_USED",
+          message: t("This login code was already used. Request a new one.", language),
+          status: 401,
+        });
       }
-      return apiError({ code: "LOGIN_CODE_INVALID", status: 401 });
+      return apiError({
+        code: "LOGIN_CODE_INVALID",
+        message: t("Invalid code", language),
+        status: 401,
+      });
     }
 
     dbUpdateLoginCodeUsed(loginCode.id);
 
     const existingUser = dbGetUserByEmail(email);
     if (!existingUser || (existingUser.is_guest ?? 0) === 1) {
-      return apiError({ code: "USER_NOT_FOUND", status: 404 });
+      return apiError({
+        code: "USER_NOT_FOUND",
+        message: t("No account found for this email. Please register first.", language),
+        status: 404,
+      });
     }
 
     dbUpdateUserLastLogin(email);
