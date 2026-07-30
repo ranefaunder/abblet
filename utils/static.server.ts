@@ -4,7 +4,7 @@
  */
 export function resolveStaticRootFromUrl(reqUrl: string): string {
   if (process.env.NODE_ENV === "production") {
-    return "https://abblet.b-cdn.net";
+    return "https://remiix.b-cdn.net";
   }
   return `${new URL(reqUrl).origin}/static`;
 }
