@@ -1,7 +1,5 @@
 import type { ComponentChildren, ComponentType } from "preact";
 import { h } from "preact";
-import { useEffect, useRef } from "preact/hooks";
-import { useSignal } from "@preact/signals";
 import { useLocation } from "preact-iso";
 import { html, css } from "/utils/markup";
 import Dialogs from "/app/components/Dialogs";
@@ -10,46 +8,17 @@ import { t } from "/utils/i18n";
 import { AVAILABLE_LANGUAGES, type Language } from "/i18n/languages";
 import { getLang, pathWithLang } from "/utils/lang";
 import { aboutUrl, appEditUrl, storeUrl } from "/utils/app-url";
-import { storeQuery, loadStore } from "/app/stores/storeListingStore";
 import { isLoggedIn, openLoginDialog, requireLogin } from "/app/stores/userStore";
 
 type LayoutProps = {
   children: ComponentChildren;
 };
 
-/** Shared site chrome — brand, search, Create App, account. */
+/** Shared site chrome — brand, Store, Account, Create App, language. */
 function SiteHeader() {
-  const { path, route } = useLocation();
+  const { path } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
   const loggedIn = isLoggedIn();
-  const searchOpen = useSignal(Boolean(storeQuery.value.trim()));
-  const draftQ = useSignal(storeQuery.value);
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    draftQ.value = storeQuery.value;
-    if (storeQuery.value.trim()) searchOpen.value = true;
-  }, [storeQuery.value]);
-
-  useEffect(() => {
-    if (searchOpen.value) searchRef.current?.focus();
-  }, [searchOpen.value]);
-
-  function submitSearch(e: Event) {
-    e.preventDefault();
-    void loadStore({ q: draftQ.value }).then(() => {
-      route(storeUrl(lang));
-    });
-  }
-
-  function openSearch() {
-    searchOpen.value = true;
-  }
-
-  function onSearchBlur() {
-    if (draftQ.value.trim()) return;
-    searchOpen.value = false;
-  }
 
   const accountAction = loggedIn
     ? html`
@@ -89,32 +58,9 @@ function SiteHeader() {
         <a class="brand" href=${aboutUrl(lang)} aria-label="Remiix">
           <img src="/static/images/remiix.svg" alt="Remiix" width="96" height="20" />
         </a>
-        <div class="actions" ui-row="gap-sm y-center">
-          ${searchOpen.value
-            ? html`
-              <form onSubmit=${submitSearch} class="search">
-                <label class="sr-only" for="site-search">${t("Search apps")}</label>
-                <input
-                  id="site-search"
-                  ref=${searchRef}
-                  type="search"
-                  ui-input="sm"
-                  placeholder=${t("Search apps")}
-                  value=${draftQ.value}
-                  onInput=${(e: Event) => {
-                    draftQ.value = (e.target as HTMLInputElement).value;
-                  }}
-                  onBlur=${onSearchBlur}
-                />
-              </form>`
-            : html`
-              <button
-                type="button"
-                ui-button="tertiary square sm"
-                ui-icon="search"
-                aria-label=${t("Search apps")}
-                onClick=${openSearch}
-              ></button>`}
+        <nav class="actions" ui-row="gap-sm y-center">
+          <a href=${storeUrl(lang)} ui-button="tertiary sm">${t("Store")}</a>
+          ${accountAction}
           <a
             href=${appEditUrl(lang)}
             ui-button="primary sm"
@@ -123,9 +69,8 @@ function SiteHeader() {
               e.preventDefault();
             }}
           >${t("Create App")}</a>
-          ${accountAction}
           ${languageMenu}
-        </div>
+        </nav>
       </div>
     </header>
   `;
@@ -189,26 +134,9 @@ export default function Layout({ children }: LayoutProps) {
 
       .actions {
         min-width: 0;
-        flex: 1;
+        flex: none;
         justify-content: flex-end;
-      }
-
-      .search {
-        min-width: 0;
-        flex: 1;
-        max-width: 14rem;
-      }
-
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
+        flex-wrap: wrap;
       }
     }
   `;
