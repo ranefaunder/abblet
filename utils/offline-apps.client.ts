@@ -1,6 +1,5 @@
 import { isClient } from "/utils/env";
 import { appIconPngSrc, appIconSrc } from "/utils/app-icon";
-import { appModuleUrl, appPageUrl } from "/utils/app-url";
 
 const APP_CACHE = "remiix-apps-v1";
 
@@ -9,14 +8,31 @@ export type OfflineAppRef = {
   iconId?: string | null;
 };
 
-/** URLs needed to open an installed app offline. */
-export function offlineAppUrls(app: OfflineAppRef, lang = "en"): string[] {
-  const urls = [appPageUrl(lang, app.slug), appModuleUrl(lang, app.slug)];
+/**
+ * Assets the platform (remiix.app) can warm for offline.
+ * App shell + module.js live on `{slug|uuid}.remiix.app` — only that origin
+ * can cache them (see remiix-app.js / install page). Fetching them from the
+ * platform is cross-origin and useless for the app SW.
+ */
+export function offlineAppUrls(app: OfflineAppRef, _lang = "en"): string[] {
+  const urls: string[] = [];
   const icon = appIconSrc(app.iconId);
   if (icon) urls.push(icon);
   const png = appIconPngSrc(app.iconId);
   if (png && png !== icon) urls.push(png);
   return urls;
+}
+
+function sameOriginUrls(urls: string[]): string[] {
+  if (!isClient) return urls;
+  const origin = location.origin;
+  return urls.filter((url) => {
+    try {
+      return new URL(url, origin).origin === origin;
+    } catch {
+      return false;
+    }
+  });
 }
 
 async function postToServiceWorker(message: { type: string; urls: string[] }): Promise<void> {
@@ -36,7 +52,7 @@ async function precacheViaCacheApi(urls: string[]): Promise<void> {
   if (!isClient || !("caches" in globalThis)) return;
   const cache = await caches.open(APP_CACHE);
   await Promise.all(
-    urls.map(async (url) => {
+    sameOriginUrls(urls).map(async (url) => {
       try {
         const res = await fetch(url, { cache: "reload", credentials: "same-origin" });
         if (res.ok) await cache.put(url, res);
@@ -50,13 +66,14 @@ async function precacheViaCacheApi(urls: string[]): Promise<void> {
 async function uncacheViaCacheApi(urls: string[]): Promise<void> {
   if (!isClient || !("caches" in globalThis)) return;
   const cache = await caches.open(APP_CACHE);
-  await Promise.all(urls.map((url) => cache.delete(url).catch(() => false)));
+  await Promise.all(sameOriginUrls(urls).map((url) => cache.delete(url).catch(() => false)));
 }
 
-/** Download + cache an installed app for offline use. */
+/** Warm same-origin launcher icons for an installed app. */
 export async function precacheInstalledApp(app: OfflineAppRef, lang?: string): Promise<void> {
   if (!isClient) return;
   const urls = offlineAppUrls(app, lang);
+  if (urls.length === 0) return;
   await postToServiceWorker({ type: "PRECACHE", urls });
   // Also write from the page so cache is filled even if SW message is delayed.
   await precacheViaCacheApi(urls);
@@ -66,11 +83,12 @@ export async function precacheInstalledApp(app: OfflineAppRef, lang?: string): P
 export async function uncacheInstalledApp(app: OfflineAppRef, lang?: string): Promise<void> {
   if (!isClient) return;
   const urls = offlineAppUrls(app, lang);
+  if (urls.length === 0) return;
   await postToServiceWorker({ type: "UNCACHE", urls });
   await uncacheViaCacheApi(urls);
 }
 
-/** Background-precache every app currently in the home library. */
+/** Background-precache icons for every app currently in the home library. */
 export function precacheLibraryApps(apps: OfflineAppRef[], lang?: string): void {
   if (!isClient || apps.length === 0) return;
   void (async () => {

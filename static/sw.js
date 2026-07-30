@@ -1,10 +1,11 @@
 /**
- * Service Worker — local-first cache for installed apps.
+ * Service Worker — local-first cache for same-origin offline assets.
  *
  * Precaches (via client Cache API + this fetch handler):
- *   /{slug}            app shell HTML
- *   /{slug}/module.js  app custom-element code
  *   /static/app-icons/* launcher icons
+ *
+ * App shell/module.js are cached on each `{slug|uuid}.remiix.app` origin
+ * (app-runtime-sw.js), not from the platform.
  *
  * Strategy: network-first, fall back to cache when offline.
  */
@@ -30,11 +31,7 @@ self.addEventListener("activate", (event) => {
 
 function isAppRuntimeRequest(url) {
   if (url.origin !== self.location.origin) return false;
-  const path = url.pathname;
-  if (path.startsWith("/static/app-icons/")) return true;
-  if (/^\/\d{5,}\/module\.js$/.test(path)) return true;
-  if (/^\/\d{5,}$/.test(path)) return true;
-  return false;
+  return url.pathname.startsWith("/static/app-icons/");
 }
 
 self.addEventListener("fetch", (event) => {
@@ -77,11 +74,19 @@ self.addEventListener("message", (event) => {
   }
 });
 
+function isSameOriginUrl(url) {
+  try {
+    return new URL(url, self.location.href).origin === self.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 async function precacheUrls(urls) {
   const cache = await caches.open(APP_CACHE);
   await Promise.all(
     urls.map(async (url) => {
-      if (typeof url !== "string" || !url) return;
+      if (typeof url !== "string" || !url || !isSameOriginUrl(url)) return;
       try {
         const res = await fetch(url, { cache: "reload", credentials: "same-origin" });
         if (res.ok) await cache.put(url, res);
