@@ -1,5 +1,7 @@
 import { initDb } from "./database/db";
-import { redirectLegacyHost } from "/utils/app-host";
+import { isAppOnlyHost, isPlatformHost, redirectLegacyHost } from "/utils/app-host";
+import { apiError } from "/utils/api.server";
+import { platformCookieOriginForbidden } from "/utils/csrf.server";
 
 import staticRoute from "./routes/static";
 import clientJsRoute from "./routes/client-js";
@@ -50,6 +52,56 @@ await initDb();
 type RouteHandler = (req: Request, ...args: unknown[]) => Response | Promise<Response>;
 type RouteMethods = Record<string, RouteHandler | undefined>;
 
+function wrapHandler(
+  handler: RouteHandler | RouteMethods,
+  guard: (req: Request) => Response | null,
+): RouteHandler | RouteMethods {
+  if (typeof handler === "function") {
+    return (req, ...args) => {
+      const blocked = guard(req);
+      if (blocked) return blocked;
+      return handler(req, ...args);
+    };
+  }
+
+  const wrapped: RouteMethods = {};
+  for (const [method, fn] of Object.entries(handler)) {
+    if (typeof fn !== "function") {
+      wrapped[method] = fn;
+      continue;
+    }
+    wrapped[method] = (req, ...args) => {
+      const blocked = guard(req);
+      if (blocked) return blocked;
+      return fn(req, ...args);
+    };
+  }
+  return wrapped;
+}
+
+/** Platform `/api/:lang/*`: not on app Host; Origin must be platform (CSRF vs *.remiix.app). */
+function platformApiOnly(handler: RouteHandler | RouteMethods): RouteHandler | RouteMethods {
+  return wrapHandler(handler, (req) => {
+    const host = req.headers.get("host") ?? "";
+    if (isAppOnlyHost(host)) {
+      return apiError({ code: "NOT_FOUND", status: 404 });
+    }
+    return platformCookieOriginForbidden(req);
+  });
+}
+
+/**
+ * `/api/:lang/app/get` is allowed on app subdomains (owner preview), but when
+ * Host is the platform, apply the same cookie Origin check as other platform APIs.
+ */
+function platformHostCookieOrigin(handler: RouteHandler | RouteMethods): RouteHandler | RouteMethods {
+  return wrapHandler(handler, (req) => {
+    const host = req.headers.get("host") ?? "";
+    if (!isPlatformHost(host)) return null;
+    return platformCookieOriginForbidden(req);
+  });
+}
+
 function withLegacyHostRedirect(
   handler: RouteHandler | RouteMethods,
 ): RouteHandler | RouteMethods {
@@ -76,28 +128,24 @@ function withLegacyHostRedirect(
   return wrapped;
 }
 
-function wrapRoutes<T extends Record<string, RouteHandler | RouteMethods>>(routes: T): T {
+function wrapRoutes<T extends Record<string, RouteHandler | RouteMethods>>(
+  routes: T,
+  opts?: { platformApi?: boolean; platformHostOrigin?: boolean },
+): T {
   const out = {} as T;
   for (const [path, handler] of Object.entries(routes)) {
-    (out as Record<string, RouteHandler | RouteMethods>)[path] = withLegacyHostRedirect(handler);
+    let next: RouteHandler | RouteMethods = handler;
+    if (opts?.platformApi) next = platformApiOnly(next);
+    if (opts?.platformHostOrigin) next = platformHostCookieOrigin(next);
+    (out as Record<string, RouteHandler | RouteMethods>)[path] = withLegacyHostRedirect(next);
   }
   return out;
 }
 
-const server = Bun.serve({
-  port: Number(process.env.PORT) || 8090,
-  development: process.env.NODE_ENV !== "production",
-
-  routes: wrapRoutes({
-    "/robots.txt": robotsTxt,
-    "/sitemap.xml": sitemapXml,
-    "/:lang/site.webmanifest": siteWebmanifest,
-    "/manifest.webmanifest": appManifest,
-    "/install": appSubdomainInstallPage,
-    "/.well-known/*": () => new Response(null, { status: 404 }),
+const platformApiRoutes = wrapRoutes(
+  {
     "/api/:lang/meta": meta,
     "/api/:lang/app/generate": appGenerate,
-    "/api/:lang/app/get": appGet,
     "/api/:lang/app/edit": appEdit,
     "/api/:lang/app/update-code": appUpdateCode,
     "/api/:lang/app/edit-history": appEditHistory,
@@ -121,27 +169,51 @@ const server = Bun.serve({
     "/api/:lang/auth/register": authRegister,
     "/api/:lang/auth/request-login-code": authRequestLoginCode,
     "/api/:lang/auth/verify-login-code": authVerifyLoginCode,
-    "/api/sdk/exchange": sdkExchange,
-    "/api/sdk/ai": sdkAi,
-    "/api/sdk/session": sdkSession,
-    "/api/sdk/remix": sdkRemix,
+  },
+  { platformApi: true },
+);
 
-    "/static/*": staticRoute,
-    "/app.js": clientJsRoute,
-    "/module.js": appSubdomainModule,
-    "/connect/:appId": connectRoute,
-    "/:appId/module.js": shortAppModule,
-    "/:lang/app/:slug/module.js": appModule,
-    "/:lang/app/:slug/run.js": appModule,
-    "/:lang/app/:slug/run": appRunRedirect,
-    "/:lang/app/:slug": appPage,
-    "/:lang/about": aboutRedirect,
-    "/:lang/about/": aboutRedirect,
-    "/:lang": redirectRoute,
-    "/:lang/": appRoute,
-    "/:lang/*": appRoute,
-    "/": rootRoute,
-  }),
+const server = Bun.serve({
+  port: Number(process.env.PORT) || 8090,
+  development: process.env.NODE_ENV !== "production",
+
+  routes: {
+    ...wrapRoutes({
+      "/robots.txt": robotsTxt,
+      "/sitemap.xml": sitemapXml,
+      "/:lang/site.webmanifest": siteWebmanifest,
+      "/manifest.webmanifest": appManifest,
+      "/install": appSubdomainInstallPage,
+      "/.well-known/*": () => new Response(null, { status: 404 }),
+      // Allowed on app subdomains: building-page poll + owner preview (Domain cookie).
+      // On platform Host, still require platform Origin (CSRF).
+      ...wrapRoutes(
+        { "/api/:lang/app/get": appGet },
+        { platformHostOrigin: true },
+      ),
+      "/api/sdk/exchange": sdkExchange,
+      "/api/sdk/ai": sdkAi,
+      "/api/sdk/session": sdkSession,
+      "/api/sdk/remix": sdkRemix,
+
+      "/static/*": staticRoute,
+      "/app.js": clientJsRoute,
+      "/module.js": appSubdomainModule,
+      "/connect/:appId": connectRoute,
+      "/:appId/module.js": shortAppModule,
+      "/:lang/app/:slug/module.js": appModule,
+      "/:lang/app/:slug/run.js": appModule,
+      "/:lang/app/:slug/run": appRunRedirect,
+      "/:lang/app/:slug": appPage,
+      "/:lang/about": aboutRedirect,
+      "/:lang/about/": aboutRedirect,
+      "/:lang": redirectRoute,
+      "/:lang/": appRoute,
+      "/:lang/*": appRoute,
+      "/": rootRoute,
+    }),
+    ...platformApiRoutes,
+  },
 });
 
 console.log(`🚀 Remiix running at http://localhost:${server.port}`);

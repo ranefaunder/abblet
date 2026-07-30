@@ -1,4 +1,4 @@
-# Caddy: remiix.app + allow app subdomain POSTs to /api/sdk/*
+# Caddy: remiix.app + allow app subdomain calls only to /api/sdk/*
 
 ## Site blocks (platform + app runtime = same apex)
 
@@ -25,7 +25,7 @@ remiix.app {
 }
 ```
 
-Legacy `rmix.app` / `abblet.app` can keep their blocks (or redirect at Caddy). Bun also 301s them via `redirectLegacyHost`.
+Legacy `rmix.app` / `abblet.app` redirect at Caddy (and Bun via `redirectLegacyHost`).
 
 ## Origin CA (Cloudflare)
 
@@ -36,23 +36,26 @@ Legacy `rmix.app` / `abblet.app` can keep their blocks (or redirect at Caddy). B
 
 DNS: `A`/`AAAA` `@` and `*` → origin IP, proxied (orange).
 
-## CORS / POST allowlist
+## CSRF / Origin (Caddy + Bun)
 
-App runtimes (`*.remiix.app`, optionally legacy `*.rmix.app` / `*.abblet.app`) call:
+Session cookie is `Domain=remiix.app`, so `evil.remiix.app` can send it to `https://remiix.app/api/...` (same-site). Defense in depth:
 
-- `POST /api/sdk/exchange` — connect code → runtime token
-- `POST /api/sdk/ai` — `Remiix.ai({ prompt })`
-
-Update `(remiix_site)` `@cross_site` so these Origins are **not** blocked:
+**Caddy `(remiix_site)`:**
 
 ```caddy
+# Foreign sites
 @cross_site expression ({http.request.method} == "POST" || {http.request.method} == "PUT" || {http.request.method} == "DELETE") && {http.request.header.Origin} != "" && {http.request.header.Origin} != "https://remiix.app" && !{http.request.header.Origin}.endsWith(".remiix.app")
 respond @cross_site 403
+
+# App subdomain → platform cookie API (not SDK)
+@platform_csrf expression {http.request.uri.path}.startsWith("/api/") && !{http.request.uri.path}.startsWith("/api/sdk/") && {http.request.header.Origin}.endsWith(".remiix.app")
+respond @platform_csrf 403
 ```
 
-Also keep `https://remiix.app` / `https://*.remiix.app` in the CSP used by `remiix_site`.
+- `/api/sdk/*` stays open for `*.remiix.app` Origins (exchange, ai, session, remix).
+- Bun still enforces Origin on SDK routes and on cookie-auth `/api/:lang/*` (`platformCookieOriginForbidden`).
 
-CORS headers for `/api/sdk/*` are set by the Bun app; Caddy must not reject the request before it reaches Bun.
+Also keep `https://remiix.app` / `https://*.remiix.app` and `https://remiix.b-cdn.net` in CSP.
 
 ## App env
 
