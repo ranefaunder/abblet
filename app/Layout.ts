@@ -14,43 +14,29 @@ type LayoutProps = {
   children: ComponentChildren;
 };
 
-/** Shared site chrome — brand, Store, Account, Create App, language. */
+/** Shared site chrome — brand, Store, Create, account icon, language. */
 function SiteHeader() {
   const { path } = useLocation();
-  const lang = getLang(path ?? "") ?? "en";
+  const lang = (getLang(path ?? "") ?? "en") as Language;
   const loggedIn = isLoggedIn();
+  const currentPath = path ?? `/${lang}/`;
 
   const accountAction = loggedIn
     ? html`
-        <a href=${`/${lang}/account`} ui-button="tertiary sm">${t("Account")}</a>`
+        <a
+          href=${`/${lang}/account`}
+          ui-button="tertiary square sm"
+          ui-icon="user-circle"
+          aria-label=${t("Account")}
+        ></a>`
     : html`
-      <button type="button" ui-button="tertiary sm" onClick=${openLoginDialog}>
-        ${t("Sign in")}
-      </button>`;
-
-  const languageMenu = html`
-    <div ui-menu="bottom-right">
       <button
         type="button"
         ui-button="tertiary square sm"
-        ui-icon="globe"
-        popovertarget="site-lang-menu"
-        aria-label=${t("Language")}
-      ></button>
-      <div id="site-lang-menu" popover="auto" role="menu">
-        ${(Object.keys(AVAILABLE_LANGUAGES) as Language[]).map((code) => {
-          const current = code === lang;
-          return html`
-            <a
-              role="menuitem"
-              href=${pathWithLang(path ?? `/${lang}/`, code)}
-              aria-current=${current ? "true" : undefined}
-              lang=${code}
-            >${AVAILABLE_LANGUAGES[code].nativeName}</a>
-          `;
-        })}
-      </div>
-    </div>`;
+        ui-icon="user-circle"
+        aria-label=${t("Sign in")}
+        onClick=${openLoginDialog}
+      ></button>`;
 
   return html`
     <header class="site-header" ui-padding="inline-md block-md">
@@ -60,7 +46,6 @@ function SiteHeader() {
         </a>
         <nav class="actions" ui-row="gap-sm y-center">
           <a href=${storeUrl(lang)} ui-button="tertiary sm">${t("Store")}</a>
-          ${accountAction}
           <a
             href=${appEditUrl(lang)}
             ui-button="primary sm"
@@ -68,8 +53,30 @@ function SiteHeader() {
               if (requireLogin()) return;
               e.preventDefault();
             }}
-          >${t("Create App")}</a>
-          ${languageMenu}
+          >${t("Create")}</a>
+          ${accountAction}
+          <div ui-menu="bottom-right">
+            <button
+              type="button"
+              ui-button="tertiary square sm"
+              ui-icon="globe"
+              popovertarget="site-lang-menu"
+              aria-label=${t("Language")}
+            ></button>
+            <div id="site-lang-menu" popover="auto" role="menu">
+              ${(Object.keys(AVAILABLE_LANGUAGES) as Language[]).map((code) => {
+                const current = code === lang;
+                return html`
+                  <a
+                    role="menuitem"
+                    href=${pathWithLang(currentPath, code)}
+                    aria-current=${current ? "true" : undefined}
+                    lang=${code}
+                  >${AVAILABLE_LANGUAGES[code].nativeName}</a>
+                `;
+              })}
+            </div>
+          </div>
         </nav>
       </div>
     </header>
@@ -136,7 +143,7 @@ export default function Layout({ children }: LayoutProps) {
         min-width: 0;
         flex: none;
         justify-content: flex-end;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
       }
     }
   `;

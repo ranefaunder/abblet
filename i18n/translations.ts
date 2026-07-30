@@ -27,6 +27,15 @@ export const translations = {
   "My Apps": {
     fi: "Omat appit",
   },
+  "Mine": {
+    fi: "Omat",
+  },
+  "No apps of your own yet": {
+    fi: "Sinulla ei ole vielä omia appeja",
+  },
+  "Create an app to see it here.": {
+    fi: "Luo app, niin se näkyy täällä.",
+  },
   "Apps": {
     fi: "Appit",
   },

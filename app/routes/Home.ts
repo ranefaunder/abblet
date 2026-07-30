@@ -1,6 +1,6 @@
 import { html, css } from "/utils/markup";
 import type { RoutePropsForPath } from "preact-iso";
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { useLocation } from "preact-iso";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
@@ -65,7 +65,6 @@ function AppIcon({
 }
 
 function TodayCard({ app, lang }: { app: StoreAppCard; lang: string }) {
-  const cta = app.isOwner ? t("Edit") : app.installed ? t("Open") : t("Get");
   return html`
     <a
       class="today-card"
@@ -86,7 +85,6 @@ function TodayCard({ app, lang }: { app: StoreAppCard; lang: string }) {
           <strong>${app.title}</strong>
           <small>${app.category ? categoryLabel(app.category as AppCategory) : t("App")}</small>
         </span>
-        <span ui-button="primary sm">${cta}</span>
       </span>
     </a>
   `;
@@ -121,7 +119,6 @@ function ChartRow({
   lang: string;
   rank: number;
 }) {
-  const cta = app.isOwner ? t("Edit") : app.installed ? t("Open") : t("Get");
   return html`
     <a class="chart-row" href=${storeAppUrl(lang, app.slug)} ui-row="y-center gap-md">
       <span class="rank">${rank}</span>
@@ -130,7 +127,6 @@ function ChartRow({
         <strong>${app.title}</strong>
         <small>${app.tagline || app.description}</small>
       </span>
-      <span ui-button="sm">${cta}</span>
     </a>
   `;
 }
@@ -152,6 +148,7 @@ function groupByCategory(apps: StoreAppCard[]): { category: AppCategory; apps: S
 export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   const { path } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
+  const [showMine, setShowMine] = useState(false);
   const apps = storeApps.value;
   const loading = storeLoading.value;
   const category = storeCategory.value;
@@ -160,7 +157,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   const ownedApps = libraryApps.value.filter((app) => app.owned);
   const visibleCategories =
     category && !categories.includes(category) ? [...categories, category] : categories;
-  const isDefaultBrowse = !storeQuery.value.trim() && !category;
+  const isDefaultBrowse = !storeQuery.value.trim() && !category && !showMine;
 
   const featuredApps = isDefaultBrowse ? apps.slice(0, Math.min(2, apps.length)) : [];
   const popular = [...apps]
@@ -170,7 +167,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
     .sort((a, b) => b.installCount - a.installCount || b.remixCount - a.remixCount)
     .slice(0, 8);
   const categoryGroups = isDefaultBrowse ? groupByCategory(apps).slice(0, 4) : [];
-  const filteredList = !isDefaultBrowse ? apps : [];
+  const filteredList = !isDefaultBrowse && !showMine ? apps : [];
   const aboutPitchApps =
     apps.length === 0
       ? []
@@ -183,38 +180,75 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   }, []);
 
   function selectCategory(next: AppCategory | null) {
+    setShowMine(false);
     void loadStore({ category: next });
+  }
+
+  function selectMine() {
+    if (!requireLogin()) return;
+    setShowMine(true);
+    void loadStore({ category: null });
+    void loadApps();
   }
 
   const view = html`
     <div data-scope="Store">
-      ${visibleCategories.length > 0
-        ? html`
-          <div class="chips-bar" ui-padding="inline-md block-sm">
-            <div class="chips" role="tablist" aria-label=${t("Categories")} ui-row="gap-sm">
+      <div class="chips-bar" ui-padding="inline-md block-sm">
+        <div class="chips" role="tablist" aria-label=${t("Categories")} ui-row="gap-sm y-center">
+          <button
+            type="button"
+            ui-button=${showMine ? "primary sm" : "tertiary sm"}
+            onClick=${selectMine}
+          >
+            ${t("Mine")}
+          </button>
+          <span class="chip-divider" aria-hidden="true"></span>
+          <button
+            type="button"
+            ui-button=${!category && !showMine ? "primary sm" : "tertiary sm"}
+            onClick=${() => selectCategory(null)}
+          >
+            ${t("All")}
+          </button>
+          ${visibleCategories.map(
+            (c) => html`
               <button
                 type="button"
-                ui-button=${!category ? "primary sm" : "tertiary sm"}
-                onClick=${() => selectCategory(null)}
+                ui-button=${!showMine && category === c ? "primary sm" : "tertiary sm"}
+                onClick=${() => selectCategory(c)}
               >
-                ${t("All")}
-              </button>
-              ${visibleCategories.map(
-                (c) => html`
-                  <button
-                    type="button"
-                    ui-button=${category === c ? "primary sm" : "tertiary sm"}
-                    onClick=${() => selectCategory(c)}
-                  >
-                    ${categoryLabel(c)}
-                  </button>`,
-              )}
-            </div>
-          </div>`
-        : ""}
+                ${categoryLabel(c)}
+              </button>`,
+          )}
+        </div>
+      </div>
 
       <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
-        ${loading && apps.length === 0
+        ${showMine
+          ? ownedApps.length === 0
+            ? html`
+              <div ui-column="gap-sm x-center" ui-padding="xl">
+                <p ui-heading="sm">${t("No apps of your own yet")}</p>
+                <p>${t("Create an app to see it here.")}</p>
+                <a
+                  href=${appEditUrl(lang)}
+                  ui-button="primary"
+                  onClick=${(e: Event) => {
+                    if (requireLogin()) return;
+                    e.preventDefault();
+                  }}
+                >${t("Create an app")}</a>
+              </div>`
+            : html`
+              <section ui-column="gap-sm">
+                <h2 ui-heading="sm">${t("My Apps")}</h2>
+                <div class="rail" ui-row="gap-md">
+                  ${ownedApps.map(
+                    (app) => html`<${OwnedRailTile} app=${app} lang=${lang} />`,
+                  )}
+                </div>
+              </section>`
+          : loading && apps.length === 0
           ? html`
             <div ui-column="gap-md x-center" ui-padding="xl">
               <i ui-icon="spinner lg"></i>
@@ -238,18 +272,6 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
                 </div>`
               : isDefaultBrowse
                 ? html`
-                  ${ownedApps.length > 0
-                    ? html`
-                      <section ui-column="gap-sm">
-                        <h2 ui-heading="sm">${t("My Apps")}</h2>
-                        <div class="rail" ui-row="gap-md">
-                          ${ownedApps.map(
-                            (app) => html`<${OwnedRailTile} app=${app} lang=${lang} />`,
-                          )}
-                        </div>
-                      </section>`
-                    : ""}
-
                   ${featuredApps.length > 0
                     ? html`
                       <section class="today" ui-column="gap-md">
@@ -409,6 +431,14 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
         flex: none;
       }
 
+      .chip-divider {
+        flex: none;
+        width: 1px;
+        height: 1.1rem;
+        background: var(--neutral-300);
+        margin-inline: 0.15rem;
+      }
+
       .content {
         padding-top: 1.25rem;
         max-width: 48rem;
@@ -560,11 +590,6 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
       .meta strong {
         -webkit-line-clamp: 1;
         font-size: 0.875rem;
-      }
-
-      .today-footer [ui-button],
-      .chart-row [ui-button] {
-        pointer-events: none;
       }
 
       .rail {
