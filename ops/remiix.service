@@ -1,15 +1,15 @@
 [Unit]
-Description=Abblet
+Description=Remiix
 After=network.target
 
 [Service]
 Type=simple
 User=faunder
 Group=faunder
-WorkingDirectory=/home/faunder/apps/abblet
+WorkingDirectory=/home/faunder/apps/remiix
 Environment="PATH=/home/faunder/.bun/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="PORT=8090"
-EnvironmentFile=/home/faunder/apps/abblet/.env
+EnvironmentFile=/home/faunder/apps/remiix/.env
 ExecStart=/home/faunder/.bun/bin/bun start
 Restart=on-failure
 RestartSec=5

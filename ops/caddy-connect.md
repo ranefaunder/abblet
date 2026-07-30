@@ -16,12 +16,12 @@ www.remiix.app {
 
 remiix.app {
 	import remiix_app_origin_tls
-	import abblet_site
+	import remiix_site
 }
 
 *.remiix.app {
 	import remiix_app_origin_tls
-	import abblet_site
+	import remiix_site
 }
 ```
 
@@ -43,14 +43,14 @@ App runtimes (`*.remiix.app`, optionally legacy `*.rmix.app` / `*.abblet.app`) c
 - `POST /api/sdk/exchange` — connect code → runtime token
 - `POST /api/sdk/ai` — `Remiix.ai({ prompt })`
 
-Update `(abblet_site)` `@cross_site` so these Origins are **not** blocked:
+Update `(remiix_site)` `@cross_site` so these Origins are **not** blocked:
 
 ```caddy
-@cross_site expression ({http.request.method} == "POST" || {http.request.method} == "PUT" || {http.request.method} == "DELETE") && {http.request.header.Origin} != "" && {http.request.header.Origin} != "https://abblet.faunder.fi" && {http.request.header.Origin} != "https://abblet.com" && {http.request.header.Origin} != "https://abblet.app" && {http.request.header.Origin} != "https://rmix.app" && {http.request.header.Origin} != "https://remiix.app" && !{http.request.header.Origin}.endsWith(".abblet.com") && !{http.request.header.Origin}.endsWith(".abblet.app") && !{http.request.header.Origin}.endsWith(".rmix.app") && !{http.request.header.Origin}.endsWith(".remiix.app")
+@cross_site expression ({http.request.method} == "POST" || {http.request.method} == "PUT" || {http.request.method} == "DELETE") && {http.request.header.Origin} != "" && {http.request.header.Origin} != "https://remiix.app" && !{http.request.header.Origin}.endsWith(".remiix.app")
 respond @cross_site 403
 ```
 
-Also add `https://remiix.app` / `https://*.remiix.app` to the CSP in `abblet_security_headers`.
+Also keep `https://remiix.app` / `https://*.remiix.app` in the CSP used by `remiix_site`.
 
 CORS headers for `/api/sdk/*` are set by the Bun app; Caddy must not reject the request before it reaches Bun.
 

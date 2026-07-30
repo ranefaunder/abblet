@@ -2,7 +2,7 @@ import { isClient } from "/utils/env";
 import { appIconPngSrc, appIconSrc } from "/utils/app-icon";
 import { appModuleUrl, appPageUrl } from "/utils/app-url";
 
-const APP_CACHE = "abblet-apps-v1";
+const APP_CACHE = "remiix-apps-v1";
 
 export type OfflineAppRef = {
   slug: string;

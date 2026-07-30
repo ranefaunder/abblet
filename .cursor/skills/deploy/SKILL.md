@@ -2,8 +2,8 @@
 name: deploy
 description: >-
   Commit all relevant changes, push to origin/main, and run ./ops/deploy.sh to
-  production (abblet.com). Use when the user says Deploy, deploy, commit and
-  deploy, or asks to push and deploy this abblet project.
+  production (remiix.app). Use when the user says Deploy, deploy, commit and
+  deploy, or asks to push and deploy this remiix project.
 ---
 
 # Deploy (commit → push → production)
@@ -39,10 +39,11 @@ When the user says **Deploy** (or equivalent), do this end-to-end without asking
 
 ## Deploy script behavior
 
-`./ops/deploy.sh` SSHs to the server, `git fetch` + `reset --hard origin/main`, `bun install`, restarts `abblet.service`.
+`./ops/deploy.sh` SSHs to the server, `git fetch` + `reset --hard origin/main`, `bun install`, restarts `remiix.service`.
 
-Production: https://abblet.com  
-Server path: `/home/faunder/apps/abblet`
+Production: https://remiix.app  
+Server path: `/home/faunder/apps/remiix`  
+GitHub remote (for now): `git@github.com:ranefaunder/abblet.git`
 
 ## Do not
 
