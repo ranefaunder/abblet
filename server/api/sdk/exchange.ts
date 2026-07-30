@@ -1,12 +1,12 @@
 import type { BunRequest } from "bun";
 import { dbExchangeConnectCode } from "/server/database/queries/connect";
 import { apiError, apiSuccess } from "/utils/api.server";
-import { isOriginForAppSlug } from "/utils/app-host";
+import { resolveAppFromOrigin } from "/utils/app-runtime.server";
 import { sdkCorsOptions, withSdkCors } from "/utils/sdk-cors.server";
 
 /**
  * POST /api/sdk/exchange — swap one-time connect code for an opaque runtime token.
- * Called cross-origin from `{slug}.{APP_RUNTIME_HOST}` (no cookies).
+ * Called cross-origin from `{slug|uuid}.{APP_RUNTIME_HOST}` (no cookies).
  */
 export default {
   OPTIONS(req: BunRequest) {
@@ -29,7 +29,10 @@ export default {
     }
 
     const result = dbExchangeConnectCode(code, {
-      originAllowed: (appSlug) => !!origin && isOriginForAppSlug(origin, appSlug),
+      originAllowed: (appSlug) => {
+        const resolved = resolveAppFromOrigin(origin);
+        return resolved?.row.slug === appSlug;
+      },
     });
     if (!result.ok) {
       if (result.reason === "origin") {

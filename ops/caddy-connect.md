@@ -1,4 +1,4 @@
-# Caddy: remiix.app + allow app subdomain calls only to /api/sdk/*
+# Caddy: remiix.app + app subdomains
 
 ## Site blocks (platform + app runtime = same apex)
 
@@ -36,26 +36,18 @@ Legacy `rmix.app` / `abblet.app` redirect at Caddy (and Bun via `redirectLegacyH
 
 DNS: `A`/`AAAA` `@` and `*` → origin IP, proxied (orange).
 
-## CSRF / Origin (Caddy + Bun)
+## Session cookie + CSRF
 
-Session cookie is `Domain=remiix.app`, so `evil.remiix.app` can send it to `https://remiix.app/api/...` (same-site). Defense in depth:
+Session cookie is **host-only** on `remiix.app` (no `Domain=`). App subdomains never receive it, so same-site CSRF from `{slug|uuid}.remiix.app` → platform cookie APIs is not possible via cookie.
 
-**Caddy `(remiix_site)`:**
+Caddy still blocks foreign Origins on mutating methods:
 
 ```caddy
-# Foreign sites
 @cross_site expression ({http.request.method} == "POST" || {http.request.method} == "PUT" || {http.request.method} == "DELETE") && {http.request.header.Origin} != "" && {http.request.header.Origin} != "https://remiix.app" && !{http.request.header.Origin}.endsWith(".remiix.app")
 respond @cross_site 403
-
-# App subdomain → platform cookie API (not SDK); only when Host is the platform apex
-@platform_csrf expression {http.request.host} == "remiix.app" && {http.request.uri.path}.startsWith("/api/") && !{http.request.uri.path}.startsWith("/api/sdk/") && {http.request.header.Origin}.endsWith(".remiix.app")
-respond @platform_csrf 403
 ```
 
-- Same-origin `/api/*` on `{slug}.remiix.app` (e.g. building `POST /api/.../app/get`) is **not** blocked.
-- Bun still enforces Origin on SDK routes and on cookie-auth `/api/:lang/*` (`platformCookieOriginForbidden`).
-
-Also keep `https://remiix.app` / `https://*.remiix.app` and `https://remiix.b-cdn.net` in CSP.
+App runtimes call `/api/sdk/*` (exchange, ai, session, remix) with their Origin; Bun enforces Origin checks. Keep `https://remiix.app` / `https://*.remiix.app` and `https://remiix.b-cdn.net` in CSP.
 
 ## App env
 
@@ -63,3 +55,8 @@ Also keep `https://remiix.app` / `https://*.remiix.app` and `https://remiix.b-cd
 APP_RUNTIME_HOST=remiix.app
 PLATFORM_ORIGIN=https://remiix.app
 ```
+
+## Runtime hosts
+
+- Published: `{numericSlug}.remiix.app`
+- Unpublished preview: `{appIdUuid}.remiix.app` (capability URL — knowing the UUID grants access)

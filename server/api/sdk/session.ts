@@ -1,13 +1,11 @@
 import type { BunRequest } from "bun";
-import { dbGetAppBySlug } from "/server/database/queries/apps";
 import { apiError, apiSuccess } from "/utils/api.server";
-import { isAppRuntimeOrigin } from "/utils/app-host";
-import { getAuthenticatedUser } from "/utils/auth.server";
+import { resolveAppFromOrigin } from "/utils/app-runtime.server";
 import { sdkCredentialCorsOptions, withSdkCredentialCors } from "/utils/sdk-cors.server";
 
 /**
- * GET /api/sdk/session — platform cookie session + ownership for the calling app Origin.
- * Called cross-origin from `{slug}.{APP_RUNTIME_HOST}` with credentials: "include".
+ * GET /api/sdk/session — public metadata for the calling app Origin.
+ * No platform cookie (host-only on remiix.app). Ownership/login live on the platform.
  */
 export default {
   OPTIONS(req: BunRequest) {
@@ -16,30 +14,19 @@ export default {
 
   async GET(req: BunRequest) {
     const origin = req.headers.get("Origin");
-    const slug = isAppRuntimeOrigin(origin);
-    if (!slug) {
+    const resolved = resolveAppFromOrigin(origin);
+    if (!resolved) {
       return apiError({ code: "ORIGIN_DENIED", status: 403 });
     }
 
-    const user = getAuthenticatedUser(req);
-    const row = dbGetAppBySlug(slug);
-    const isOwner = !!(user && row && row.owner_id === user.id);
-    const published = row?.visibility === "public" && row.is_draft !== 1;
+    const { row } = resolved;
+    const published = row.visibility === "public" && row.published_version_id != null && row.is_draft !== 1;
 
     return withSdkCredentialCors(
       apiSuccess({
         data: {
-          user: user
-            ? {
-                id: user.id,
-                email: user.email,
-                createdAt: user.createdAt,
-                lastLogin: user.lastLogin,
-                nickname: user.nickname ?? null,
-                marketingOptIn: user.marketingOptIn === true,
-              }
-            : null,
-          isOwner,
+          user: null,
+          isOwner: false,
           published: published === true,
         },
       }),

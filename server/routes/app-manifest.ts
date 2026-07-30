@@ -1,11 +1,11 @@
 import type { BunRequest } from "bun";
-import { dbGetAppBySlug } from "/server/database/queries/apps";
 import { getAuthenticatedUser } from "/utils/auth.server";
 import { canViewApp } from "/utils/app-access.server";
-import { getRequestHost, parseAppSubdomain } from "/utils/app-host";
 import { appIconMimeType, appIconPngSrc, appIconSrc } from "/utils/app-icon";
 import { isDraftConfig } from "/types/app-config-types";
 import { resolveAppConfig } from "/server/database/queries/app-versions";
+import { resolveAppFromRequestHost } from "/utils/app-runtime.server";
+import { isAppPubliclyRunnable, appOrigin } from "/utils/app-host";
 
 const FALLBACK_ICONS = [
   {
@@ -40,23 +40,28 @@ function manifestIcons(iconId: string | null) {
 }
 
 /**
- * GET /manifest.webmanifest on `{slug}.{APP_RUNTIME_HOST}` —
+ * GET /manifest.webmanifest on `{label}.{APP_RUNTIME_HOST}` —
  * per-app PWA manifest (name + icons from the app).
  */
 export default function appManifest(req: BunRequest): Response {
-  const slug = parseAppSubdomain(getRequestHost(req));
-  if (!slug) return new Response(null, { status: 404 });
+  const resolved = resolveAppFromRequestHost(req);
+  if (!resolved) return new Response(null, { status: 404 });
 
-  const row = dbGetAppBySlug(slug);
-  if (!row) return new Response(null, { status: 404 });
+  const { row, label, viaCapabilityIdHost } = resolved;
+  if (label.kind === "slug" && !isAppPubliclyRunnable(row)) {
+    return new Response(null, { status: 404 });
+  }
+  if (label.kind === "id" && isAppPubliclyRunnable(row)) {
+    return Response.redirect(`${appOrigin(row.slug)}/manifest.webmanifest`, 302);
+  }
 
   const user = getAuthenticatedUser(req);
-  if (!canViewApp(row, user?.id ?? null)) {
+  if (!canViewApp(row, user?.id ?? null, { viaCapabilityIdHost })) {
     return new Response(null, { status: 403 });
   }
 
   const config = resolveAppConfig(row, {
-    asOwner: user?.id === row.owner_id,
+    asOwner: user?.id === row.owner_id || viaCapabilityIdHost,
   });
   if (!config || isDraftConfig(config)) {
     return new Response(null, { status: 404 });

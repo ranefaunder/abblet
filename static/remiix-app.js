@@ -244,27 +244,16 @@ window.Remiix = {
   },
 };
 
-/** Platform cookie session (same user as remiix.app /user/me) + ownership for this app. */
+/** No platform session on app hosts (cookie is host-only on remiix.app). */
 async function loadPlatformSession() {
-  if (isProbablyOffline()) return null;
-  try {
-    const res = await fetch(platformOrigin + "/api/sdk/session", {
-      method: "GET",
-      credentials: "include",
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!data.success || !data.data) return null;
-    const session = {
-      user: data.data.user ?? null,
-      isOwner: data.data.isOwner === true,
-      published: data.data.published === true,
-    };
-    window.Remiix.user = session.user;
-    window.Remiix.isOwner = session.isOwner;
-    return session;
-  } catch {
-    return null;
-  }
+  const session = {
+    user: null,
+    isOwner: false,
+    published: published,
+  };
+  window.Remiix.user = null;
+  window.Remiix.isOwner = false;
+  return session;
 }
 
 const sessionPromise = loadPlatformSession();
@@ -360,12 +349,9 @@ function mountRemiixPatch(session) {
   const canOfferInstall = !isThisAppInstalledPwa();
   let deferredPrompt = null;
 
-  const loggedIn = session?.user != null;
-  const isOwner = session?.isOwner === true;
-  // Guests / failed cookie: keep Edit so owners can still reach the editor.
-  // Signed-in non-owners get Remix instead.
-  const showEdit = isOwner || !loggedIn;
-  const showRemix = loggedIn && !isOwner;
+  // Cookie is host-only on remiix.app — Edit/Remix always go to the platform.
+  const showEdit = true;
+  const showRemix = published;
 
   const menuItems = [];
   if (showEdit) {
@@ -588,32 +574,13 @@ function mountRemiixPatch(session) {
   async function remixApp() {
     if (!remixBtn || remixBtn.disabled) return;
     closeMenu();
-    if (!window.Remiix.user) {
-      location.href = storeHref;
-      return;
-    }
-    remixBtn.disabled = true;
-    const prev = remixBtn.textContent;
-    remixBtn.textContent = t.remixing || "Remixing…";
-    try {
-      const res = await fetch(platformOrigin + "/api/sdk/remix", {
-        method: "POST",
-        credentials: "include",
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 401 || data.error?.code === "UNAUTHORIZED") {
-        location.href = storeHref;
-        return;
-      }
-      if (data.success && data.data?.slug) {
-        location.href = platformOrigin + "/" + lang + "/edit/" + encodeURIComponent(data.data.slug);
-        return;
-      }
-    } catch {
-      // ignore — restore button
-    }
-    remixBtn.disabled = false;
-    remixBtn.textContent = prev;
+    // Remix requires platform login (host-only cookie).
+    location.href =
+      platformOrigin +
+      "/" +
+      lang +
+      "/login?next=" +
+      encodeURIComponent("/" + lang + "/store/" + encodeURIComponent(appSlug));
   }
 
   async function installApp() {

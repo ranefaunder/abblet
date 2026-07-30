@@ -1,5 +1,9 @@
 import type { BunRequest } from "bun";
-import { isAppRuntimeOrigin } from "/utils/app-host";
+import { parseAppRuntimeOrigin } from "/utils/app-host";
+
+function isAppRuntimeCorsOrigin(origin: string | null): boolean {
+  return parseAppRuntimeOrigin(origin) != null;
+}
 
 export function sdkCorsHeaders(origin: string): HeadersInit {
   return {
@@ -10,20 +14,19 @@ export function sdkCorsHeaders(origin: string): HeadersInit {
   };
 }
 
-/** Credentialed CORS for cookie-auth SDK calls (session / remix). */
+/** CORS for non-credentialed SDK calls (exchange / ai). */
 export function sdkCredentialCorsHeaders(origin: string): HeadersInit {
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Credentials": "true",
     Vary: "Origin",
   };
 }
 
-/** Attach SDK CORS headers when Origin is a numeric app subdomain. */
+/** Attach SDK CORS headers when Origin is an app runtime host (slug or UUID). */
 export function withSdkCors(response: Response, origin: string | null): Response {
-  if (!origin || !isAppRuntimeOrigin(origin)) return response;
+  if (!origin || !isAppRuntimeCorsOrigin(origin)) return response;
   const headers = new Headers(response.headers);
   for (const [k, v] of Object.entries(sdkCorsHeaders(origin))) {
     headers.set(k, v);
@@ -32,27 +35,23 @@ export function withSdkCors(response: Response, origin: string | null): Response
 }
 
 export function withSdkCredentialCors(response: Response, origin: string | null): Response {
-  if (!origin || !isAppRuntimeOrigin(origin)) return response;
-  const headers = new Headers(response.headers);
-  for (const [k, v] of Object.entries(sdkCredentialCorsHeaders(origin))) {
-    headers.set(k, v);
-  }
-  return new Response(response.body, { status: response.status, headers });
+  // Credentials no longer used from app subdomains (host-only cookie). Same allowlist as withSdkCors.
+  return withSdkCors(response, origin);
 }
 
 /** OPTIONS preflight for /api/sdk/* (Bearer / no cookies). */
 export function sdkCorsOptions(req: BunRequest): Response {
   const origin = req.headers.get("Origin");
-  if (!origin || !isAppRuntimeOrigin(origin)) {
+  if (!origin || !isAppRuntimeCorsOrigin(origin)) {
     return new Response(null, { status: 204 });
   }
   return new Response(null, { status: 204, headers: sdkCorsHeaders(origin) });
 }
 
-/** OPTIONS preflight for credentialed /api/sdk/* (cookie session). */
+/** OPTIONS preflight for /api/sdk/session|remix (no cookies; kept for compatibility). */
 export function sdkCredentialCorsOptions(req: BunRequest): Response {
   const origin = req.headers.get("Origin");
-  if (!origin || !isAppRuntimeOrigin(origin)) {
+  if (!origin || !isAppRuntimeCorsOrigin(origin)) {
     return new Response(null, { status: 204 });
   }
   return new Response(null, { status: 204, headers: sdkCredentialCorsHeaders(origin) });

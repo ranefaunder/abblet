@@ -3,7 +3,7 @@ import type { BunRequest } from "bun";
 import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 import {
   getRequestHost,
-  parseAppSubdomain,
+  parseAppRuntimeLabel,
   redirectToPlatformFromRequest,
   shouldBounceRuntimeApexToPlatform,
   isAppOnlyHost,
@@ -31,7 +31,7 @@ function getLangFromAcceptLanguage(header: string | null): Language | null {
 export default async function (req: BunRequest): Promise<Response> {
   const host = getRequestHost(req);
 
-  if (parseAppSubdomain(host)) {
+  if (parseAppRuntimeLabel(host)) {
     return appSubdomainPage(req);
   }
 

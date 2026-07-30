@@ -11,6 +11,14 @@ import { isDraftConfig } from "/types/app-config-types";
 import type { Language } from "/types/i18n-types";
 import { getLang } from "/utils/lang";
 import { t } from "/utils/i18n";
+import { resolveAppFromRequestHost } from "/utils/app-runtime.server";
+
+function viewOptsForReq(req: BunRequest, row: { id: string; slug: string }) {
+  const resolved = resolveAppFromRequestHost(req);
+  const viaCapabilityIdHost =
+    resolved?.viaCapabilityIdHost === true && resolved.row.id === row.id;
+  return { viaCapabilityIdHost };
+}
 
 export default {
   async GET(req: BunRequest) {
@@ -22,7 +30,8 @@ export default {
     const row = dbGetAppBySlug(slug);
     if (!row) return apiError({ code: "NOT_FOUND", status: 404 });
 
-    if (!canViewApp(row, user?.id ?? null)) {
+    const viewOpts = viewOptsForReq(req, row);
+    if (!canViewApp(row, user?.id ?? null, viewOpts)) {
       return apiError({ code: "FORBIDDEN", status: 403 });
     }
 
@@ -34,7 +43,6 @@ export default {
 
   async POST(req: BunRequest) {
     const user = getAuthenticatedUser(req);
-    if (!user) return apiError({ code: "UNAUTHORIZED", status: 401 });
 
     let body: unknown;
     try {
@@ -48,11 +56,18 @@ export default {
 
     const row = dbGetAppBySlug(slug);
     if (!row) return apiError({ code: "NOT_FOUND", status: 404 });
-    if (row.owner_id !== user.id) return apiError({ code: "FORBIDDEN", status: 403 });
+
+    const viewOpts = viewOptsForReq(req, row);
+    const isOwner = user?.id === row.owner_id;
+    // Owner cookie OR UUID capability host (building page without platform session).
+    if (!isOwner && !viewOpts.viaCapabilityIdHost) {
+      if (!user) return apiError({ code: "UNAUTHORIZED", status: 401 });
+      return apiError({ code: "FORBIDDEN", status: 403 });
+    }
 
     const existing = resolveAppConfig(row, { asOwner: true });
     if (!isDraftConfig(existing)) {
-      const detail = buildAppDetail(row, user.id, existing);
+      const detail = buildAppDetail(row, user?.id ?? null, existing);
       return apiSuccess({ data: { app: detail } });
     }
 
@@ -85,7 +100,7 @@ export default {
     });
 
     const updated = dbGetAppBySlug(slug)!;
-    const detail = buildAppDetail(updated, user.id, { ...config, title: updated.title });
+    const detail = buildAppDetail(updated, user?.id ?? null, { ...config, title: updated.title });
     return apiSuccess({ data: { app: detail } });
   },
 };

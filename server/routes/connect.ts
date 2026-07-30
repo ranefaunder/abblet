@@ -5,12 +5,12 @@ import {
   dbCreateConnectCode,
 } from "/server/database/queries/connect";
 import { getAuthenticatedUser } from "/utils/auth.server";
-import { appOrigin } from "/utils/app-host";
+import { appRuntimeOrigin } from "/utils/app-host";
 
 type ConnectRequest = BunRequest<"/connect/:appId">;
 
 /**
- * GET /connect/:appId — issue a one-time code and redirect to the app subdomain.
+ * GET /connect/:appId — issue a one-time code and redirect to the app runtime host.
  * Requires a signed-in account (AI credits are charged to the user).
  */
 export default function connectRoute(req: ConnectRequest): Response {
@@ -40,7 +40,7 @@ export default function connectRoute(req: ConnectRequest): Response {
     expiresAt,
   });
 
-  const target = new URL(`${appOrigin(appId)}/`);
+  const target = new URL(`${appRuntimeOrigin(row)}/`);
   target.searchParams.set("code", code);
   return Response.redirect(target.toString(), 302);
 }

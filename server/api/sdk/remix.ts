@@ -2,14 +2,13 @@ import type { BunRequest } from "bun";
 import {
   dbCreateApp,
   dbGenerateAppSlug,
-  dbGetAppBySlug,
   dbUpdateApp,
 } from "/server/database/queries/apps";
 import { resolveSourceConfigForRemix } from "/server/database/queries/app-versions";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { generateAppName } from "/utils/ai-apps.server";
 import { apiError, apiSuccess } from "/utils/api.server";
-import { isAppRuntimeOrigin } from "/utils/app-host";
+import { resolveAppFromOrigin } from "/utils/app-runtime.server";
 import { getAuthenticatedUser } from "/utils/auth.server";
 import { isDraftConfig } from "/types/app-config-types";
 import { getClientIP } from "/utils/request.server";
@@ -17,9 +16,9 @@ import { remixFallbackTitle } from "/utils/remix-title";
 import { sdkCredentialCorsOptions, withSdkCredentialCors } from "/utils/sdk-cors.server";
 
 /**
- * POST /api/sdk/remix — remix the app identified by Origin into the signed-in user's library.
- * Cookie auth + credentialed CORS (same as /api/sdk/session).
- * Remix gets a new name + icon; code becomes v1 of the new app.
+ * POST /api/sdk/remix — remix into the signed-in user's library.
+ * Requires platform cookie (host-only on remiix.app). App subdomains cannot
+ * send that cookie — use the platform Remix flow / login instead.
  */
 export default {
   OPTIONS(req: BunRequest) {
@@ -28,8 +27,8 @@ export default {
 
   async POST(req: BunRequest) {
     const origin = req.headers.get("Origin");
-    const slug = isAppRuntimeOrigin(origin);
-    if (!slug) {
+    const resolved = resolveAppFromOrigin(origin);
+    if (!resolved) {
       return apiError({ code: "ORIGIN_DENIED", status: 403 });
     }
 
@@ -38,8 +37,8 @@ export default {
       return withSdkCredentialCors(apiError({ code: "UNAUTHORIZED", status: 401 }), origin);
     }
 
-    const source = dbGetAppBySlug(slug);
-    if (!source || source.visibility !== "public" || source.is_draft === 1) {
+    const source = resolved.row;
+    if (source.visibility !== "public" || source.is_draft === 1) {
       return withSdkCredentialCors(apiError({ code: "NOT_FOUND", status: 404 }), origin);
     }
 

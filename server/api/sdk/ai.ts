@@ -1,7 +1,8 @@
 import type { BunRequest } from "bun";
 import { AiRequestError, requestTextFromAi } from "/utils/ai-core.server";
 import { apiError, apiSuccess } from "/utils/api.server";
-import { isOriginForAppSlug } from "/utils/app-host";
+import { isOriginForApp } from "/utils/app-host";
+import { resolveAppFromOrigin } from "/utils/app-runtime.server";
 import { assertHasCredits, debitOpenRouterUsage } from "/utils/credits.server";
 import { checkRateLimit } from "/utils/rate-limit.server";
 import { parseBearerToken, resolveRuntimeToken } from "/utils/sdk-auth.server";
@@ -60,7 +61,8 @@ export default {
     }
 
     const { userId, appSlug } = resolved.token;
-    if (!origin || !isOriginForAppSlug(origin, appSlug)) {
+    const fromOrigin = resolveAppFromOrigin(origin);
+    if (!fromOrigin || fromOrigin.row.slug !== appSlug || !isOriginForApp(origin, fromOrigin.row)) {
       return apiError({ code: "ORIGIN_DENIED", status: 403 });
     }
 

@@ -1,16 +1,60 @@
-import { appOrigin, connectUrl as platformConnectUrl } from "/utils/app-host";
+import {
+  appOrigin,
+  appRuntimeOrigin,
+  connectUrl as platformConnectUrl,
+  type AppRuntimeRow,
+} from "/utils/app-host";
 
-export function appPageUrl(_lang: string, slug: string): string {
+/** Runtime URL for an app row (UUID host if unpublished, slug host if published). */
+export function appRuntimePageUrl(row: AppRuntimeRow): string {
+  return `${appRuntimeOrigin(row)}/`;
+}
+
+/**
+ * Prefer passing `app` with id/visibility/publishedVersionId when available so
+ * unpublished apps open on the UUID capability host.
+ */
+export function appPageUrl(
+  _lang: string,
+  slug: string,
+  app?: {
+    id?: string;
+    slug?: string;
+    visibility?: string;
+    publishedVersionId?: string | null;
+    published_version_id?: string | null;
+  } | null,
+): string {
+  if (app?.id) {
+    const published =
+      app.publishedVersionId ?? app.published_version_id ?? null;
+    return appRuntimePageUrl({
+      id: app.id,
+      slug: app.slug ?? slug,
+      visibility: app.visibility ?? "private",
+      published_version_id: published,
+    });
+  }
   return `${appOrigin(slug)}/`;
 }
 
 /** App subdomain install UI (PWA Add to Home Screen). */
-export function appInstallUrl(_lang: string, slug: string): string {
-  return `${appOrigin(slug)}/install`;
+export function appInstallUrl(
+  _lang: string,
+  slug: string,
+  app?: Parameters<typeof appPageUrl>[2],
+): string {
+  const base = appPageUrl(_lang, slug, app).replace(/\/$/, "");
+  return `${base}/install`;
 }
 
-export function appModuleUrl(_lang: string, slug: string): string {
-  return `${appOrigin(slug)}/module.js`;
+export function appModuleUrl(
+  _lang: string,
+  slug: string,
+  app?: Parameters<typeof appPageUrl>[2],
+): string {
+  const base = appPageUrl(_lang, slug, app).replace(/\/$/, "");
+  return `${base}/module.js`;
 }
 
 /** Same-origin module path for the app runtime document (subdomain). */

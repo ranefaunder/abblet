@@ -7,7 +7,14 @@ import { canViewApp } from "/utils/app-access.server";
 import { escapeHtmlAttribute, escapeHtmlTextContent } from "/utils/sanitize.server";
 import { isDraftConfig } from "/types/app-config-types";
 import { resolveAppConfig } from "/server/database/queries/app-versions";
-import { appOrigin, connectUrl, getPlatformOrigin, getRequestHost, parseAppSubdomain } from "/utils/app-host";
+import {
+  appOrigin,
+  appRuntimeOrigin,
+  connectUrl,
+  getPlatformOrigin,
+  isAppPubliclyRunnable,
+} from "/utils/app-host";
+import { resolveAppFromRequestHost } from "/utils/app-runtime.server";
 import { appRuntimeModulePath } from "/utils/app-url";
 import { appIconMimeType, appIconPngSrc, appIconSrc } from "/utils/app-icon";
 
@@ -79,29 +86,31 @@ function resolveRequestLang(req: {
 
 function resolveAppAccess(
   lang: Language,
-  slug: string,
+  row: NonNullable<ReturnType<typeof dbGetAppBySlug>>,
   req: BunRequest,
-  opts?: { allowDraftBySlug?: boolean },
+  opts?: { viaCapabilityIdHost?: boolean },
 ): AppAccess {
-  if (!slug) return { kind: "error", status: 404 };
-
-  const row = dbGetAppBySlug(slug);
-  if (!row) return { kind: "error", status: 404 };
-
+  const slug = row.slug;
   const user = getAuthenticatedUser(req);
   const isOwner = user?.id === row.owner_id;
-  const config = resolveAppConfig(row, { asOwner: isOwner });
+  const viaCapability = opts?.viaCapabilityIdHost === true;
+  const viewOpts = { viaCapabilityIdHost: viaCapability };
   const iconId = row.icon_id ?? null;
-  const isDraft = !config || isDraftConfig(config);
 
-  if (isDraft) {
-    if (isOwner || opts?.allowDraftBySlug) {
+  // "Building" when latest version is still generating.
+  const latestConfig = resolveAppConfig(row, { asOwner: true });
+  const latestIsBuilding = !latestConfig || isDraftConfig(latestConfig);
+  if (latestIsBuilding) {
+    if (isOwner || viaCapability) {
       return { kind: "building", lang, slug, title: row.title, iconId };
     }
     return { kind: "error", status: 404 };
   }
 
-  if (!canViewApp(row, user?.id ?? null)) return { kind: "error", status: 403 };
+  if (!canViewApp(row, user?.id ?? null, viewOpts)) return { kind: "error", status: 404 };
+
+  const config = resolveAppConfig(row, { asOwner: isOwner || viaCapability });
+  if (!config || isDraftConfig(config)) return { kind: "error", status: 404 };
 
   return {
     kind: "ready",
@@ -110,24 +119,27 @@ function resolveAppAccess(
     title: row.title,
     tagName: config.tagName,
     iconId,
-    published: row.visibility === "public",
+    published: row.visibility === "public" && Boolean(row.published_version_id),
   };
 }
 
-function getReadyApp(lang: Language, slug: string, req: BunRequest) {
-  if (!slug) return { error: 404 as const };
-
-  const row = dbGetAppBySlug(slug);
-  if (!row) return { error: 404 as const };
-
+function getReadyApp(
+  lang: Language,
+  row: NonNullable<ReturnType<typeof dbGetAppBySlug>>,
+  req: BunRequest,
+  opts?: { viaCapabilityIdHost?: boolean },
+) {
   const user = getAuthenticatedUser(req);
-  if (!canViewApp(row, user?.id ?? null)) return { error: 403 as const };
+  const viaCapability = opts?.viaCapabilityIdHost === true;
+  if (!canViewApp(row, user?.id ?? null, { viaCapabilityIdHost: viaCapability })) {
+    return { error: 403 as const };
+  }
 
   const isOwner = user?.id === row.owner_id;
-  const config = resolveAppConfig(row, { asOwner: isOwner });
+  const config = resolveAppConfig(row, { asOwner: isOwner || viaCapability });
   if (!config || isDraftConfig(config)) return { error: 404 as const };
 
-  return { lang, slug, config };
+  return { lang, slug: row.slug, config };
 }
 
 const PAGE_STYLES = `
@@ -1087,42 +1099,89 @@ function htmlResponse(html: string): Response {
   });
 }
 
+function withSearch(origin: string, search = ""): string {
+  if (!search) return `${origin}/`;
+  const q = search.startsWith("?") ? search : `?${search}`;
+  return `${origin}/${q}`;
+}
+
 function redirectToAppSubdomain(slug: string, search = ""): Response {
-  return Response.redirect(`${appOrigin(slug)}/${search}`, 302);
+  const row = dbGetAppBySlug(slug);
+  if (!row) return new Response("Not Found", { status: 404 });
+  return Response.redirect(withSearch(appRuntimeOrigin(row), search), 302);
 }
 
-/** App runtime on `{slug}.{APP_RUNTIME_HOST}/`. */
+/**
+ * App runtime on `{slug|uuid}.{APP_RUNTIME_HOST}/`.
+ * - Published: numeric slug host
+ * - Unpublished: UUID capability host (slug host → 404)
+ * - Published app on UUID host → 302 to slug host
+ */
 export function appSubdomainPage(req: BunRequest): Response {
-  const slug = parseAppSubdomain(getRequestHost(req));
-  if (!slug) return new Response("Not Found", { status: 404 });
-  const lang = resolveRequestLang(req);
+  const resolved = resolveAppFromRequestHost(req);
+  if (!resolved) return new Response("Not Found", { status: 404 });
+
+  const { row, label, viaCapabilityIdHost } = resolved;
   const url = new URL(req.url);
-  // Legacy ?mode=install → /install
-  if (url.searchParams.get("mode") === "install") {
-    return Response.redirect(`${appOrigin(slug)}/install`, 302);
+
+  // Unpublished must not be reachable via guessable numeric slug host.
+  if (label.kind === "slug" && !isAppPubliclyRunnable(row)) {
+    return new Response("Not Found", { status: 404 });
   }
-  return renderAppPage(resolveAppAccess(lang, slug, req, { allowDraftBySlug: true }));
+
+  // Canonical public URL is the numeric slug host.
+  if (label.kind === "id" && isAppPubliclyRunnable(row)) {
+    const dest = withSearch(appOrigin(row.slug), url.search);
+    if (url.searchParams.get("mode") === "install") {
+      return Response.redirect(`${appOrigin(row.slug)}/install`, 302);
+    }
+    return Response.redirect(dest, 302);
+  }
+
+  const lang = resolveRequestLang(req);
+  if (url.searchParams.get("mode") === "install") {
+    return Response.redirect(`${appRuntimeOrigin(row)}/install`, 302);
+  }
+  return renderAppPage(resolveAppAccess(lang, row, req, { viaCapabilityIdHost }));
 }
 
-/** App PWA install UI on `{slug}.{APP_RUNTIME_HOST}/install`. */
+/** App PWA install UI on `{label}.{APP_RUNTIME_HOST}/install`. */
 export function appSubdomainInstallPage(req: BunRequest): Response {
-  const slug = parseAppSubdomain(getRequestHost(req));
-  if (!slug) return new Response("Not Found", { status: 404 });
+  const resolved = resolveAppFromRequestHost(req);
+  if (!resolved) return new Response("Not Found", { status: 404 });
+  const { row, label, viaCapabilityIdHost } = resolved;
+
+  if (label.kind === "slug" && !isAppPubliclyRunnable(row)) {
+    return new Response("Not Found", { status: 404 });
+  }
+  if (label.kind === "id" && isAppPubliclyRunnable(row)) {
+    return Response.redirect(`${appOrigin(row.slug)}/install`, 302);
+  }
+
   const lang = resolveRequestLang(req);
-  return renderAppPage(resolveAppAccess(lang, slug, req, { allowDraftBySlug: true }), {
+  return renderAppPage(resolveAppAccess(lang, row, req, { viaCapabilityIdHost }), {
     mode: "install",
     userAgent: req.headers.get("user-agent") ?? "",
   });
 }
 
-/** App module on `{slug}.{APP_RUNTIME_HOST}/module.js`. */
+/** App module on `{label}.{APP_RUNTIME_HOST}/module.js`. */
 export function appSubdomainModule(req: BunRequest): Response {
-  const slug = parseAppSubdomain(getRequestHost(req));
-  if (!slug) {
+  const resolved = resolveAppFromRequestHost(req);
+  if (!resolved) {
     return new Response("// Not found", { status: 404 });
   }
+  const { row, label, viaCapabilityIdHost } = resolved;
+
+  if (label.kind === "slug" && !isAppPubliclyRunnable(row)) {
+    return new Response("// Not found", { status: 404 });
+  }
+  if (label.kind === "id" && isAppPubliclyRunnable(row)) {
+    return Response.redirect(`${appOrigin(row.slug)}/module.js`, 302);
+  }
+
   const lang = resolveRequestLang(req);
-  const result = getReadyApp(lang, slug, req);
+  const result = getReadyApp(lang, row, req, { viaCapabilityIdHost });
   if ("error" in result) {
     return new Response("// Not found", { status: result.error });
   }
@@ -1134,7 +1193,7 @@ export function appSubdomainModule(req: BunRequest): Response {
   });
 }
 
-/** Platform path /452352 → redirect to app subdomain. */
+/** Platform path /452352 → redirect to app runtime host. */
 export function shortAppPage(req: ShortAppRequest | BunRequest<"/:lang">): Response {
   const params = req.params as { appId?: string; lang?: string };
   const appId = (params.appId ?? params.lang)?.trim() ?? "";
@@ -1145,16 +1204,18 @@ export function shortAppPage(req: ShortAppRequest | BunRequest<"/:lang">): Respo
   return redirectToAppSubdomain(appId, url.search);
 }
 
-/** Platform path /452352/module.js → redirect to subdomain module. */
+/** Platform path /452352/module.js → redirect to runtime module. */
 export function shortAppModule(req: ShortModuleRequest): Response {
   const appId = req.params.appId?.trim() ?? "";
   if (!isNumericAppSlug(appId)) {
     return new Response("// Not found", { status: 404 });
   }
-  return Response.redirect(`${appOrigin(appId)}/module.js`, 302);
+  const row = dbGetAppBySlug(appId);
+  if (!row) return new Response("// Not found", { status: 404 });
+  return Response.redirect(`${appRuntimeOrigin(row)}/module.js`, 302);
 }
 
-/** Legacy /:lang/app/:slug — redirects to app subdomain when slug is numeric. */
+/** Legacy /:lang/app/:slug — redirects to app runtime host when slug is numeric. */
 export function appPage(req: LangAppRequest): Response {
   const lang = req.params.lang as Language;
   const slug = req.params.slug?.trim() ?? "";
@@ -1164,13 +1225,17 @@ export function appPage(req: LangAppRequest): Response {
 
   const url = new URL(req.url);
   if (isNumericAppSlug(slug)) {
+    const row = dbGetAppBySlug(slug);
+    if (!row) return new Response("Not Found", { status: 404 });
     if (url.searchParams.get("mode") === "install") {
-      return Response.redirect(`${appOrigin(slug)}/install`, 302);
+      return Response.redirect(`${appRuntimeOrigin(row)}/install`, 302);
     }
-    return redirectToAppSubdomain(slug, url.search);
+    return Response.redirect(withSearch(appRuntimeOrigin(row), url.search), 302);
   }
 
-  return renderAppPage(resolveAppAccess(lang, slug, req), {
+  const row = dbGetAppBySlug(slug);
+  if (!row) return new Response("Not Found", { status: 404 });
+  return renderAppPage(resolveAppAccess(lang, row, req), {
     mode: url.searchParams.get("mode"),
     userAgent: req.headers.get("user-agent") ?? "",
   });
@@ -1203,10 +1268,14 @@ export function appModule(req: AppModuleRequest): Response {
   }
 
   if (isNumericAppSlug(slug)) {
-    return Response.redirect(`${appOrigin(slug)}/module.js`, 302);
+    const row = dbGetAppBySlug(slug);
+    if (!row) return new Response("// Not found", { status: 404 });
+    return Response.redirect(`${appRuntimeOrigin(row)}/module.js`, 302);
   }
 
-  const result = getReadyApp(lang, slug, req);
+  const row = dbGetAppBySlug(slug);
+  if (!row) return new Response("// Not found", { status: 404 });
+  const result = getReadyApp(lang, row, req);
   if ("error" in result) {
     return new Response("// Not found", { status: result.error });
   }

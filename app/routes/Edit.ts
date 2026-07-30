@@ -177,7 +177,7 @@ export default function Edit(_props: EditRouteProps) {
           <div class="page-actions" ui-row="y-center gap-xs">
             ${app && !creating && slug
               ? html`
-                <a ui-button="sm" href=${appPageUrl(lang, slug)}>
+                <a ui-button="sm" href=${appPageUrl(lang, slug, app)}>
                   ${t("Open")}
                 </a>`
               : ""}
@@ -276,7 +276,7 @@ export default function Edit(_props: EditRouteProps) {
               ? html`
                 <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
                   <p ui-heading="sm">${t("You can only edit your own apps.")}</p>
-                  <a href=${appPageUrl(lang, slug)} ui-button>${t("Open app")}</a>
+                  <a href=${appPageUrl(lang, slug, app)} ui-button>${t("Open app")}</a>
                 </div>`
               : html`<${EditWorkspace} slug=${slug} creating=${creating} lang=${lang} />`}
 
@@ -525,7 +525,7 @@ function ChatPanel({
                           <div class="bubble-open" ui-row="gap-sm y-center wrap">
                             ${showAppCard
                               ? html`
-                                <a href=${appPageUrl(lang, slug)} ui-button="sm">
+                                <a href=${appPageUrl(lang, slug, app)} ui-button="sm">
                                   ${t("Open App")}
                                 </a>`
                               : ""}
