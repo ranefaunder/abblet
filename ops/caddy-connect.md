@@ -47,12 +47,12 @@ Session cookie is `Domain=remiix.app`, so `evil.remiix.app` can send it to `http
 @cross_site expression ({http.request.method} == "POST" || {http.request.method} == "PUT" || {http.request.method} == "DELETE") && {http.request.header.Origin} != "" && {http.request.header.Origin} != "https://remiix.app" && !{http.request.header.Origin}.endsWith(".remiix.app")
 respond @cross_site 403
 
-# App subdomain → platform cookie API (not SDK)
-@platform_csrf expression {http.request.uri.path}.startsWith("/api/") && !{http.request.uri.path}.startsWith("/api/sdk/") && {http.request.header.Origin}.endsWith(".remiix.app")
+# App subdomain → platform cookie API (not SDK); only when Host is the platform apex
+@platform_csrf expression {http.request.host} == "remiix.app" && {http.request.uri.path}.startsWith("/api/") && !{http.request.uri.path}.startsWith("/api/sdk/") && {http.request.header.Origin}.endsWith(".remiix.app")
 respond @platform_csrf 403
 ```
 
-- `/api/sdk/*` stays open for `*.remiix.app` Origins (exchange, ai, session, remix).
+- Same-origin `/api/*` on `{slug}.remiix.app` (e.g. building `POST /api/.../app/get`) is **not** blocked.
 - Bun still enforces Origin on SDK routes and on cookie-auth `/api/:lang/*` (`platformCookieOriginForbidden`).
 
 Also keep `https://remiix.app` / `https://*.remiix.app` and `https://remiix.b-cdn.net` in CSP.
