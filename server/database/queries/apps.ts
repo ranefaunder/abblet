@@ -252,6 +252,8 @@ export const dbCreateApp = (data: {
   iconId?: string | null;
   /** When true (default), add the app to the owner's home library. */
   installForOwner?: boolean;
+  /** Short History line for the initial version. */
+  summary?: string;
 }) => {
   const now = new Date().toISOString();
   const versionId = crypto.randomUUID();
@@ -285,6 +287,7 @@ export const dbCreateApp = (data: {
       appId: data.id,
       versionNumber: 1,
       fields,
+      summary: data.summary ?? "",
       createdAt: now,
     });
 

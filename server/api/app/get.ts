@@ -90,7 +90,10 @@ export default {
     }
     const config = generated.config;
 
-    dbCommitAppVersion(row.id, config, { fromVersionId: row.latest_version_id });
+    dbCommitAppVersion(row.id, config, {
+      fromVersionId: row.latest_version_id,
+      summary: t("Created the app", language),
+    });
     dbUpdateApp(row.id, {
       title: config.title,
       description: config.description,

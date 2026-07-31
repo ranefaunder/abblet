@@ -38,6 +38,7 @@ describe("app config version mappers", () => {
         version_number: 1,
         status: fields.status,
         prompt: fields.prompt,
+        summary: "",
         description: fields.description,
         tagline: fields.tagline,
         category: fields.category,

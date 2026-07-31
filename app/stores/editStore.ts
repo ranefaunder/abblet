@@ -28,7 +28,8 @@ export type AppVersionSummary = {
   id: string;
   versionNumber: number;
   status: string;
-  prompt: string;
+  /** Short line describing what changed in this version. */
+  summary: string;
   createdAt: string;
   isLatest: boolean;
   isPublished: boolean;

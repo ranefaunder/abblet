@@ -102,6 +102,7 @@ export default {
         isDraft: false,
         category,
         tagline,
+        summary: t("Created the app", language),
       });
 
       const clientIP = getClientIP(req);

@@ -19,7 +19,7 @@ export default {
         id: v.id,
         versionNumber: v.version_number,
         status: v.status,
-        prompt: v.prompt,
+        summary: (v.summary ?? "").trim(),
         createdAt: v.created_at,
         isLatest: v.id === row.latest_version_id,
         isPublished: v.id === row.published_version_id,

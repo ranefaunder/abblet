@@ -19,13 +19,11 @@ import {
   editStatusSteps,
   editStatusIndex,
   editError,
-  editRegeneratingIcon,
   loadEdit,
   startNewEdit,
   createAppFromPrompt,
   sendChatMessage,
   retryLastChatMessage,
-  regenerateIcon,
   editPublishing,
   setAppPublished,
   editCreditBalanceUsd,
@@ -87,7 +85,6 @@ export default function Edit(_props: EditRouteProps) {
   const app = editApp.value;
   const loading = editLoading.value;
   const creating = isNew || (app != null && isDraftConfig(app.config));
-  const regeneratingIcon = editRegeneratingIcon.value;
   const publishing = editPublishing.value;
   const isPublished = app?.visibility === "public";
   const pageTitle = isNew
@@ -158,10 +155,26 @@ export default function Edit(_props: EditRouteProps) {
 
           <div class="page-actions" ui-row="y-center gap-xs">
             ${app && !creating && slug
-              ? html`
-                <a ui-button="sm" href=${appPageUrl(lang, slug, app)}>
-                  ${t("Open")}
-                </a>`
+              ? isPublished
+                ? html`
+                  <a ui-button="sm" href=${appPageUrl(lang, slug, app)}>
+                    ${t("Open")}
+                  </a>`
+                : showReadyTools
+                  ? html`
+                    <button
+                      type="button"
+                      ui-button="primary sm"
+                      disabled=${publishing}
+                      aria-busy=${publishing}
+                      onClick=${() => {
+                        if (!requireLogin()) return;
+                        void handlePublishToggle();
+                      }}
+                    >
+                      ${t("Publish to Store")}
+                    </button>`
+                  : ""
               : ""}
             ${showTools
               ? html`
@@ -176,21 +189,24 @@ export default function Edit(_props: EditRouteProps) {
                   <div id="edit-topbar-menu" popover="auto" role="menu">
                     ${showReadyTools
                       ? html`
-                        <button
-                          type="button"
-                          role="menuitem"
-                          disabled=${publishing}
-                          onClick=${() => {
-                            if (!requireLogin()) {
-                              closeTopbarMenu();
-                              return;
-                            }
-                            void handlePublishToggle();
-                          }}
-                        >
-                          <i ui-icon=${isPublished ? "prohibit" : "share"} aria-hidden="true"></i>
-                          ${isPublished ? t("Unpublish") : t("Publish to Store")}
-                        </button>
+                        ${isPublished
+                          ? html`
+                            <button
+                              type="button"
+                              role="menuitem"
+                              disabled=${publishing}
+                              onClick=${() => {
+                                if (!requireLogin()) {
+                                  closeTopbarMenu();
+                                  return;
+                                }
+                                void handlePublishToggle();
+                              }}
+                            >
+                              <i ui-icon="prohibit" aria-hidden="true"></i>
+                              ${t("Unpublish")}
+                            </button>`
+                          : ""}
                         <button
                           type="button"
                           role="menuitem"
@@ -206,18 +222,6 @@ export default function Edit(_props: EditRouteProps) {
                         >
                           <i ui-icon="clock-countdown" aria-hidden="true"></i>
                           ${t("History")}
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          disabled=${regeneratingIcon}
-                          onClick=${() => {
-                            closeTopbarMenu();
-                            void regenerateIcon(slug);
-                          }}
-                        >
-                          <i ui-icon="image" aria-hidden="true"></i>
-                          ${t("Generate new icon")}
                         </button>
                         <hr />`
                       : ""}
@@ -667,6 +671,8 @@ function ChatPanel({
               <button
                 type="submit"
                 ui-button="primary sm"
+                disabled=${!canSend}
+                aria-busy=${sending}
               >
                 ${creating ? t("Apply It") : t("Ask Changes")}
               </button>
@@ -750,8 +756,8 @@ function HistoryDialog({ slug }: { slug: string }) {
                         ${v.isLatest ? ` · ${t("Latest")}` : ""}
                         ${v.isPublished ? ` · ${t("Published")}` : ""}
                       </span>
-                      ${v.prompt
-                        ? html`<span class="history-prompt">${v.prompt.slice(0, 80)}${v.prompt.length > 80 ? "…" : ""}</span>`
+                      ${v.summary
+                        ? html`<span class="history-prompt">${v.summary}</span>`
                         : ""}
                     </div>
                     ${v.isLatest

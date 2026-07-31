@@ -453,10 +453,20 @@ async function runEditTurn(opts: {
 
   // Title + icon are app-scoped (not versioned). Code/content edits insert a new version.
   if (versionContentChanged) {
+    const changeSummary = creating
+      ? t("Created the app", language)
+      : replyParts
+          .map((p) => p.trim())
+          .filter(Boolean)
+          .join(" ")
+          .slice(0, 160) || message.trim().slice(0, 120);
     dbCommitAppVersion(
       row.id,
       { ...nextConfig, title: nextConfig.title },
-      { fromVersionId: creating ? null : row.latest_version_id },
+      {
+        fromVersionId: creating ? null : row.latest_version_id,
+        summary: changeSummary,
+      },
     );
   }
 

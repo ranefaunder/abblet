@@ -451,7 +451,7 @@ Return JSON with ALL fields (refresh every field to stay coherent; keep unchange
 - description: one short Store About paragraph in ${langName} (about 3–5 sentences, roughly 280–450 characters). Cover what the app does, who it is for, and what makes the experience distinctive. Plain prose only — no bullet points.
 - tagline: short Store marketing line in ${langName}, MAXIMUM 40 characters
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
-- summary: 1 short sentence in ${langName} for the chat (what metadata you updated)
+- summary: 1 short sentence in ${langName} for the chat (what metadata you updated). Max ~100 characters.
 
 Follow the user's request. If they only rename the app, still keep description/tagline/category accurate for the same app. If they rewrite the About text, improve title/tagline/category only when that clearly helps.`;
 
@@ -566,7 +566,7 @@ ${instruction}`;
 ${reason}
 
 Return one JSON object with:
-- summary: 1-2 sentences in ${langName} describing exactly what you changed (shown in the chat)
+- summary: 1 short sentence in ${langName} describing exactly what you changed (for chat + version history). Max ~100 characters. No fluff.
 - code: the COMPLETE updated JavaScript that registers the custom element (never a diff, never partial code)
 
 ${sharedConstraints}`;
@@ -627,7 +627,7 @@ You will receive the current full source code and a conversation of change reque
 Use search/replace when the change is local (color, copy, one handler, small CSS, typo, single feature tweak).
 Return:
 - mode: "patch"
-- summary: 1-2 sentences in ${langName}
+- summary: 1 short sentence in ${langName} describing exactly what you changed (chat + version history). Max ~100 characters.
 - replacements: array of { old, new, replaceAll? }
   - old: exact substring copied from the current source (include enough context to be unique)
   - new: replacement text (use "" to delete)
@@ -639,7 +639,7 @@ Return:
 Use when adding substantial features, restructuring, touching many places, or when patch would be fragile.
 Return:
 - mode: "full"
-- summary: 1-2 sentences in ${langName}
+- summary: 1 short sentence in ${langName} describing exactly what you changed (chat + version history). Max ~100 characters.
 - code: the COMPLETE updated JavaScript source
 
 ${sharedConstraints}`;

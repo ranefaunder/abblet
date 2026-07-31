@@ -40,6 +40,8 @@ export function dbInsertAppVersion(data: {
   appId: string;
   versionNumber: number;
   fields: ReturnType<typeof appConfigToVersionFields>;
+  /** Short History line describing what changed. */
+  summary?: string;
   createdFromVersionId?: string | null;
   createdAt?: string;
 }): void {
@@ -48,8 +50,8 @@ export function dbInsertAppVersion(data: {
     `
     INSERT INTO app_versions (
       id, app_id, version_number, status, prompt, description, tagline, category,
-      tag_name, code, created_from_version_id, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      tag_name, code, created_from_version_id, created_at, summary
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
   ).run(
     data.id,
@@ -64,6 +66,7 @@ export function dbInsertAppVersion(data: {
     data.fields.code,
     data.createdFromVersionId ?? null,
     now,
+    (data.summary ?? "").trim(),
   );
 }
 
@@ -96,6 +99,8 @@ export function dbCommitAppVersion(
     fromVersionId?: string | null;
     /** Also sync description/tagline/category onto apps (not title). Default true. */
     syncListingMeta?: boolean;
+    /** Short History line for this version. */
+    summary?: string;
   },
 ): AppVersionRow {
   const versionId = crypto.randomUUID();
@@ -109,6 +114,7 @@ export function dbCommitAppVersion(
       appId,
       versionNumber,
       fields,
+      summary: opts?.summary,
       createdFromVersionId: fromId,
     });
     dbSetLatestVersion(appId, versionId);

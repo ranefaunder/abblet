@@ -52,6 +52,7 @@ export default {
       dbCommitAppVersion(row.id, config, {
         fromVersionId: source.id,
         syncListingMeta: true,
+        summary: t("Restored version $n", { n: String(source.version_number) }, language),
       });
 
       const updated = dbGetAppBySlug(slug)!;

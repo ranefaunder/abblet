@@ -95,6 +95,7 @@ export default {
         isDraft: false,
         category: generated.config.category ?? null,
         tagline: generated.config.tagline ?? null,
+        summary: t("Created the app", language),
       });
 
       const iconResult = await generateAppIcon({

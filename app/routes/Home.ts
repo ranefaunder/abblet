@@ -9,7 +9,6 @@ import { appsAppUrl, createUrl } from "/utils/app-url";
 import type { StoreAppCard } from "/types/app-types";
 import {
   storeApps,
-  storeCategories,
   storeCategory,
   storeError,
   storeLoading,
@@ -90,12 +89,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   const apps = storeApps.value;
   const loading = storeLoading.value;
   const category = storeCategory.value;
-  const categories = storeCategories.value.filter((c) => c !== "Games");
   const history = openHistory.value;
-  const visibleCategories =
-    category && category !== "Games" && !categories.includes(category)
-      ? [...categories, category]
-      : categories;
   const isDefaultBrowse = !storeQuery.value.trim() && !category;
 
   const ranked = [...apps].sort(byPopularity);
@@ -128,26 +122,6 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
           <h1 class="page-title">${t("Apps")}</h1>
           <p class="page-lede">${t("Discover apps made by others")}</p>
         </header>
-
-        <div class="chips" role="tablist" aria-label=${t("Categories")} ui-row="gap-sm y-center">
-          <button
-            type="button"
-            ui-button=${!category ? "primary sm" : "tertiary sm"}
-            onClick=${() => selectCategory(null)}
-          >
-            ${t("All")}
-          </button>
-          ${visibleCategories.map(
-            (c) => html`
-              <button
-                type="button"
-                ui-button=${category === c ? "primary sm" : "tertiary sm"}
-                onClick=${() => selectCategory(c)}
-              >
-                ${categoryLabel(c)}
-              </button>`,
-          )}
-        </div>
 
         ${loading && apps.length === 0
           ? html`
@@ -265,20 +239,6 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
     @scope ([data-scope="Store"]) to ([data-scope]) {
       & {
         color: var(--neutral-900);
-      }
-
-      .chips {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scrollbar-width: none;
-      }
-
-      .chips::-webkit-scrollbar {
-        display: none;
-      }
-
-      .chips > [ui-button] {
-        flex: none;
       }
 
       .content {

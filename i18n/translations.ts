@@ -412,6 +412,8 @@ export const translations = {
   "Show Chat": { fi: "Näytä keskustelu" },
   "Show Code": { fi: "Näytä koodi" },
   "History": { fi: "Historia" },
+  "Created the app": { fi: "Appi luotu" },
+  "Restored version $n": { fi: "Palautettu versio $n" },
   "Restore": { fi: "Palauta" },
   "Latest": { fi: "Uusin" },
   "Current": { fi: "Nykyinen" },

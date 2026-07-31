@@ -6,6 +6,8 @@ export type AppVersionRow = {
   version_number: number;
   status: "ready" | "draft" | "error";
   prompt: string;
+  /** Short History line: what changed in this version (not the original create prompt). */
+  summary: string;
   description: string;
   tagline: string | null;
   category: string | null;
