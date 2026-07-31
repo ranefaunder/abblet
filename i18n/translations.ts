@@ -364,6 +364,19 @@ export const translations = {
   "AI credit": {
     fi: "AI-saldo",
   },
+  "Balance": { fi: "Saldo" },
+  "Monthly free grant": { fi: "Kuukausittainen ilmaisraha" },
+  "Daily usage": { fi: "Päivittäinen kulutus" },
+  "Building apps": { fi: "Appien tekeminen" },
+  "Using apps": { fi: "Appien käyttäminen" },
+  "By app": { fi: "Appeittain" },
+  "Building": { fi: "Tekeminen" },
+  "Using": { fi: "Käyttäminen" },
+  "Unknown app": { fi: "Tuntematon app" },
+  "No AI usage yet.": { fi: "Ei vielä AI-kulutusta." },
+  "Your AI credit for creating, editing, and running AI in apps.": {
+    fi: "AI-saldosi appien luontiin, muokkaukseen ja AI:n käyttöön apeissa.",
+  },
   "AI credit ≈ $amount": {
     fi: "AI-saldo ≈ $amount",
   },

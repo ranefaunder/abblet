@@ -135,3 +135,100 @@ export function dbDebitCredits(data: {
 
   return run();
 }
+
+export type CreditDailySpendRow = {
+  day: string;
+  spentUsdMicros: number;
+};
+
+/** Daily AI credit spend (debits only), newest first. */
+export function dbListDailyCreditSpend(
+  userId: string,
+  limit = 31,
+): CreditDailySpendRow[] {
+  return db
+    .query<
+      { day: string; spent_usd_micros: number },
+      [string, number]
+    >(
+      `SELECT substr(created_at, 1, 10) as day,
+              SUM(CASE WHEN delta_usd_micros < 0 THEN -delta_usd_micros ELSE 0 END) as spent_usd_micros
+       FROM credit_ledger
+       WHERE user_id = ?
+       GROUP BY day
+       HAVING spent_usd_micros > 0
+       ORDER BY day DESC
+       LIMIT ?`,
+    )
+    .all(userId, limit)
+    .map((r) => ({
+      day: r.day,
+      spentUsdMicros: r.spent_usd_micros,
+    }));
+}
+
+export type CreditAppSpendKind = "build" | "runtime";
+
+export type CreditAppSpendRow = {
+  kind: CreditAppSpendKind;
+  slug: string | null;
+  title: string | null;
+  iconId: string | null;
+  spentUsdMicros: number;
+};
+
+/**
+ * Spend by app, split into building (generate/edit/icon) vs using (runtime AI).
+ * Newest / highest spend first within each kind (caller can group).
+ */
+export function dbListCreditSpendByApp(userId: string): CreditAppSpendRow[] {
+  return db
+    .query<
+      {
+        kind: string;
+        slug: string | null;
+        title: string | null;
+        icon_id: string | null;
+        spent_usd_micros: number;
+      },
+      [string]
+    >(
+      `SELECT
+         CASE
+           WHEN l.reason IN ('ai_generate', 'ai_edit', 'ai_icon') THEN 'build'
+           WHEN l.reason = 'ai_runtime' THEN 'runtime'
+           ELSE 'other'
+         END as kind,
+         NULLIF(
+           COALESCE(
+             json_extract(l.meta_json, '$.slug'),
+             json_extract(l.meta_json, '$.appSlug')
+           ),
+           ''
+         ) as slug,
+         a.title as title,
+         a.icon_id as icon_id,
+         SUM(-l.delta_usd_micros) as spent_usd_micros
+       FROM credit_ledger l
+       LEFT JOIN apps a
+         ON a.slug = COALESCE(
+           json_extract(l.meta_json, '$.slug'),
+           json_extract(l.meta_json, '$.appSlug')
+         )
+       WHERE l.user_id = ?
+         AND l.delta_usd_micros < 0
+         AND l.reason IN ('ai_generate', 'ai_edit', 'ai_icon', 'ai_runtime')
+       GROUP BY kind, slug
+       HAVING spent_usd_micros > 0
+       ORDER BY spent_usd_micros DESC`,
+    )
+    .all(userId)
+    .filter((r) => r.kind === "build" || r.kind === "runtime")
+    .map((r) => ({
+      kind: r.kind as CreditAppSpendKind,
+      slug: r.slug,
+      title: r.title,
+      iconId: r.icon_id,
+      spentUsdMicros: r.spent_usd_micros,
+    }));
+}

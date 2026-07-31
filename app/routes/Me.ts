@@ -13,9 +13,37 @@ import { apps as libraryApps, loadApps } from "/app/stores/appStore";
 import { createUrl, splashUrl } from "/utils/app-url";
 import { AVAILABLE_LANGUAGES, type Language } from "/i18n/languages";
 import { pathWithLang } from "/utils/lang";
+import { apiFetch } from "/utils/api.client";
+import { appIconSrc } from "/utils/app-icon";
+import { previewGradient, draftLetter } from "/utils/app-preview";
 import AppGrid from "/app/components/AppGrid";
 
 export const MePath = "/:lang/me" as const;
+
+type CreditDailySpend = { day: string; spentUsd: number };
+type CreditAppSpend = {
+  kind: "build" | "runtime";
+  slug: string | null;
+  title: string | null;
+  iconId: string | null;
+  spentUsd: number;
+};
+type CreditAppBreakdown = {
+  key: string;
+  slug: string;
+  title: string;
+  iconId: string | null;
+  buildUsd: number;
+  runtimeUsd: number;
+  totalUsd: number;
+};
+type CreditsSnapshot = {
+  balanceUsd: number;
+  freeGrantUsd: number;
+  periodYm: string;
+  dailySpend: CreditDailySpend[];
+  byApp: CreditAppSpend[];
+};
 
 const JOIN_FEATURES = [
   {
@@ -50,6 +78,7 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
   const { lang } = params;
   const [marketingBusy, setMarketingBusy] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
+  const [credits, setCredits] = useState<CreditsSnapshot | null>(null);
   const loggedIn = isLoggedIn();
   const account = user.value;
   const ownedApps = libraryApps.value.filter((app) => app.owned);
@@ -63,8 +92,77 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
   const currentPath = path ?? `/${lang}/me`;
 
   useEffect(() => {
-    if (loggedIn) void loadApps();
-  }, [loggedIn]);
+    if (!loggedIn) {
+      setCredits(null);
+      return;
+    }
+    void loadApps();
+    void (async () => {
+      const result = await apiFetch<{
+        balanceUsd: number;
+        freeGrantUsd: number;
+        periodYm: string;
+        dailySpend?: CreditDailySpend[];
+        byApp?: CreditAppSpend[];
+      }>(`/api/${lang}/credits`);
+      if (!result.success) {
+        setCredits(null);
+        return;
+      }
+      setCredits({
+        balanceUsd: result.data.balanceUsd,
+        freeGrantUsd: result.data.freeGrantUsd,
+        periodYm: result.data.periodYm,
+        dailySpend: result.data.dailySpend ?? [],
+        byApp: result.data.byApp ?? [],
+      });
+    })();
+  }, [loggedIn, lang]);
+
+  function formatCreditDay(isoDay: string): string {
+    const d = new Date(`${isoDay}T12:00:00Z`);
+    if (Number.isNaN(d.getTime())) return isoDay;
+    try {
+      return new Intl.DateTimeFormat(lang === "fi" ? "fi-FI" : "en-GB", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }).format(d);
+    } catch {
+      return isoDay;
+    }
+  }
+
+  function formatSpendUsd(amount: number): string {
+    if (amount < 0.01) return `$${amount.toFixed(4)}`;
+    return `$${amount.toFixed(2)}`;
+  }
+
+  function mergeAppSpend(rows: CreditAppSpend[]): CreditAppBreakdown[] {
+    const map = new Map<string, CreditAppBreakdown>();
+    for (const row of rows) {
+      const slug = row.slug?.trim() || "";
+      const key = slug || row.title?.trim() || "unknown";
+      const cur = map.get(key) ?? {
+        key,
+        slug: slug || key,
+        title: row.title?.trim() || slug || t("Unknown app"),
+        iconId: row.iconId,
+        buildUsd: 0,
+        runtimeUsd: 0,
+        totalUsd: 0,
+      };
+      if (row.title?.trim()) cur.title = row.title.trim();
+      if (row.iconId) cur.iconId = row.iconId;
+      if (row.kind === "build") cur.buildUsd += row.spentUsd;
+      else cur.runtimeUsd += row.spentUsd;
+      cur.totalUsd = cur.buildUsd + cur.runtimeUsd;
+      map.set(key, cur);
+    }
+    return [...map.values()].sort((a, b) => b.totalUsd - a.totalUsd);
+  }
+
+  const appBreakdown = mergeAppSpend(credits?.byApp ?? []);
 
   async function handleLogout() {
     if (logoutBusy) return;
@@ -208,19 +306,6 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                         autocomplete="email"
                       />
                     </div>
-                    ${account.nickname
-                      ? html`
-                        <div ui-field>
-                          <label for="me-nickname">${t("Name")}</label>
-                          <input
-                            id="me-nickname"
-                            type="text"
-                            value=${account.nickname}
-                            readonly
-                            autocomplete="nickname"
-                          />
-                        </div>`
-                      : ""}
                   </div>
 
                   <label class="pref-row" ui-row="gap-md y-center x-between">
@@ -249,6 +334,101 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                       ${t("Log out")}
                     </button>
                   </div>
+                </section>`
+              : ""}
+
+            ${credits
+              ? html`
+                <section class="panel credits" ui-column="gap-lg">
+                  <header class="credits-head" ui-row="x-between y-start gap-md">
+                    <div ui-column="gap-sm">
+                      <h2 class="panel-title">${t("AI credit")}</h2>
+                      <p class="credits-balance">$${credits.balanceUsd.toFixed(2)}</p>
+                      <p class="credits-grant">
+                        ${t("Monthly free grant")} · $${credits.freeGrantUsd.toFixed(2)}
+                      </p>
+                    </div>
+                    ${appBreakdown.length > 0
+                      ? html`
+                        <button
+                          type="button"
+                          ui-button="sm"
+                          commandfor="me-credits-by-app"
+                          command="show-modal"
+                        >
+                          ${t("By app")}
+                        </button>`
+                      : ""}
+                  </header>
+
+                  <div class="credits-usage" ui-column="gap-md">
+                    <h3 class="credits-usage-title">${t("Daily usage")}</h3>
+                    ${credits.dailySpend.length > 0
+                      ? html`
+                        <ul class="credits-days" ui-off>
+                          ${credits.dailySpend.map(
+                            (row) => html`
+                              <li class="credits-day">
+                                <span class="credits-day-date">${formatCreditDay(row.day)}</span>
+                                <span class="credits-day-amount">${formatSpendUsd(row.spentUsd)}</span>
+                              </li>`,
+                          )}
+                        </ul>`
+                      : html`<p class="credits-empty">${t("No AI usage yet.")}</p>`}
+                  </div>
+
+                  ${appBreakdown.length > 0
+                    ? html`
+                      <dialog id="me-credits-by-app" class="credits-dialog" ui-dialog="sm" closedby="any">
+                        <header ui-row="x-between y-center gap-md">
+                          <h2 ui-heading="sm">${t("By app")}</h2>
+                          <button
+                            type="button"
+                            ui-button="inline"
+                            ui-icon="x"
+                            commandfor="me-credits-by-app"
+                            command="close"
+                            aria-label=${t("Close")}
+                          ></button>
+                        </header>
+                        <ul class="credits-apps" ui-off>
+                          ${appBreakdown.map((app) => {
+                            const iconSrc = appIconSrc(app.iconId);
+                            return html`
+                              <li class="credits-app">
+                                <span
+                                  class="credits-app-icon"
+                                  style=${`background: ${previewGradient(app.slug)}`}
+                                  aria-hidden="true"
+                                >
+                                  ${iconSrc
+                                    ? html`<img src=${iconSrc} alt="" width="40" height="40" decoding="async" />`
+                                    : html`<span>${draftLetter(app.title)}</span>`}
+                                </span>
+                                <div class="credits-app-body">
+                                  <strong class="credits-app-name">${app.title}</strong>
+                                  <dl class="credits-app-meta">
+                                    ${app.buildUsd > 0
+                                      ? html`
+                                        <div>
+                                          <dt>${t("Building")}</dt>
+                                          <dd>${formatSpendUsd(app.buildUsd)}</dd>
+                                        </div>`
+                                      : ""}
+                                    ${app.runtimeUsd > 0
+                                      ? html`
+                                        <div>
+                                          <dt>${t("Using")}</dt>
+                                          <dd>${formatSpendUsd(app.runtimeUsd)}</dd>
+                                        </div>`
+                                      : ""}
+                                  </dl>
+                                </div>
+                              </li>`;
+                          })}
+                        </ul>
+                      </dialog>`
+                    : ""}
                 </section>`
               : ""}`}
       </div>
@@ -399,6 +579,171 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
       [ui-field] input[readonly] {
         color: var(--neutral-800);
         background: var(--neutral-50);
+      }
+
+      .credits-head {
+        align-items: flex-start;
+      }
+
+      .credits-head > [ui-button] {
+        flex: none;
+        margin-top: 0.1rem;
+      }
+
+      .credits-balance {
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 2.5rem);
+        font-weight: 800;
+        letter-spacing: -0.045em;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        color: var(--neutral-950);
+      }
+
+      .credits-grant {
+        margin: 0;
+        font-size: 0.875rem;
+        color: var(--neutral-500);
+      }
+
+      .credits-usage {
+        gap: 0.75rem;
+      }
+
+      .credits-usage-title {
+        margin: 0;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--neutral-500);
+      }
+
+      .credits-empty {
+        margin: 0;
+        font-size: 0.875rem;
+        color: var(--neutral-500);
+      }
+
+      .credits-days {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .credits-day {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.7rem 0;
+        border-top: 1px solid var(--neutral-100);
+      }
+
+      .credits-day:first-child {
+        border-top: none;
+        padding-top: 0;
+      }
+
+      .credits-day-date {
+        font-size: 0.9375rem;
+        color: var(--neutral-600);
+      }
+
+      .credits-day-amount {
+        font-size: 0.9375rem;
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+        color: var(--neutral-950);
+      }
+
+      .credits-apps {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .credits-app {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        padding: 1rem 0;
+        border-top: 1px solid var(--neutral-100);
+      }
+
+      .credits-app:first-child {
+        border-top: none;
+        padding-top: 0.25rem;
+      }
+
+      .credits-app:last-child {
+        padding-bottom: 0.15rem;
+      }
+
+      .credits-app-icon {
+        flex: none;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.65rem;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        color: var(--white);
+        font-size: 0.95rem;
+        font-weight: 750;
+      }
+
+      .credits-app-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .credits-app-body {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+
+      .credits-app-name {
+        margin: 0;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        color: var(--neutral-950);
+        overflow-wrap: anywhere;
+      }
+
+      .credits-app-meta {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+
+      .credits-app-meta > div {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .credits-app-meta dt {
+        margin: 0;
+        font-size: 0.8125rem;
+        color: var(--neutral-500);
+      }
+
+      .credits-app-meta dd {
+        margin: 0;
+        font-size: 0.8125rem;
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+        color: var(--neutral-900);
       }
     }
   `;
