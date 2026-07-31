@@ -41,7 +41,7 @@ const aiAppSchema = appConfigSchema
   });
 
 /** Tools the edit orchestrator can run after intent classification. */
-export const EDIT_TOOLS = ["updateCode", "rename", "regenerateIcon"] as const;
+export const EDIT_TOOLS = ["updateCode", "updateMeta", "regenerateIcon"] as const;
 export type EditTool = (typeof EDIT_TOOLS)[number];
 
 const editIntentSchema = z.object({
@@ -61,10 +61,10 @@ const editIntentSchema = z.object({
   nextPrompt: z.string().min(1).max(120),
 });
 
-const aiRenameSchema = z.object({
+const aiMetaSchema = z.object({
   summary: z.string().min(1),
   title: aiTitleSchema,
-  description: z.string().min(1).max(500),
+  description: z.string().min(1).max(700),
   tagline: aiTaglineSchema,
   category: aiCategorySchema,
 });
@@ -293,7 +293,7 @@ export async function generateAppConfig(
 
 Return one JSON object with:
 - title: short app name, MAXIMUM 12 characters (including spaces). Must fit under a phone home-screen icon — prefer 1–2 words (e.g. "Budget", "Ostoslista", "Run Log"). Never use the raw user prompt if it is longer than 12 chars; invent a short label instead.
-- description: 1-2 sentences describing what the app does
+- description: one short Store About paragraph in ${langName} (about 3–5 sentences, roughly 280–450 characters). Cover what the app does, who it is for, and what makes the experience distinctive. Plain prose only — no bullet points, no marketing slogans.
 - tagline: short Store marketing line in ${langName}, MAXIMUM 40 characters (e.g. "Track spending in seconds")
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
 - tagName: valid custom element name, lowercase with at least one hyphen (e.g. "run-log", "wine-journal")
@@ -356,23 +356,23 @@ export async function classifyEditIntent(opts: {
 
 Available tools:
 - updateCode: change the app's features, UI, behavior, bugfixes, layout, text inside the app, or anything that requires modifying the Web Component source.
-- rename: change only the home-screen app name (title, max 12 chars) and/or the short Store description. Use when the user asks to rename, retitle, or rewrite the description — without needing code changes for that part.
+- updateMeta: change Store / listing metadata without touching the Web Component source — home-screen title (max 12 chars), Store About description paragraph, short tagline (max 40 chars), and/or category. Use for rename, retitle, rewrite description/tagline, change category, or any listing-copy request.
 - regenerateIcon: regenerate the home-screen / launcher icon. Use ONLY for an explicit icon request (e.g. "new icon", "vaihda kuvake", "make the icon blue"). Never invent an icon request.
 
 Rules:
 - Pick ONLY the tools the latest user message clearly needs. Prefer fewer tools.
-- Do NOT select updateCode for pure rename, pure icon, questions, thanks, or vague chat.
+- Do NOT select updateCode for pure metadata, pure icon, questions, thanks, or vague chat.
 - Do NOT select regenerateIcon unless the user explicitly asks about the launcher/home-screen icon.
-- Multiple tools are OK when clearly requested together (e.g. rename + new icon).
+- Multiple tools are OK when clearly requested together (e.g. updateMeta + new icon).
 - If nothing actionable (question, greeting, unclear): tools = [] and reply asks a clarifying question or answers briefly.
 - reply: 1-3 short sentences in ${langName}. When tools is empty this is the full chat answer. When tools is non-empty, a brief acknowledgement is enough (the tools will add detail).
 - progress: 1–5 short present-tense status lines in ${langName} shown while work runs.
-    Make them specific to THIS request (not generic). Examples: "Updating the checklist colors…", "Renaming the app…", "Refreshing the home-screen icon…".
+    Make them specific to THIS request (not generic). Examples: "Updating the checklist colors…", "Updating the Store listing…", "Refreshing the home-screen icon…".
     If tools is empty, still return one friendly line like "Thinking about your question…".
     No markdown, no quotes around the lines, max ~80 characters each.
 - nextPrompt: one short suggested follow-up the USER might type next, in ${langName}.
     Write it as if the user is speaking (imperative / request), not as a question to them.
-    Make it concrete and useful for THIS app right now (e.g. "Add a dark mode toggle", "Make the title larger", "Rename it to Focus List").
+    Make it concrete and useful for THIS app right now (e.g. "Add a dark mode toggle", "Make the title larger", "Rewrite the Store description").
     Max ~80 characters. No quotes, no markdown, no leading "e.g.".
 
 Return JSON: { "tools": [...], "reply": "...", "progress": ["...", "..."], "nextPrompt": "..." }`;
@@ -425,8 +425,8 @@ Choose tools, write reply, progress status lines, and nextPrompt.`;
   };
 }
 
-/** Generate a short home-screen title + description (no code changes). */
-export async function generateAppName(opts: {
+/** Update Store / listing metadata (title, description, tagline, category) — no code changes. */
+export async function updateAppMeta(opts: {
   current: AppConfig;
   instruction: string;
   language: Language;
@@ -444,16 +444,16 @@ export async function generateAppName(opts: {
   const { current, instruction, language, model } = opts;
   const langName = AVAILABLE_LANGUAGES[language]?.name ?? "English";
 
-  const systemPrompt = `You name Remiix apps for a phone home screen and Store listing.
+  const systemPrompt = `You update Remiix app listing metadata for the phone home screen and Store page. You do NOT change the app's Web Component source.
 
-Return JSON:
+Return JSON with ALL fields (refresh every field to stay coherent; keep unchanged values only when the user asked for a narrow change and the current text still fits):
 - title: short app name, MAXIMUM 12 characters (including spaces). Prefer 1–2 words. Must fit under an icon.
-- description: 1-2 sentences in ${langName} describing what the app does
+- description: one short Store About paragraph in ${langName} (about 3–5 sentences, roughly 280–450 characters). Cover what the app does, who it is for, and what makes the experience distinctive. Plain prose only — no bullet points.
 - tagline: short Store marketing line in ${langName}, MAXIMUM 40 characters
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
-- summary: 1 short sentence in ${langName} for the chat (what you renamed it to)
+- summary: 1 short sentence in ${langName} for the chat (what metadata you updated)
 
-Keep the meaning of the existing app unless the user asks otherwise.`;
+Follow the user's request. If they only rename the app, still keep description/tagline/category accurate for the same app. If they rewrite the About text, improve title/tagline/category only when that clearly helps.`;
 
   const userPrompt = `Current title: ${current.title}
 Current description: ${current.description}
@@ -466,7 +466,7 @@ ${instruction}`;
   const { data, costUsd, model: modelUsed, responseJson } = await requestJsonFromAi({
     systemPrompt,
     userPrompt,
-    schema: aiRenameSchema,
+    schema: aiMetaSchema,
     model,
   });
   if (!data) return null;
@@ -483,10 +483,13 @@ ${instruction}`;
   };
 }
 
+/** @deprecated Use updateAppMeta */
+export const generateAppName = updateAppMeta;
+
 /**
  * Edit an existing app's Web Component code. The model chooses patch
  * (search-replace) or full rewrite. Failed patches automatically fall back to full.
- * Does not rename or regenerate icons — those are separate tools.
+ * Does not update listing metadata or regenerate icons — those are separate tools.
  */
 export async function editAppConfig(opts: {
   current: AppConfig;
@@ -532,7 +535,7 @@ export async function editAppConfig(opts: {
 - Preserve existing user data compatibility: keep the same localStorage keys and data shape unless the request explicitly requires changing them.
 - Make the smallest change that fully satisfies the request; do not rewrite unrelated parts or regress existing features.
 - Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Remiix.ai({ prompt }) / Remiix.connect() only when the request needs AI. Everything inside the Shadow DOM (except the host-host-injected Remiix global).
-- Do NOT change the home-screen title, description, or launcher icon — those are handled by other tools.
+- Do NOT change the home-screen title, Store description, tagline, category, or launcher icon — those are handled by updateMeta / regenerateIcon.
 
 ${designGuidelines(langName)}`;
 

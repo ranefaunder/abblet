@@ -14,13 +14,11 @@ export const editSending = signal(false);
 export const editStatusText = signal<string | null>(null);
 export const editStatusSteps = signal<string[]>([]);
 export const editStatusIndex = signal(0);
-export const editSavingCode = signal(false);
 export const editError = signal<string | null>(null);
-export const codeDraft = signal<string>("");
 export const editRegeneratingIcon = signal(false);
 export const editPublishing = signal(false);
-/** User AI wallet (EUR), refreshed after grant/debit. */
-export const editCreditBalanceEur = signal<number | null>(null);
+/** User AI wallet (USD), refreshed after grant/debit. */
+export const editCreditBalanceUsd = signal<number | null>(null);
 /** Intent AI's suggested next user message — used as composer placeholder. */
 export const editSuggestedPrompt = signal<string | null>(null);
 /** Last failed chat prompt — when set, the UI can offer Try again. */
@@ -42,18 +40,18 @@ export const editRestoring = signal(false);
 
 export async function refreshEditCredits(): Promise<void> {
   if (!isLoggedIn()) {
-    editCreditBalanceEur.value = null;
+    editCreditBalanceUsd.value = null;
     return;
   }
   try {
     const result = await apiFetch<{
-      balanceEur: number;
+      balanceUsd: number;
       balanceUsdMicros: number;
       periodYm: string;
-      freeGrantEur: number;
+      freeGrantUsd: number;
     }>(`/api/${lang()}/credits`);
     if (result.success && result.data) {
-      editCreditBalanceEur.value = result.data.balanceEur;
+      editCreditBalanceUsd.value = result.data.balanceUsd;
     }
   } catch {
     // ignore — balance is non-critical UI
@@ -66,7 +64,6 @@ function lang(): string {
 
 function resetEditRequestFlags(): void {
   editSending.value = false;
-  editSavingCode.value = false;
   editRegeneratingIcon.value = false;
   editPublishing.value = false;
   editStatusText.value = null;
@@ -82,11 +79,9 @@ export function initEditStore(): void {
   const { initialApp } = ssrContext();
   if (initialApp && initialApp.canEdit) {
     editApp.value = initialApp;
-    codeDraft.value = initialApp.config.code;
     editSuggestedPrompt.value = initialApp.nextPrompt?.trim() || null;
   } else {
     editApp.value = null;
-    codeDraft.value = "";
     editMessages.value = [];
   }
 }
@@ -99,7 +94,6 @@ export async function loadEdit(slug: string): Promise<void> {
   const alreadyLoaded = editApp.value?.slug === slug;
   if (!alreadyLoaded) {
     editApp.value = null;
-    codeDraft.value = "";
     editMessages.value = [];
     editSuggestedPrompt.value = null;
     editRetryPrompt.value = null;
@@ -116,7 +110,6 @@ export async function loadEdit(slug: string): Promise<void> {
       return;
     }
     editApp.value = appResult.data.app;
-    codeDraft.value = appResult.data.app.config.code;
     editSuggestedPrompt.value = appResult.data.app.nextPrompt?.trim() || null;
     editRetryPrompt.value = null;
 
@@ -134,13 +127,12 @@ export async function loadEdit(slug: string): Promise<void> {
   void refreshEditCredits();
 }
 
-/** Clear editor state for a fresh /{lang}/edit (new app) session. */
+/** Clear editor state for a fresh /{lang}/create (new app) session. */
 export function startNewEdit(): void {
   editError.value = null;
   resetEditRequestFlags();
   editLoading.value = false;
   editApp.value = null;
-  codeDraft.value = "";
   editMessages.value = [];
   editSuggestedPrompt.value = null;
   editRetryPrompt.value = null;
@@ -202,7 +194,6 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
       editApp.value = result.data.app;
     }
     editMessages.value = result.data.messages;
-    codeDraft.value = result.data.app.config.code;
     refreshOfflineAppCache(result.data.app);
     void refreshEditCredits();
     return result.data.app.slug;
@@ -303,7 +294,6 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
       if (body.data) {
         editRetryPrompt.value = null;
         editApp.value = body.data.app;
-        codeDraft.value = body.data.app.config.code;
         editMessages.value = body.data.messages;
         refreshOfflineAppCache(body.data.app);
       }
@@ -363,7 +353,6 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
           gotDone = true;
           editRetryPrompt.value = null;
           editApp.value = event.data.app;
-          codeDraft.value = event.data.app.config.code;
           editMessages.value = event.data.messages;
           if (typeof event.data.nextPrompt === "string" && event.data.nextPrompt.trim()) {
             const prompt = event.data.nextPrompt.trim();
@@ -426,27 +415,6 @@ export async function retryLastChatMessage(slug: string): Promise<boolean> {
 
   editRetryPrompt.value = null;
   return sendChatMessage(slug, prompt);
-}
-
-export async function saveCode(slug: string): Promise<void> {
-  if (editSavingCode.value) return;
-  editError.value = null;
-  editSavingCode.value = true;
-  try {
-    const result = await apiFetch<{ app: AppDetail }>(`/api/${lang()}/app/update-code`, {
-      method: "POST",
-      body: JSON.stringify({ slug, code: codeDraft.value }),
-    });
-    if (!result.success) {
-      editError.value = result.error.message ?? result.error.code;
-      return;
-    }
-    editApp.value = result.data.app;
-    codeDraft.value = result.data.app.config.code;
-    refreshOfflineAppCache(result.data.app);
-  } finally {
-    editSavingCode.value = false;
-  }
 }
 
 /** Regenerate the launcher icon on explicit user request. */
@@ -529,7 +497,6 @@ export async function restoreAppVersion(slug: string, versionId: string): Promis
       return false;
     }
     editApp.value = result.data.app;
-    codeDraft.value = result.data.app.config.code;
     refreshOfflineAppCache(result.data.app);
     await loadEditVersions(slug);
     return true;

@@ -17,11 +17,21 @@ export type InstallHistoryItem = {
   installedAt: string;
 };
 
+export type OpenHistoryItem = {
+  slug: string;
+  title: string;
+  tagline: string | null;
+  category: string | null;
+  iconId: string | null;
+  openedAt: string;
+};
+
 export const storeApps = signal<StoreAppCard[]>([]);
 export const storeCategories = signal<AppCategory[]>([]);
 export const storeLoading = signal(false);
 export const storeQuery = signal("");
 export const storeCategory = signal<AppCategory | null>(null);
+export const storeExcludeCategory = signal<AppCategory | null>(null);
 export const storeError = signal<string | null>(null);
 
 export const storeApp = signal<StoreAppDetail | null>(null);
@@ -30,6 +40,7 @@ export const storeAppError = signal<string | null>(null);
 export const storeBusy = signal(false);
 
 export const installHistory = signal<InstallHistoryItem[]>([]);
+export const openHistory = signal<OpenHistoryItem[]>([]);
 
 function lang(): string {
   return getLang(window.location.pathname) ?? "en";
@@ -38,11 +49,15 @@ function lang(): string {
 export async function loadStore(opts?: {
   q?: string;
   category?: AppCategory | null;
+  excludeCategory?: AppCategory | null;
 }): Promise<void> {
   const q = opts?.q ?? storeQuery.value;
   const category = opts?.category !== undefined ? opts.category : storeCategory.value;
+  const excludeCategory =
+    opts?.excludeCategory !== undefined ? opts.excludeCategory : storeExcludeCategory.value;
   storeQuery.value = q;
   storeCategory.value = category;
+  storeExcludeCategory.value = excludeCategory;
   storeLoading.value = true;
   storeError.value = null;
 
@@ -50,6 +65,7 @@ export async function loadStore(opts?: {
     const params = new URLSearchParams();
     if (q.trim()) params.set("q", q.trim());
     if (category) params.set("category", category);
+    else if (excludeCategory) params.set("excludeCategory", excludeCategory);
     const qs = params.toString();
     const result = await apiFetch<{ apps: StoreAppCard[]; categories: AppCategory[] }>(
       `/api/${lang()}/app/store${qs ? `?${qs}` : ""}`,
@@ -80,6 +96,41 @@ export async function loadInstallHistory(): Promise<void> {
     return;
   }
   installHistory.value = result.data.apps;
+}
+
+export async function loadOpenHistory(opts?: {
+  category?: AppCategory | null;
+  excludeCategory?: AppCategory | null;
+}): Promise<void> {
+  if (!isLoggedIn()) {
+    openHistory.value = [];
+    return;
+  }
+  const params = new URLSearchParams();
+  if (opts?.category) params.set("category", opts.category);
+  else if (opts?.excludeCategory) params.set("excludeCategory", opts.excludeCategory);
+  const qs = params.toString();
+  const result = await apiFetch<{ apps: OpenHistoryItem[] }>(
+    `/api/${lang()}/app/open-history${qs ? `?${qs}` : ""}`,
+  );
+  if (!result.success) {
+    openHistory.value = [];
+    return;
+  }
+  openHistory.value = result.data.apps;
+}
+
+/** Record an open for the signed-in user (keepalive-friendly for navigation). */
+export function recordAppOpen(slug: string): void {
+  if (!isLoggedIn() || !slug.trim()) return;
+  const body = JSON.stringify({ slug: slug.trim() });
+  void fetch(`/api/${lang()}/app/open`, {
+    method: "POST",
+    credentials: "same-origin",
+    keepalive: true,
+    headers: { "Content-Type": "application/json" },
+    body,
+  }).catch(() => {});
 }
 
 export async function loadStoreApp(slug: string): Promise<void> {

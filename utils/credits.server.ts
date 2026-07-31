@@ -21,12 +21,8 @@ export function getCreditMarkup(): number {
   return envNumber("CREDIT_MARKUP", 5);
 }
 
-export function getFreeGrantEur(): number {
-  return envNumber("CREDIT_FREE_GRANT_EUR", 2);
-}
-
-export function getEurUsdRate(): number {
-  return envNumber("CREDIT_EUR_USD", 1.08);
+export function getFreeGrantUsd(): number {
+  return envNumber("CREDIT_FREE_GRANT_USD", 2);
 }
 
 export function getFloorUsd(kind: CreditFloorKind): number {
@@ -34,14 +30,12 @@ export function getFloorUsd(kind: CreditFloorKind): number {
   return envNumber("CREDIT_FLOOR_EDIT_USD", 0.01);
 }
 
-export function eurToUsdMicros(eur: number): number {
-  return Math.round(eur * getEurUsdRate() * USD_MICROS);
+export function usdToUsdMicros(usd: number): number {
+  return Math.round(usd * USD_MICROS);
 }
 
-export function usdMicrosToEur(micros: number): number {
-  const rate = getEurUsdRate();
-  if (rate <= 0) return 0;
-  return micros / USD_MICROS / rate;
+export function usdMicrosToUsd(micros: number): number {
+  return micros / USD_MICROS;
 }
 
 export function currentPeriodYm(now = new Date()): string {
@@ -51,7 +45,7 @@ export function currentPeriodYm(now = new Date()): string {
 }
 
 export function freeGrantUsdMicros(): number {
-  return eurToUsdMicros(getFreeGrantEur());
+  return usdToUsdMicros(getFreeGrantUsd());
 }
 
 /** OpenRouter USD → billed micros (markup × floor). */
@@ -105,7 +99,7 @@ export function debitOpenRouterUsage(opts: {
   floorKind: CreditFloorKind;
   reason: CreditReason;
   meta?: Record<string, unknown>;
-}): number {
+}): { balanceUsdMicros: number; billedUsdMicros: number; billedUsd: number } {
   const { openrouterCostUsd, billedUsdMicros, markup } = chargeMicrosFromOpenRouterCost(
     opts.costUsd,
     opts.floorKind,
@@ -121,22 +115,30 @@ export function debitOpenRouterUsage(opts: {
   if (!result.ok) {
     // Race / empty: treat as soft failure after the AI call already ran.
     const row = dbGetCreditBalance(opts.userId);
-    return row?.credit_balance_usd_micros ?? 0;
+    return {
+      balanceUsdMicros: row?.credit_balance_usd_micros ?? 0,
+      billedUsdMicros: 0,
+      billedUsd: 0,
+    };
   }
-  return result.balanceUsdMicros;
+  return {
+    balanceUsdMicros: result.balanceUsdMicros,
+    billedUsdMicros,
+    billedUsd: usdMicrosToUsd(billedUsdMicros),
+  };
 }
 
 export function getCreditsSnapshot(userId: string): {
   balanceUsdMicros: number;
-  balanceEur: number;
+  balanceUsd: number;
   periodYm: string;
-  freeGrantEur: number;
+  freeGrantUsd: number;
 } {
   const balanceUsdMicros = ensureMonthlyFreeGrant(userId);
   return {
     balanceUsdMicros,
-    balanceEur: usdMicrosToEur(balanceUsdMicros),
+    balanceUsd: usdMicrosToUsd(balanceUsdMicros),
     periodYm: currentPeriodYm(),
-    freeGrantEur: getFreeGrantEur(),
+    freeGrantUsd: getFreeGrantUsd(),
   };
 }

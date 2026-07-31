@@ -16,11 +16,13 @@ import { initAppStore } from "./stores/appStore";
 import { initEditStore } from "./stores/editStore";
 import DevStores from "./components/headless/DevStores";
 import Home, { HomePath } from "./routes/Home";
-import Account, { AccountPath } from "./routes/Account";
+import Me, { MePath } from "./routes/Me";
 import Login, { LoginPath } from "./routes/Login";
 import Edit, { EditPath, EditSlugPath } from "./routes/Edit";
 import StoreApp, { StoreAppPath } from "./routes/StoreApp";
 import About, { AboutPath } from "./routes/About";
+import Splash, { SplashPath } from "./routes/Splash";
+import Games, { GamesPath } from "./routes/Games";
 import NotFound from "./routes/NotFound";
 import { spaRouterScope } from "/utils/app-url";
 
@@ -58,14 +60,16 @@ export default function App() {
       >
         <div data-scope="App" ui-column>
           <${Router}>
-            <${Route} path=${StoreAppPath} component=${withLayout(StoreApp)} />
-            <${Route} path=${HomePath} component=${withLayout(Home)} />
-            <${Route} path=${AboutPath} component=${withLayout(About)} />
-            <${Route} path=${AccountPath} component=${withLayout(Account)} />
-            <${Route} path=${LoginPath} component=${withLayout(Login)} />
-            <${Route} path=${EditSlugPath} component=${withLayout(Edit)} />
-            <${Route} path=${EditPath} component=${withLayout(Edit)} />
-            <${Route} default component=${withLayout(NotFound)} />
+            <${Route} path=${StoreAppPath} component=${withLayout(StoreApp, { atmosphere: "detail" })} />
+            <${Route} path=${HomePath} component=${withLayout(Home, { atmosphere: "apps" })} />
+            <${Route} path=${GamesPath} component=${withLayout(Games, { atmosphere: "games" })} />
+            <${Route} path=${AboutPath} component=${withLayout(About, { atmosphere: "about" })} />
+            <${Route} path=${MePath} component=${withLayout(Me, { atmosphere: "me" })} />
+            <${Route} path=${LoginPath} component=${withLayout(Login, { atmosphere: "splash" })} />
+            <${Route} path=${EditSlugPath} component=${withLayout(Edit, { atmosphere: "create" })} />
+            <${Route} path=${EditPath} component=${withLayout(Edit, { atmosphere: "create" })} />
+            <${Route} path=${SplashPath} component=${withLayout(Splash, { tabBar: false, atmosphere: "splash" })} />
+            <${Route} default component=${withLayout(NotFound, { atmosphere: "default" })} />
           <//>
         </div>
         <${VisualViewportHeight} />

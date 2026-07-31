@@ -29,7 +29,7 @@ export default function RegistrationSuccessDialog() {
           ui-button="primary block"
           onClick=${() => {
             dialogRef.current?.close();
-            route(`/${lang}/edit`, true);
+            route(`/${lang}/create`, true);
           }}
         >
           ${t("Create App")}

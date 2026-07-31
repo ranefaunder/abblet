@@ -118,16 +118,15 @@ export function formatAiRequestStats(opts: {
 }
 
 /**
- * Approximate billed AI credit in EUR for an edit turn (OpenRouter USD × markup).
+ * Approximate billed AI credit in USD for an edit turn (OpenRouter USD × markup).
  * Defaults match utils/credits.server.ts so the info popup stays in the same units as the wallet.
  */
-export function estimateEditCreditEur(costUsd: number | null | undefined): number | null {
+export function estimateEditCreditUsd(costUsd: number | null | undefined): number | null {
   if (typeof costUsd !== "number" || !Number.isFinite(costUsd) || costUsd < 0) return null;
   const markup = 5;
-  const eurUsd = 1.08;
   const floorUsd = 0.01;
   const openrouterUsd = costUsd > 0 ? costUsd : floorUsd;
-  return (openrouterUsd * markup) / eurUsd;
+  return openrouterUsd * markup;
 }
 
 export function sumUsageCostUsd(

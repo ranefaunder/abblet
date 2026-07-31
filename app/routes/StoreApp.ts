@@ -3,15 +3,15 @@ import type { RoutePropsForPath } from "preact-iso";
 import { useEffect, useState } from "preact/hooks";
 import { useLocation, useRoute } from "preact-iso";
 import { t } from "/utils/i18n";
-import { appEditUrl, appPageUrl, storeAppUrl, storeUrl } from "/utils/app-url";
+import { createUrl, appPageUrl, appsAppUrl, appsUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import type { AppCategory } from "/utils/app-categories";
-import type { StoreAppCard } from "/types/app-types";
 import {
   clearStoreApp,
   loadStore,
   loadStoreApp,
+  recordAppOpen,
   storeApp,
   storeApps,
   storeBusy,
@@ -19,8 +19,10 @@ import {
   storeAppLoading,
   remixStoreApp,
 } from "/app/stores/storeListingStore";
+import AppSlider from "/app/components/AppSlider";
+import CodeViewDialog from "/app/components/CodeViewDialog";
 
-export const StoreAppPath = "/:lang/store/:slug" as const;
+export const StoreAppPath = "/:lang/apps/:slug" as const;
 
 function formatPublishedAt(iso: string | null, lang: string): string | null {
   if (!iso) return null;
@@ -35,25 +37,6 @@ function formatPublishedAt(iso: string | null, lang: string): string | null {
   } catch {
     return iso.slice(0, 10);
   }
-}
-
-function RelatedTile({ app, lang }: { app: StoreAppCard; lang: string }) {
-  const iconSrc = appIconSrc(app.iconId);
-  return html`
-    <a class="related-tile" href=${storeAppUrl(lang, app.slug)} ui-column="gap-sm">
-      <span
-        class="related-icon"
-        style=${`background: ${previewGradient(app.slug)}`}
-        aria-hidden="true"
-      >
-        ${iconSrc
-          ? html`<img src=${iconSrc} alt="" width="64" height="64" decoding="async" />`
-          : html`<span>${draftLetter(app.title)}</span>`}
-      </span>
-      <strong>${app.title}</strong>
-      <small>${app.tagline || (app.category ? t(app.category as AppCategory) : t("App"))}</small>
-    </a>
-  `;
 }
 
 export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>) {
@@ -82,13 +65,13 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
     if (!app) return;
     const cloned = await remixStoreApp(app.slug);
     if (cloned?.slug) {
-      route(appEditUrl(lang, cloned.slug));
+      route(createUrl(lang, cloned.slug));
     }
   }
 
   async function onShare() {
     if (!app) return;
-    const url = `${window.location.origin}${storeAppUrl(lang, app.slug)}`;
+    const url = `${window.location.origin}${appsAppUrl(lang, app.slug)}`;
     const shareData = { title: app.title, text: app.tagline || app.title, url };
     try {
       if (typeof navigator.share === "function") {
@@ -135,7 +118,7 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
           ? html`
             <div ui-column="gap-md x-center y-center" ui-padding="xl" class="state">
               <p>${storeAppError.value ?? t("App not found")}</p>
-              <a href=${storeUrl(lang)} ui-button="primary sm">${t("Back to Store")}</a>
+              <a href=${appsUrl(lang)} ui-button="primary sm">${t("Back to Store")}</a>
             </div>`
           : html`
             <div class="content" ui-column="gap-xl" ui-padding="inline-md">
@@ -156,9 +139,13 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
                   </div>
                   <div class="actions" ui-column="gap-sm">
                     <div class="cta-row" ui-row="gap-sm wrap">
-                      <a href=${appPageUrl(lang, app.slug)} ui-button="primary">${t("Open")}</a>
+                      <a
+                        href=${appPageUrl(lang, app.slug)}
+                        ui-button="primary"
+                        onClick=${() => recordAppOpen(app.slug)}
+                      >${t("Open")}</a>
                       ${app.isOwner
-                        ? html`<a href=${appEditUrl(lang, app.slug)} ui-button>${t("Edit")}</a>`
+                        ? html`<a href=${createUrl(lang, app.slug)} ui-button>${t("Edit")}</a>`
                         : html`
                           <button
                             type="button"
@@ -178,24 +165,6 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
                 ? html`<p class="error" role="alert">${storeAppError.value}</p>`
                 : ""}
 
-              <section class="meta" ui-row="gap-md x-around wrap">
-                <div ui-column="gap-xs x-center">
-                  <strong>${app.installCount}</strong>
-                  <small>${t("Installs")}</small>
-                </div>
-                <div ui-column="gap-xs x-center">
-                  <strong>${app.remixCount}</strong>
-                  <small>${t("Remixes")}</small>
-                </div>
-                ${published
-                  ? html`
-                    <div ui-column="gap-xs x-center">
-                      <strong class="date">${published}</strong>
-                      <small>${t("Published")}</small>
-                    </div>`
-                  : ""}
-              </section>
-
               ${app.description
                 ? html`
                   <section class="about" ui-column="gap-sm">
@@ -203,6 +172,52 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
                     <p>${app.description}</p>
                   </section>`
                 : ""}
+
+              ${published
+                ? html`
+                  <p class="published-line">
+                    ${t("Published")} · ${published}
+                  </p>`
+                : ""}
+
+              <section class="open-source">
+                <div class="open-source-bg" aria-hidden="true"></div>
+                <div class="open-source-mark" aria-hidden="true">
+                  <i ui-icon="copyleft 2xl"></i>
+                </div>
+                <div class="open-source-inner" ui-column="gap-md">
+                  <header class="open-source-head" ui-column="gap-sm">
+                    <p class="open-source-eyebrow">${t("Open source")}</p>
+                    <h2>${t("Proudly open source")}</h2>
+                    <p class="open-source-lede">
+                      ${t("Every app in the Store ships with its source. Read it, learn from it, remix it — under the Mozilla Public License 2.0.")}
+                    </p>
+                  </header>
+                  <div class="open-source-actions" ui-row="gap-sm y-center wrap">
+                    ${app.code
+                      ? html`
+                        <button
+                          type="button"
+                          ui-button="sm"
+                          ui-icon="code"
+                          commandfor="store-code-dialog"
+                          command="show-modal"
+                        >
+                          ${t("View source")}
+                        </button>`
+                      : ""}
+                    <a
+                      href="https://www.mozilla.org/MPL/2.0/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      ui-button="tertiary sm"
+                    >${t("Mozilla Public License 2.0")}</a>
+                  </div>
+                </div>
+                ${app.code
+                  ? html`<${CodeViewDialog} id="store-code-dialog" code=${app.code} />`
+                  : ""}
+              </section>
 
               <section class="share-row" ui-row="gap-sm y-center x-between wrap">
                 <div ui-column="gap-xs">
@@ -248,11 +263,18 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
                 ? html`
                   <section ui-column="gap-sm">
                     <h2 ui-heading="sm">${t("More like this")}</h2>
-                    <div class="related-rail" ui-row="gap-md">
-                      ${related.map(
-                        (item) => html`<${RelatedTile} app=${item} lang=${lang} />`,
-                      )}
-                    </div>
+                    <${AppSlider}
+                      label=${t("More like this")}
+                      items=${related.map((item) => ({
+                        slug: item.slug,
+                        title: item.title,
+                        iconId: item.iconId,
+                        href: appsAppUrl(lang, item.slug),
+                        subtitle:
+                          item.tagline ||
+                          (item.category ? t(item.category as AppCategory) : t("App")),
+                      }))}
+                    />
                   </section>`
                 : ""}
             </div>`}
@@ -264,7 +286,6 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
       & {
         flex: 1;
         min-height: 0;
-        background: var(--neutral-50);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -362,28 +383,6 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
         border: 1px solid var(--error-200);
       }
 
-      .meta {
-        padding: 0.85rem 0.5rem;
-        border-block: 1px solid var(--neutral-200);
-      }
-
-      .meta strong {
-        font-size: 1.05rem;
-        color: var(--neutral-950);
-      }
-
-      .meta strong.date {
-        font-size: 0.9rem;
-      }
-
-      .meta small {
-        color: var(--neutral-500);
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        font-size: 0.6875rem;
-        font-weight: 650;
-      }
-
       .about h2 {
         margin: 0;
       }
@@ -393,6 +392,111 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
         white-space: pre-wrap;
         color: var(--neutral-700);
         line-height: 1.5;
+      }
+
+      .published-line {
+        margin: 0;
+        font-size: 0.8125rem;
+        color: var(--neutral-500);
+      }
+
+      .open-source {
+        position: relative;
+        overflow: hidden;
+        border-radius: 1.25rem;
+        border: 1px solid color-mix(in oklab, var(--success-300) 50%, var(--neutral-200));
+        background: var(--white);
+        isolation: isolate;
+      }
+
+      .open-source-bg {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(110% 90% at 100% 0%, color-mix(in oklab, var(--success-200) 60%, transparent), transparent 55%),
+          radial-gradient(80% 70% at 0% 100%, color-mix(in oklab, var(--info-200) 45%, transparent), transparent 50%),
+          linear-gradient(155deg, color-mix(in oklab, var(--success-50) 75%, var(--white)), var(--white) 52%, var(--neutral-50));
+        pointer-events: none;
+      }
+
+      .open-source-bg::before {
+        content: "</>";
+        position: absolute;
+        right: -0.15rem;
+        bottom: -0.55rem;
+        font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
+        font-size: clamp(4.5rem, 22vw, 7.5rem);
+        font-weight: 800;
+        letter-spacing: -0.08em;
+        line-height: 0.85;
+        color: color-mix(in oklab, var(--success-700) 12%, transparent);
+        transform: rotate(-8deg);
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .open-source-bg::after {
+        content: "";
+        position: absolute;
+        inset: auto 40% -40% -15%;
+        height: 75%;
+        border-radius: 50%;
+        background: color-mix(in oklab, var(--success-100) 55%, transparent);
+        filter: blur(30px);
+        opacity: 0.8;
+      }
+
+      .open-source-mark {
+        position: absolute;
+        top: 1.15rem;
+        right: 1.15rem;
+        z-index: 1;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: color-mix(in oklab, var(--white) 70%, var(--success-100));
+        border: 1px solid color-mix(in oklab, var(--success-300) 55%, var(--neutral-200));
+        color: var(--success-800);
+        box-shadow: 0 8px 24px color-mix(in oklab, var(--success-700) 10%, transparent);
+      }
+
+      .open-source-inner {
+        position: relative;
+        z-index: 1;
+        padding: 1.5rem 1.25rem 1.4rem;
+        max-width: 30rem;
+      }
+
+      .open-source-eyebrow {
+        margin: 0;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--success-800);
+      }
+
+      .open-source-head h2 {
+        margin: 0;
+        font-size: clamp(1.15rem, 3.2vw, 1.35rem);
+        font-weight: 750;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        color: var(--neutral-950);
+      }
+
+      .open-source-lede {
+        margin: 0;
+        color: var(--neutral-700);
+        font-size: 0.9375rem;
+        line-height: 1.45;
+      }
+
+      .open-source-actions {
+        margin-top: 0.15rem;
       }
 
       .remix-pitch {
@@ -469,60 +573,6 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
         font-size: 0.8125rem;
       }
 
-      .related-rail {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scrollbar-width: none;
-        padding-bottom: 0.15rem;
-      }
-
-      .related-rail::-webkit-scrollbar {
-        display: none;
-      }
-
-      .related-tile {
-        flex: none;
-        width: 6.75rem;
-        text-decoration: none;
-        color: inherit;
-      }
-
-      .related-tile strong {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        font-size: 0.875rem;
-        line-height: 1.25;
-      }
-
-      .related-tile small {
-        color: var(--neutral-500);
-        font-size: 0.6875rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-
-      .related-icon {
-        width: 4.5rem;
-        height: 4.5rem;
-        border-radius: 1rem;
-        overflow: hidden;
-        display: grid;
-        place-items: center;
-        color: var(--white);
-        font-weight: 700;
-        font-size: 1.35rem;
-      }
-
-      .related-icon img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
       @media (min-width: 720px) {
         .hero {
           flex-direction: row;
@@ -558,6 +608,17 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
 
         .remix-head h2 {
           font-size: 1.7rem;
+        }
+
+        .open-source-inner {
+          padding: 1.75rem 1.5rem 1.55rem;
+        }
+
+        .open-source-mark {
+          top: 1.35rem;
+          right: 1.35rem;
+          width: 3rem;
+          height: 3rem;
         }
       }
     }

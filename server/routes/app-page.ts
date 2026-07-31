@@ -1,7 +1,7 @@
 import type { BunRequest } from "bun";
 import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 import type { Language } from "/i18n/languages";
-import { dbGetAppBySlug, isNumericAppSlug } from "/server/database/queries/apps";
+import { dbGetAppBySlug, dbLogOpenEvent, isNumericAppSlug } from "/server/database/queries/apps";
 import { getAuthenticatedUser } from "/utils/auth.server";
 import { canViewApp } from "/utils/app-access.server";
 import { escapeHtmlAttribute, escapeHtmlTextContent } from "/utils/sanitize.server";
@@ -684,7 +684,7 @@ function renderInstallPage(
   const iconSvg = appIconSrc(access.iconId);
   const letter = (access.title.trim().charAt(0) || "?").toUpperCase();
   const platformOrigin = getPlatformOrigin();
-  const backHref = `${platformOrigin}/${access.lang}/store/${encodeURIComponent(access.slug)}`;
+  const backHref = `${platformOrigin}/${access.lang}/apps/${encodeURIComponent(access.slug)}`;
   const precacheUrls = ["/", "/module.js", "/manifest.webmanifest"];
   if (iconSrc) precacheUrls.push(iconSrc);
   if (iconSvg && iconSvg !== iconSrc) precacheUrls.push(iconSvg);
@@ -1105,6 +1105,18 @@ function withSearch(origin: string, search = ""): string {
   return `${origin}/${q}`;
 }
 
+/** Best-effort: platform cookie present when redirecting into an app runtime. */
+function maybeLogOpenFromPlatform(req: BunRequest, row: NonNullable<ReturnType<typeof dbGetAppBySlug>>) {
+  if (row.visibility !== "public" || row.is_draft === 1 || !row.published_version_id) return;
+  const user = getAuthenticatedUser(req);
+  if (!user) return;
+  try {
+    dbLogOpenEvent(user.id, row.id);
+  } catch {
+    // ignore logging failures
+  }
+}
+
 function redirectToAppSubdomain(slug: string, search = ""): Response {
   const row = dbGetAppBySlug(slug);
   if (!row) return new Response("Not Found", { status: 404 });
@@ -1230,6 +1242,7 @@ export function appPage(req: LangAppRequest): Response {
     if (url.searchParams.get("mode") === "install") {
       return Response.redirect(`${appRuntimeOrigin(row)}/install`, 302);
     }
+    maybeLogOpenFromPlatform(req, row);
     return Response.redirect(withSearch(appRuntimeOrigin(row), url.search), 302);
   }
 

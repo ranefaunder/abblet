@@ -3,14 +3,8 @@ import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 
-/** PWA icons: white-background mark (remiix-icon-light.svg). */
+/** PWA icons from remiix-app-icon.jpg (bun run gen:favicons). */
 const ICONS = [
-  {
-    src: "/static/images/remiix-icon-light.svg",
-    sizes: "any",
-    type: "image/svg+xml",
-    purpose: "any",
-  },
   {
     src: "/static/favicons/android-chrome-192x192.png",
     sizes: "192x192",
@@ -24,11 +18,20 @@ const ICONS = [
     purpose: "any",
   },
   {
+    src: "/static/favicons/android-chrome-512x512.png",
+    sizes: "512x512",
+    type: "image/png",
+    purpose: "maskable",
+  },
+  {
     src: "/static/favicons/apple-touch-icon.png",
     sizes: "180x180",
     type: "image/png",
   },
 ] as const;
+
+/** App icon blue (#0878f8). */
+const APP_ICON_BLUE = "#0878f8";
 
 export default async function (req: BunRequest): Promise<Response> {
   const lang = getLang(req.url) ?? DEFAULT_LANGUAGE;
@@ -43,8 +46,8 @@ export default async function (req: BunRequest): Promise<Response> {
     start_url: `/${lang}/`,
     scope: "/",
     display: "standalone",
-    background_color: "#f5f5f5",
-    theme_color: "#f5f5f5",
+    background_color: APP_ICON_BLUE,
+    theme_color: APP_ICON_BLUE,
     lang,
     icons: [...ICONS],
   };

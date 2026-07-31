@@ -1,5 +1,4 @@
 import { html, css } from "/utils/markup";
-import { h } from "preact";
 import type { RoutePropsForPath } from "preact-iso";
 import { useLocation, useRoute } from "preact-iso";
 import { useSignal } from "@preact/signals";
@@ -7,12 +6,10 @@ import { useEffect, useRef } from "preact/hooks";
 import type { AppEditMessage, AppEditToolUsage } from "/types/app-config-types";
 import { isDraftConfig } from "/types/app-config-types";
 import { t } from "/utils/i18n";
-import { highlightJavaScript } from "/utils/highlight-js";
-import { appEditUrl, appPageUrl, storeUrl } from "/utils/app-url";
-import { appIconSrc } from "/utils/app-icon";
-import { draftLetter, previewGradient } from "/utils/app-preview";
+import { createUrl, appPageUrl, appsUrl } from "/utils/app-url";
 import { deleteApp } from "/app/stores/appStore";
-import { isLoggedIn, openLoginDialog, requireLogin } from "/app/stores/userStore";
+import { requireLogin } from "/app/stores/userStore";
+import CodeViewDialog from "/app/components/CodeViewDialog";
 import {
   editApp,
   editMessages,
@@ -21,20 +18,17 @@ import {
   editStatusText,
   editStatusSteps,
   editStatusIndex,
-  editSavingCode,
   editError,
   editRegeneratingIcon,
-  codeDraft,
   loadEdit,
   startNewEdit,
   createAppFromPrompt,
   sendChatMessage,
   retryLastChatMessage,
-  saveCode,
   regenerateIcon,
   editPublishing,
   setAppPublished,
-  editCreditBalanceEur,
+  editCreditBalanceUsd,
   editSuggestedPrompt,
   editRetryPrompt,
   editVersions,
@@ -43,7 +37,7 @@ import {
   loadEditVersions,
   restoreAppVersion,
 } from "/app/stores/editStore";
-import { formatAiRequestStats, estimateEditCreditEur, sumUsageCostUsd } from "/utils/ai-models";
+import { formatAiRequestStats, estimateEditCreditUsd, sumUsageCostUsd } from "/utils/ai-models";
 
 function toolUsageLabel(tool: AppEditToolUsage["tool"]): string {
   switch (tool) {
@@ -53,8 +47,9 @@ function toolUsageLabel(tool: AppEditToolUsage["tool"]): string {
       return t("Code");
     case "patchCode":
       return t("Patch");
+    case "updateMeta":
     case "rename":
-      return t("Name");
+      return t("Meta");
     case "regenerateIcon":
       return t("Icon");
     case "generate":
@@ -65,9 +60,9 @@ function toolUsageLabel(tool: AppEditToolUsage["tool"]): string {
 const WELCOME_KEY =
   "Hey — I'm Remiix.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?";
 
-/** New app: /:lang/edit — existing: /:lang/edit/:slug */
-export const EditPath = "/:lang/edit" as const;
-export const EditSlugPath = "/:lang/edit/:slug" as const;
+/** New app: /:lang/create — existing: /:lang/create/:slug */
+export const EditPath = "/:lang/create" as const;
+export const EditSlugPath = "/:lang/create/:slug" as const;
 
 type EditRouteProps =
   | RoutePropsForPath<typeof EditPath>
@@ -83,9 +78,6 @@ export default function Edit(_props: EditRouteProps) {
 
   useEffect(() => {
     if (isNew) {
-      if (!isLoggedIn()) {
-        openLoginDialog();
-      }
       startNewEdit();
       return;
     }
@@ -97,8 +89,19 @@ export default function Edit(_props: EditRouteProps) {
   const creating = isNew || (app != null && isDraftConfig(app.config));
   const regeneratingIcon = editRegeneratingIcon.value;
   const publishing = editPublishing.value;
-  const iconSrc = appIconSrc(app?.iconId);
   const isPublished = app?.visibility === "public";
+  const pageTitle = isNew
+    ? t("Create")
+    : app
+      ? app.title
+      : loading
+        ? t("Create")
+        : t("Editor");
+  const pageLede = isNew
+    ? t("Tell Remiix what you need — it builds a working app in minutes.")
+    : creating
+      ? t("Building")
+      : t("Ask the AI to tweak your app — colors, features, wording, anything.");
 
   async function handleDelete() {
     if (!app || !slug || deleting.value) return;
@@ -107,7 +110,7 @@ export default function Edit(_props: EditRouteProps) {
     deleting.value = true;
     const success = await deleteApp(slug);
     deleting.value = false;
-    if (success) route(storeUrl(lang), true);
+    if (success) route(appsUrl(lang), true);
   }
 
   async function handlePublishToggle() {
@@ -145,33 +148,12 @@ export default function Edit(_props: EditRouteProps) {
   const showReadyTools = Boolean(app?.canEdit && !creating && slug);
 
   const view = html`
-    <div data-scope="Edit" ui-column>
-      <div class="page-bar" ui-padding="inline-md block-sm">
-        <div class="page-bar-inner" ui-row="y-center x-between gap-sm">
-          <div class="page-title" ui-row="y-center gap-sm">
-            ${isNew
-              ? html`
-                <h1 ui-heading="sm">${t("New App")}</h1>
-                <span class="badge">${t("Building")}</span>`
-              : app
-                ? html`
-                  ${iconSrc
-                    ? html`<img class="app-chip-icon" src=${iconSrc} alt="" width="28" height="28" />`
-                    : html`
-                      <span
-                        class="app-chip-fallback"
-                        style=${`background: ${previewGradient(slug)}`}
-                        aria-hidden="true"
-                      >${draftLetter(app.title)}</span>`}
-                  <div class="page-copy" ui-column>
-                    <h1 ui-heading="sm">${app.title}</h1>
-                    ${creating
-                      ? html`<span class="page-meta">${t("Building")}</span>`
-                      : isPublished
-                        ? html`<span class="page-meta published">${t("In Store")}</span>`
-                        : ""}
-                  </div>`
-                : html`<h1 ui-heading="sm" class="muted">${t("Editor")}</h1>`}
+    <div data-scope="Edit">
+      <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
+        <header class="page-head" ui-row="x-between y-start gap-md">
+          <div ui-column="gap-sm" class="page-copy">
+            <h1 class="page-title">${pageTitle}</h1>
+            <p class="page-lede">${pageLede}</p>
           </div>
 
           <div class="page-actions" ui-row="y-center gap-xs">
@@ -256,31 +238,33 @@ export default function Edit(_props: EditRouteProps) {
                 </div>`
               : ""}
           </div>
-        </div>
-      </div>
+        </header>
 
-      ${isNew
-        ? html`<${EditWorkspace} slug="" creating=${true} lang=${lang} />`
-        : loading && !app
-          ? html`
-            <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
-              <i ui-icon="spinner lg"></i>
-              <p>${t("Loading…")}</p>
-            </div>`
-          : !app
+        ${isNew
+          ? html`<${EditWorkspace} slug="" creating=${true} lang=${lang} />`
+          : loading && !app
             ? html`
               <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
-                <p>${editError.value ?? t("App not found")}</p>
+                <i ui-icon="spinner lg"></i>
+                <p>${t("Loading…")}</p>
               </div>`
-            : !app.canEdit
+            : !app
               ? html`
                 <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
-                  <p ui-heading="sm">${t("You can only edit your own apps.")}</p>
-                  <a href=${appPageUrl(lang, slug, app)} ui-button>${t("Open app")}</a>
+                  <p>${editError.value ?? t("App not found")}</p>
                 </div>`
-              : html`<${EditWorkspace} slug=${slug} creating=${creating} lang=${lang} />`}
+              : !app.canEdit
+                ? html`
+                  <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
+                    <p ui-heading="sm">${t("You can only edit your own apps.")}</p>
+                    <a href=${appPageUrl(lang, slug, app)} ui-button>${t("Open app")}</a>
+                  </div>`
+                : html`<${EditWorkspace} slug=${slug} creating=${creating} lang=${lang} />`}
+      </div>
 
-      ${showReadyTools ? html`<${CodeDialog} slug=${slug} />` : ""}
+      ${showReadyTools && app && !isDraftConfig(app.config)
+        ? html`<${CodeViewDialog} id="edit-code-dialog" code=${app.config.code} />`
+        : ""}
       ${showReadyTools ? html`<${HistoryDialog} slug=${slug} />` : ""}
     </div>
   `;
@@ -298,9 +282,9 @@ function EditWorkspace({
   lang: string;
 }) {
   return html`
-    <div class="workspace">
+    <div class="workspace" ui-column="gap-md">
       ${editError.value
-        ? html`<div class="error-banner" role="alert" ui-margin="inline-md top-sm">${editError.value}</div>`
+        ? html`<div class="error-banner" role="alert">${editError.value}</div>`
         : ""}
       <${ChatPanel} slug=${slug} creating=${creating} lang=${lang} />
     </div>
@@ -422,7 +406,7 @@ function ChatPanel({
           if (inputRef.current) inputRef.current.value = text;
           return;
         }
-        route(appEditUrl(lang, newSlug), true);
+        route(createUrl(lang, newSlug), true);
       });
       return;
     }
@@ -499,13 +483,13 @@ function ChatPanel({
                               line != null,
                           )
                       : [];
-                  const creditEur = estimateEditCreditEur(
+                  const creditUsd = estimateEditCreditUsd(
                     sumUsageCostUsd(m.usage) ??
                       (typeof m.costUsd === "number" || typeof m.iconCostUsd === "number"
                         ? (m.costUsd ?? 0) + (m.iconCostUsd ?? 0)
                         : null),
                   );
-                  const showInfo = usageLines.length > 0 || creditEur != null;
+                  const showInfo = usageLines.length > 0 || creditUsd != null;
                   const isLastAssistant = i === lastAssistantIdx;
                   const showAppCard = canOpenApp && isLastAssistant;
                   const showRetry = canRetry && isLastAssistant && m.role === "assistant";
@@ -586,13 +570,13 @@ function ChatPanel({
                                   </button>
                                 `,
                               )}
-                              ${creditEur != null
+                              ${creditUsd != null
                                 ? html`
                                   <div class="msg-info-credit" role="note">
                                     <span class="msg-info-tool">${t("AI credit")}</span>
                                     <span class="msg-info-stats">
                                       ${t("This request ≈ $amount", {
-                                        amount: `€${creditEur.toFixed(2)}`,
+                                        amount: `$${creditUsd.toFixed(2)}`,
                                       })}
                                     </span>
                                   </div>`
@@ -669,14 +653,14 @@ function ChatPanel({
               }}
             ></textarea>
             <div class="composer-bar" ui-row="x-between y-center gap-sm">
-              ${typeof editCreditBalanceEur.value === "number"
+              ${typeof editCreditBalanceUsd.value === "number"
                 ? html`
                   <span
                     class="composer-cost"
                     title=${t("AI credit")}
                   >
                     ${t("AI credit ≈ $amount", {
-                      amount: `€${editCreditBalanceEur.value.toFixed(2)}`,
+                      amount: `$${editCreditBalanceUsd.value.toFixed(2)}`,
                     })}
                   </span>`
                 : html`<span class="composer-cost"></span>`}
@@ -797,171 +781,55 @@ function HistoryDialog({ slug }: { slug: string }) {
   `;
 }
 
-function CodeDialog({ slug }: { slug: string }) {
-  const saving = editSavingCode.value;
-  const app = editApp.value;
-  const dirty = app != null && codeDraft.value !== app.config.code;
-  const editorRef = useRef<HTMLTextAreaElement>(null);
-  const highlightRef = useRef<HTMLPreElement>(null);
-
-  function syncScroll() {
-    const editor = editorRef.current;
-    const highlight = highlightRef.current;
-    if (!editor || !highlight) return;
-    highlight.scrollTop = editor.scrollTop;
-    highlight.scrollLeft = editor.scrollLeft;
-  }
-
-  const highlighted = highlightJavaScript(codeDraft.value);
-
-  return html`
-    <dialog id="edit-code-dialog" class="code-dialog" ui-dialog="right lg edge" closedby="any">
-      <header ui-row="x-between y-center gap-md" ui-padding="inline-md block-sm">
-        <div ui-row="y-center gap-sm">
-          <h2 ui-heading="sm">${t("Code")}</h2>
-          ${dirty
-            ? html`<span class="code-dirty">${t("Unsaved changes")}</span>`
-            : html`<span class="code-clean">${t("Saved")}</span>`}
-        </div>
-        <button
-          type="button"
-          ui-button="inline"
-          ui-icon="x"
-          commandfor="edit-code-dialog"
-          command="close"
-          aria-label=${t("Close")}
-        ></button>
-      </header>
-      <div class="code-editor">
-        <pre class="code-highlight" ref=${highlightRef} aria-hidden="true">
-          ${h("code", { dangerouslySetInnerHTML: { __html: `${highlighted}\n` } })}
-        </pre>
-        <textarea
-          ref=${editorRef}
-          class="code-area"
-          spellcheck="false"
-          autocapitalize="off"
-          autocorrect="off"
-          value=${codeDraft.value}
-          onInput=${(e: Event) => (codeDraft.value = (e.target as HTMLTextAreaElement).value)}
-          onScroll=${syncScroll}
-        ></textarea>
-      </div>
-      <footer ui-row="gap-sm x-end y-center" ui-padding="inline-md block-sm">
-        <button
-          type="button"
-          ui-button
-          disabled=${!dirty || saving}
-          onClick=${() => app && (codeDraft.value = app.config.code)}
-        >
-          ${t("Revert")}
-        </button>
-        <button
-          type="button"
-          ui-button="primary"
-          disabled=${!dirty || saving}
-          aria-busy=${saving}
-          onClick=${() => void saveCode(slug)}
-        >
-          ${saving ? t("Saving…") : t("Save")}
-        </button>
-      </footer>
-    </dialog>
-  `;
-}
-
 function style() {
   return css`
     @scope ([data-scope="Edit"]) to ([data-scope]) {
       & {
-        background: var(--neutral-50);
         color: var(--neutral-900);
       }
 
-      .page-bar {
-        border-bottom: 1px solid var(--neutral-200);
-        background: var(--neutral-50);
-      }
-
-      .page-bar-inner {
-        width: min(100%, 48rem);
+      .content {
+        padding-top: 1.35rem;
+        max-width: 48rem;
         margin-inline: auto;
-        min-width: 0;
+        width: 100%;
+        box-sizing: border-box;
       }
 
-      .page-title {
-        min-width: 0;
+      .page-head {
+        align-items: flex-start;
       }
 
       .page-copy {
         min-width: 0;
-        gap: 0.05rem;
+        flex: 1 1 auto;
       }
 
-      .page-copy h1,
-      .page-title h1 {
+      .page-title {
         margin: 0;
-        min-width: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: clamp(2.1rem, 6vw, 2.75rem);
+        font-weight: 800;
+        letter-spacing: -0.05em;
+        line-height: 1;
+        color: var(--neutral-950);
+        overflow-wrap: anywhere;
       }
 
-      .page-title h1.muted {
-        color: var(--neutral-500);
+      .page-lede {
+        margin: 0;
+        font-size: 1.05rem;
+        line-height: 1.4;
+        color: var(--neutral-600);
       }
 
       .page-actions {
         flex: none;
         justify-content: flex-end;
+        margin-top: 0.2rem;
       }
 
       .page-menu {
         flex: none;
-      }
-
-      .app-chip-icon,
-      .app-chip-fallback {
-        flex: none;
-        width: 1.75rem;
-        height: 1.75rem;
-        border-radius: 0.45rem;
-        object-fit: cover;
-      }
-
-      .app-chip-fallback {
-        display: grid;
-        place-items: center;
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-      }
-
-      .page-meta {
-        font-size: 0.625rem;
-        font-weight: 650;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--neutral-500);
-        line-height: 1.2;
-      }
-
-      .page-meta.published {
-        color: #007aff;
-      }
-
-      .badge {
-        flex: none;
-        padding: 0.15rem 0.45rem;
-        border-radius: 999px;
-        background: var(--neutral-100);
-        border: 1px solid var(--neutral-200);
-        color: var(--neutral-600);
-        font-size: 0.625rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
       }
 
       #edit-topbar-menu [role="menuitem"].danger {
@@ -975,12 +843,10 @@ function style() {
       }
 
       .workspace {
-        background: var(--neutral-50);
+        min-width: 0;
       }
 
       .error-banner {
-        width: min(100%, 36rem);
-        margin: 0.75rem auto 0;
         padding: 0.625rem 0.875rem;
         border-radius: 0.75rem;
         background: oklch(from var(--danger, #ff3b30) l c h / 10%);
@@ -989,23 +855,15 @@ function style() {
         line-height: 1.4;
       }
 
-      .chat {
-        background:
-          radial-gradient(ellipse 80% 50% at 100% 0%, var(--neutral-100), transparent 55%),
-          var(--neutral-50);
-      }
-
       .chat-inner {
-        width: min(100%, 36rem);
-        margin: 0 auto;
-        padding: 1rem 1rem 1.5rem;
+        width: 100%;
         box-sizing: border-box;
       }
 
       .chat-empty {
         text-align: center;
         max-width: 22rem;
-        padding: 1.25rem 0.25rem 0.25rem;
+        padding: 0.25rem;
         align-self: center;
       }
 
@@ -1453,22 +1311,6 @@ function style() {
         border: 0;
       }
 
-      .code-dialog .code-editor {
-        position: relative;
-        flex: 1;
-        min-height: 0;
-        background: #141414;
-      }
-
-      .code-dirty,
-      .code-clean {
-        font-size: 0.75rem;
-        font-weight: 500;
-      }
-
-      .code-dirty { color: var(--warning, #b45309); }
-      .code-clean { color: var(--neutral-400); }
-
       .history-meta {
         font-size: 0.85rem;
         color: var(--neutral-500);
@@ -1483,57 +1325,6 @@ function style() {
         font-size: 0.85rem;
         color: var(--neutral-500);
       }
-
-      .code-highlight,
-      .code-area {
-        position: absolute;
-        inset: 0;
-        margin: 0;
-        padding: 1rem 1.1rem;
-        font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
-        font-size: 14px;
-        line-height: 1.65;
-        tab-size: 2;
-        white-space: pre;
-        overflow: auto;
-        border: none;
-      }
-
-      .code-highlight {
-        pointer-events: none;
-        color: #d4d4d4;
-        background: #141414;
-      }
-
-      .code-highlight > code {
-        display: block;
-        font: inherit;
-        white-space: pre;
-      }
-
-      .code-area {
-        resize: none;
-        color: transparent;
-        caret-color: #e8e8e8;
-        background: transparent;
-      }
-
-      .code-area::selection {
-        background: oklch(from var(--primary-400) l c h / 35%);
-        color: transparent;
-      }
-
-      .code-area:focus {
-        outline: none;
-      }
-
-      .code-highlight .hl-keyword { color: #c586c0; }
-      .code-highlight .hl-string { color: #ce9178; }
-      .code-highlight .hl-comment { color: #6a9955; font-style: italic; }
-      .code-highlight .hl-number { color: #b5cea8; }
-      .code-highlight .hl-function { color: #dcdcaa; }
-      .code-highlight .hl-class { color: #4ec9b0; }
-      .code-highlight .hl-builtin { color: #569cd6; }
     }
   `;
 }

@@ -3,7 +3,7 @@
  *
  * - Precaches shell on install / PRECACHE (only then does cache update)
  * - Cache-first for `/`, `/module.js`, icons — no automatic background refresh
- * - CHECK_UPDATE compares network /module.js to cache; client shows Update UI
+ * - CHECK_UPDATE compares network /module.js to cache; client auto-applies + reloads when online
  * - Never treats `/install` as the app shell
  */
 const CACHE = "remiix-app-runtime-v5";

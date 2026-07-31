@@ -66,25 +66,53 @@ export function connectUrl(slug: string): string {
   return platformConnectUrl(slug);
 }
 
-export function appEditUrl(lang: string, slug?: string): string {
-  return slug ? `/${lang}/edit/${slug}` : `/${lang}/edit`;
-}
-
-export function storeUrl(lang: string): string {
-  return `/${lang}/store`;
-}
-
-export function aboutUrl(lang: string): string {
+/** Splash / marketing index. */
+export function splashUrl(lang: string): string {
   return `/${lang}/`;
 }
 
+export function createUrl(lang: string, slug?: string): string {
+  return slug ? `/${lang}/create/${slug}` : `/${lang}/create`;
+}
+
+export function appsUrl(lang: string): string {
+  return `/${lang}/apps`;
+}
+
+export function appsAppUrl(lang: string, slug: string): string {
+  return `/${lang}/apps/${slug}`;
+}
+
+export function gamesUrl(lang: string): string {
+  return `/${lang}/games`;
+}
+
+export function meUrl(lang: string): string {
+  return `/${lang}/me`;
+}
+
+export function aboutUrl(lang: string): string {
+  return `/${lang}/about`;
+}
+
+/** @deprecated Use createUrl */
+export function appEditUrl(lang: string, slug?: string): string {
+  return createUrl(lang, slug);
+}
+
+/** @deprecated Use appsUrl */
+export function storeUrl(lang: string): string {
+  return appsUrl(lang);
+}
+
+/** @deprecated Use appsAppUrl */
 export function storeAppUrl(lang: string, slug: string): string {
-  return `/${lang}/store/${slug}`;
+  return appsAppUrl(lang, slug);
 }
 
 /**
  * SPA router scope. Site pages under /{lang}/ are handled client-side, plus the
- * app edit views (/{lang}/edit and /{lang}/edit/{slug}). The bare app run page
+ * app create views (/{lang}/create and /{lang}/create/{slug}). The bare app run page
  * (/{lang}/app/{slug} or /{slug}) is excluded so it does a full page load to the
  * standalone server-rendered runtime.
  */

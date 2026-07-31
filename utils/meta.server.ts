@@ -15,13 +15,13 @@ function ogLocale(lang: Language): string {
   return map[lang];
 }
 
-function isAboutPath(pathname: string): boolean {
-  // Marketing front page: /{lang} or /{lang}/
-  return /^\/[^/]+\/?$/.test(pathname);
+function isMarketingPath(pathname: string): boolean {
+  // Splash index /{lang}/ or About /{lang}/about
+  return /^\/[^/]+\/?$/.test(pathname) || /^\/[^/]+\/about\/?$/.test(pathname);
 }
 
 function metaCopy(lang: Language, pathname: string): { title: string; description: string } {
-  if (isAboutPath(pathname)) {
+  if (isMarketingPath(pathname)) {
     return {
       title: metaPlainForTitleElement(t("Remiix — Remix any app, or make your own.", lang)),
       description: metaPlainForHtmlAttribute(
@@ -43,7 +43,8 @@ export async function getMeta(req: BunRequest): Promise<string> {
   const staticRoot = resolveStaticRootFromUrl(req.url);
   const { title, description } = metaCopy(lang, pathname);
   const ogImage = `${staticRoot}/favicons/android-chrome-512x512.png`;
-  const themeColor = isAboutPath(pathname) ? "#0f1419" : "#1a1848";
+  /** Matches remiix-app-icon.jpg field. */
+  const themeColor = "#0878f8";
 
   return /*html*/ `
     <meta charset="utf-8" />
@@ -65,9 +66,9 @@ export async function getMeta(req: BunRequest): Promise<string> {
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${title}" />
     <meta name="twitter:description" content="${description}" />
-    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/images/remiix-icon-dark.svg`)}" type="image/svg+xml" />
-    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/images/remiix-icon-dark.svg`)}" type="image/svg+xml" media="(prefers-color-scheme: light)" />
-    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/images/remiix-icon-light.svg`)}" type="image/svg+xml" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/favicons/favicon.ico`)}" sizes="any" />
+    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/favicons/favicon-32x32.png`)}" type="image/png" sizes="32x32" />
+    <link rel="icon" href="${escapeHtmlAttribute(`${staticRoot}/favicons/android-chrome-192x192.png`)}" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" sizes="180x180" href="${escapeHtmlAttribute(`${staticRoot}/favicons/apple-touch-icon.png`)}" />
     <link rel="manifest" href="${escapeHtmlAttribute(`/${lang}/site.webmanifest`)}" />
     <meta name="theme-color" content="${themeColor}" media="(prefers-color-scheme: light)" />

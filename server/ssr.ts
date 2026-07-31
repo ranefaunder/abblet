@@ -30,8 +30,9 @@ function getInitialConfig(req: BunRequest): InitialConfig {
 
 function getInitialApp(req: BunRequest, user: AuthenticatedUser | null): AppDetail | null {
   const parts = new URL(req.url).pathname.split("/").filter(Boolean);
-  // /:lang/edit/:slug
-  const slug = parts[1] === "edit" && parts[2] ? parts[2] : null;
+  // /:lang/create/:slug (legacy: /:lang/edit/:slug)
+  const slug =
+    (parts[1] === "create" || parts[1] === "edit") && parts[2] ? parts[2] : null;
   if (!slug) return null;
 
   const row = dbGetAppBySlug(slug);
@@ -66,8 +67,8 @@ function getInitialApps(req: BunRequest, initialUser: AuthenticatedUser | null) 
   const parts = new URL(req.url).pathname.split("/").filter(Boolean);
   const segment = parts[1];
 
-  // Home launcher and edit need the app list.
-  if (segment === undefined || segment === "edit") {
+  // Splash, me, and create need the app list.
+  if (segment === undefined || segment === "create" || segment === "edit" || segment === "me") {
     return dbListLibraryApps(initialUser.id);
   }
   return undefined;

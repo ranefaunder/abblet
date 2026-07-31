@@ -1,95 +1,40 @@
 import type { ComponentChildren, ComponentType } from "preact";
 import { h } from "preact";
-import { useLocation } from "preact-iso";
 import { html, css } from "/utils/markup";
 import Dialogs from "/app/components/Dialogs";
-import SiteFooter from "/app/components/SiteFooter";
-import { t } from "/utils/i18n";
-import { AVAILABLE_LANGUAGES, type Language } from "/i18n/languages";
-import { getLang, pathWithLang } from "/utils/lang";
-import { aboutUrl, appEditUrl, storeUrl } from "/utils/app-url";
-import { isLoggedIn, openLoginDialog, requireLogin } from "/app/stores/userStore";
+import TabBar from "/app/components/TabBar";
+
+/** Soft page wash — Games-style dual radial, tinted per route. */
+export type Atmosphere =
+  | "apps"
+  | "games"
+  | "me"
+  | "about"
+  | "create"
+  | "detail"
+  | "login"
+  | "splash"
+  | "default";
 
 type LayoutProps = {
   children: ComponentChildren;
+  tabBar?: boolean;
+  atmosphere?: Atmosphere;
 };
 
-/** Shared site chrome — brand, Store, Create, account icon, language. */
-function SiteHeader() {
-  const { path } = useLocation();
-  const lang = (getLang(path ?? "") ?? "en") as Language;
-  const loggedIn = isLoggedIn();
-  const currentPath = path ?? `/${lang}/`;
-
-  const accountAction = loggedIn
-    ? html`
-        <a
-          href=${`/${lang}/account`}
-          ui-button="tertiary square sm"
-          ui-icon="user-circle"
-          aria-label=${t("Account")}
-        ></a>`
-    : html`
-      <button
-        type="button"
-        ui-button="tertiary square sm"
-        ui-icon="user-circle"
-        aria-label=${t("Sign in")}
-        onClick=${openLoginDialog}
-      ></button>`;
-
-  return html`
-    <header class="site-header" ui-padding="inline-md block-md">
-      <div class="site-header-inner" ui-row="gap-sm y-center x-between">
-        <a class="brand" href=${aboutUrl(lang)} aria-label="Remiix">
-          <img src="/static/images/remiix.svg" alt="Remiix" width="96" height="20" />
-        </a>
-        <nav class="actions" ui-row="gap-sm y-center">
-          <a href=${storeUrl(lang)} ui-button="tertiary sm">${t("Store")}</a>
-          <a
-            href=${appEditUrl(lang)}
-            ui-button="primary sm"
-            onClick=${(e: Event) => {
-              if (requireLogin()) return;
-              e.preventDefault();
-            }}
-          >${t("Create")}</a>
-          ${accountAction}
-          <div ui-menu="bottom-right">
-            <button
-              type="button"
-              ui-button="tertiary square sm"
-              ui-icon="globe"
-              popovertarget="site-lang-menu"
-              aria-label=${t("Language")}
-            ></button>
-            <div id="site-lang-menu" popover="auto" role="menu">
-              ${(Object.keys(AVAILABLE_LANGUAGES) as Language[]).map((code) => {
-                const current = code === lang;
-                return html`
-                  <a
-                    role="menuitem"
-                    href=${pathWithLang(currentPath, code)}
-                    aria-current=${current ? "true" : undefined}
-                    lang=${code}
-                  >${AVAILABLE_LANGUAGES[code].nativeName}</a>
-                `;
-              })}
-            </div>
-          </div>
-        </nav>
-      </div>
-    </header>
-  `;
-}
-
-/** App shell — document scrolls; pages that need a fixed viewport handle it themselves. */
-export default function Layout({ children }: LayoutProps) {
+/** App shell — document scrolls; optional floating bottom tab bar. */
+export default function Layout({
+  children,
+  tabBar = true,
+  atmosphere = "default",
+}: LayoutProps) {
   const view = html`
-    <div data-scope="Layout">
-      <${SiteHeader} />
+    <div
+      data-scope="Layout"
+      class=${`${tabBar ? "with-tabs" : "no-tabs"} atm-${atmosphere}`}
+    >
       <main class="shell">${children}</main>
-      <${SiteFooter} />
+      ${tabBar ? html`<${TabBar} />` : null}
       <${Dialogs} />
     </div>
   `;
@@ -107,43 +52,76 @@ export default function Layout({ children }: LayoutProps) {
         flex: 1;
         display: flex;
         flex-direction: column;
-      }
-
-      .site-header {
-        flex: none;
-        position: sticky;
-        top: 0;
-        z-index: 5;
-        padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
-        border-bottom: 1px solid var(--neutral-200);
-        background: color-mix(in oklab, var(--neutral-50) 88%, var(--white));
-        backdrop-filter: blur(12px);
-      }
-
-      .site-header-inner {
-        max-width: 48rem;
-        margin-inline: auto;
-        width: 100%;
-        box-sizing: border-box;
-      }
-
-      .brand {
-        color: var(--neutral-950);
-        text-decoration: none;
-        flex: none;
-      }
-
-      .brand img {
-        display: block;
-        height: 1.35rem;
-        width: auto;
-      }
-
-      .actions {
         min-width: 0;
-        flex: none;
-        justify-content: flex-end;
-        flex-wrap: nowrap;
+      }
+
+      &.with-tabs .shell {
+        padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+      }
+
+      /* Shared Games-style wash; each tone swaps accent pairs. */
+      &.atm-apps {
+        background:
+          radial-gradient(90% 50% at 0% 0%, color-mix(in oklab, var(--primary-200) 55%, transparent), transparent 55%),
+          radial-gradient(70% 40% at 100% 10%, color-mix(in oklab, var(--info-200) 40%, transparent), transparent 50%),
+          var(--neutral-50);
+      }
+
+      &.atm-games {
+        background:
+          radial-gradient(90% 50% at 0% 0%, color-mix(in oklab, var(--secondary-200) 55%, transparent), transparent 55%),
+          radial-gradient(70% 40% at 100% 10%, color-mix(in oklab, var(--primary-200) 45%, transparent), transparent 50%),
+          var(--neutral-50);
+      }
+
+      &.atm-me {
+        background:
+          radial-gradient(90% 50% at 0% 0%, color-mix(in oklab, var(--success-200) 45%, transparent), transparent 55%),
+          radial-gradient(70% 40% at 100% 10%, color-mix(in oklab, var(--primary-200) 35%, transparent), transparent 50%),
+          var(--neutral-50);
+      }
+
+      &.atm-about {
+        background:
+          radial-gradient(90% 50% at 0% 0%, color-mix(in oklab, var(--primary-100) 70%, transparent), transparent 55%),
+          radial-gradient(70% 40% at 100% 10%, color-mix(in oklab, var(--neutral-200) 55%, transparent), transparent 50%),
+          var(--neutral-50);
+      }
+
+      &.atm-create {
+        /* Magic-wand violet (hue ~300) — distinct from indigo primary / orange secondary. */
+        background:
+          radial-gradient(90% 50% at 0% 0%, color-mix(in oklab, oklch(88% 0.09 305) 65%, transparent), transparent 55%),
+          radial-gradient(70% 40% at 100% 10%, color-mix(in oklab, oklch(90% 0.07 285) 55%, transparent), transparent 50%),
+          var(--neutral-50);
+      }
+
+      &.atm-detail {
+        background:
+          radial-gradient(90% 50% at 0% 0%, color-mix(in oklab, var(--primary-200) 40%, transparent), transparent 55%),
+          radial-gradient(70% 40% at 100% 10%, color-mix(in oklab, var(--secondary-100) 50%, transparent), transparent 50%),
+          var(--neutral-50);
+      }
+
+      &.atm-login {
+        background:
+          radial-gradient(90% 50% at 0% 0%, color-mix(in oklab, var(--info-200) 50%, transparent), transparent 55%),
+          radial-gradient(70% 40% at 100% 10%, color-mix(in oklab, var(--primary-200) 35%, transparent), transparent 50%),
+          var(--neutral-50);
+      }
+
+      &.atm-splash {
+        background:
+          radial-gradient(90% 50% at 0% 0%, color-mix(in oklab, var(--primary-200) 50%, transparent), transparent 55%),
+          radial-gradient(70% 40% at 100% 10%, color-mix(in oklab, var(--secondary-200) 40%, transparent), transparent 50%),
+          var(--neutral-50);
+      }
+
+      &.atm-default {
+        background:
+          radial-gradient(90% 50% at 0% 0%, color-mix(in oklab, var(--neutral-200) 60%, transparent), transparent 55%),
+          radial-gradient(70% 40% at 100% 10%, color-mix(in oklab, var(--primary-100) 45%, transparent), transparent 50%),
+          var(--neutral-50);
       }
     }
   `;
@@ -151,8 +129,15 @@ export default function Layout({ children }: LayoutProps) {
   return [style, view];
 }
 
-export function withLayout<P extends object>(Page: ComponentType<P>) {
+type LayoutOptions = {
+  tabBar?: boolean;
+  atmosphere?: Atmosphere;
+};
+
+export function withLayout<P extends object>(Page: ComponentType<P>, options: LayoutOptions = {}) {
+  const tabBar = options.tabBar !== false;
+  const atmosphere = options.atmosphere ?? "default";
   return function LayoutRoute(props: P) {
-    return h(Layout, { children: h(Page, props) });
+    return h(Layout, { tabBar, atmosphere, children: h(Page, props) });
   };
 }

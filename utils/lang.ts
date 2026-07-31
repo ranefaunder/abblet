@@ -21,7 +21,7 @@ export function getLang(url: string): Language | null {
   return null;
 }
 
-/** Vaihtaa polun kielisegmentin (`/fi/store` → `/en/store`). */
+/** Vaihtaa polun kielisegmentin (`/fi/apps` → `/en/apps`). */
 export function pathWithLang(path: string, lang: Language): string {
   const pathname = path.startsWith("/") ? path : `/${path}`;
   const rest = pathname.replace(/^\/[^/]+/, "") || "/";

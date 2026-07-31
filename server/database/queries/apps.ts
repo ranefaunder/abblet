@@ -1,5 +1,5 @@
 import { db } from "/server/database/db";
-import { dbInsertAppVersion } from "/server/database/queries/app-versions";
+import { dbGetAppVersion, dbInsertAppVersion } from "/server/database/queries/app-versions";
 import type { AppConfig } from "/types/app-config-types";
 import type { AppSummary, AppVisibility, StoreAppCard, StoreAppDetail } from "/types/app-types";
 import { appConfigToVersionFields } from "/utils/app-config.server";
@@ -26,6 +26,7 @@ export type AppRow = {
   owner_nickname?: string | null;
   remix_count?: number;
   install_count?: number;
+  open_count?: number;
   owned?: number;
   installed?: number;
   is_owner?: number;
@@ -61,6 +62,7 @@ function toStoreCard(row: AppRow): StoreAppCard {
     category: row.category ?? null,
     iconId: row.icon_id ?? null,
     ownerNickname: row.owner_nickname ?? null,
+    openCount: row.open_count ?? 0,
     installCount: row.install_count ?? 0,
     remixCount: row.remix_count ?? 0,
     installed: row.installed === 1,
@@ -118,12 +120,14 @@ export const dbListPublicApps = (limit = 24): AppSummary[] =>
 export function dbListStoreApps(opts: {
   q?: string;
   category?: string | null;
+  excludeCategory?: string | null;
   userId?: string | null;
   limit?: number;
 }): StoreAppCard[] {
   const limit = Math.min(Math.max(opts.limit ?? 48, 1), 100);
   const q = opts.q?.trim() ?? "";
   const category = opts.category?.trim() || null;
+  const excludeCategory = opts.excludeCategory?.trim() || null;
   const userId = opts.userId ?? null;
 
   const where: string[] = ["a.visibility = 'public'", "a.is_draft = 0"];
@@ -132,6 +136,9 @@ export function dbListStoreApps(opts: {
   if (category) {
     where.push("a.category = ?");
     params.push(category);
+  } else if (excludeCategory) {
+    where.push("(a.category IS NULL OR a.category != ?)");
+    params.push(excludeCategory);
   }
   if (q) {
     where.push("(a.title LIKE ? OR a.description LIKE ? OR IFNULL(a.tagline, '') LIKE ?)");
@@ -147,6 +154,7 @@ export function dbListStoreApps(opts: {
       SELECT a.*, u.nickname as owner_nickname,
         (SELECT COUNT(*) FROM apps r WHERE r.source_app_id = a.id) as remix_count,
         (SELECT COUNT(*) FROM app_installs i WHERE i.app_id = a.id) as install_count,
+        (SELECT COUNT(*) FROM app_open_events o WHERE o.app_id = a.id) as open_count,
         CASE WHEN ? IS NOT NULL AND EXISTS (
           SELECT 1 FROM app_installs ai WHERE ai.app_id = a.id AND ai.user_id = ?
         ) THEN 1 ELSE 0 END as installed,
@@ -162,8 +170,12 @@ export function dbListStoreApps(opts: {
 }
 
 /** Distinct Store categories that currently have at least one public app. */
-export function dbListStoreCategories(opts?: { q?: string }): string[] {
+export function dbListStoreCategories(opts?: {
+  q?: string;
+  excludeCategory?: string | null;
+}): string[] {
   const q = opts?.q?.trim() ?? "";
+  const excludeCategory = opts?.excludeCategory?.trim() || null;
   const where: string[] = [
     "a.visibility = 'public'",
     "a.is_draft = 0",
@@ -171,6 +183,11 @@ export function dbListStoreCategories(opts?: { q?: string }): string[] {
     "TRIM(a.category) != ''",
   ];
   const params: string[] = [];
+
+  if (excludeCategory) {
+    where.push("a.category != ?");
+    params.push(excludeCategory);
+  }
 
   if (q) {
     where.push("(a.title LIKE ? OR a.description LIKE ? OR IFNULL(a.tagline, '') LIKE ?)");
@@ -197,6 +214,7 @@ export function dbGetStoreAppBySlug(slug: string, userId: string | null): StoreA
         SELECT a.*, u.nickname as owner_nickname,
           (SELECT COUNT(*) FROM apps r WHERE r.source_app_id = a.id) as remix_count,
           (SELECT COUNT(*) FROM app_installs i WHERE i.app_id = a.id) as install_count,
+          (SELECT COUNT(*) FROM app_open_events o WHERE o.app_id = a.id) as open_count,
           CASE WHEN ? IS NOT NULL AND EXISTS (
             SELECT 1 FROM app_installs ai WHERE ai.app_id = a.id AND ai.user_id = ?
           ) THEN 1 ELSE 0 END as installed,
@@ -209,9 +227,13 @@ export function dbGetStoreAppBySlug(slug: string, userId: string | null): StoreA
       .get(userId, userId, userId, userId, slug) ?? null;
 
   if (!row) return null;
+  const published = row.published_version_id
+    ? dbGetAppVersion(row.published_version_id)
+    : null;
   return {
     ...toStoreCard(row),
     ownerId: row.owner_id,
+    code: published?.code ?? "",
   };
 }
 
@@ -422,6 +444,20 @@ export const dbLogInstallEvent = (
   ).run(crypto.randomUUID(), userId, appId, installedAt);
 };
 
+/** Append-only open log for "Recently used". */
+export const dbLogOpenEvent = (
+  userId: string,
+  appId: string,
+  openedAt = new Date().toISOString(),
+): void => {
+  db.query(
+    `
+    INSERT INTO app_open_events (id, user_id, app_id, opened_at)
+    VALUES (?, ?, ?, ?)
+  `,
+  ).run(crypto.randomUUID(), userId, appId, openedAt);
+};
+
 export type InstallHistoryRow = {
   slug: string;
   title: string;
@@ -468,6 +504,75 @@ export const dbListInstallHistory = (userId: string, limit = 40): InstallHistory
     tagline: row.tagline,
     iconId: row.icon_id,
     installedAt: row.installed_at,
+  }));
+};
+
+export type OpenHistoryRow = {
+  slug: string;
+  title: string;
+  tagline: string | null;
+  category: string | null;
+  iconId: string | null;
+  openedAt: string;
+};
+
+/** Latest open event per app for a user, newest first. Only apps still in the Store. */
+export const dbListOpenHistory = (
+  userId: string,
+  opts?: { category?: string | null; excludeCategory?: string | null; limit?: number },
+): OpenHistoryRow[] => {
+  const limit = opts?.limit ?? 40;
+  const category = opts?.category ?? null;
+  const excludeCategory = opts?.excludeCategory ?? null;
+
+  const rows = db
+    .query<
+      {
+        slug: string;
+        title: string;
+        tagline: string | null;
+        category: string | null;
+        icon_id: string | null;
+        opened_at: string;
+      },
+      [string, string, string | null, string | null, number]
+    >(
+      `
+      SELECT a.slug, a.title, a.tagline, a.category, a.icon_id, e.opened_at
+      FROM app_open_events e
+      INNER JOIN apps a ON a.id = e.app_id
+      INNER JOIN (
+        SELECT app_id, MAX(opened_at) AS max_at
+        FROM app_open_events
+        WHERE user_id = ?
+        GROUP BY app_id
+      ) latest ON latest.app_id = e.app_id AND latest.max_at = e.opened_at
+      WHERE e.user_id = ?
+        AND a.visibility = 'public'
+        AND a.is_draft = 0
+        AND (? IS NULL OR a.category = ?)
+        AND (? IS NULL OR a.category IS NULL OR a.category != ?)
+      ORDER BY e.opened_at DESC
+      LIMIT ?
+    `,
+    )
+    .all(
+      userId,
+      userId,
+      category,
+      category,
+      excludeCategory,
+      excludeCategory,
+      limit,
+    );
+
+  return rows.map((row) => ({
+    slug: row.slug,
+    title: row.title,
+    tagline: row.tagline,
+    category: row.category,
+    iconId: row.icon_id,
+    openedAt: row.opened_at,
   }));
 };
 

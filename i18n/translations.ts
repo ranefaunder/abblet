@@ -51,6 +51,9 @@ export const translations = {
   "Discover apps made by others": {
     fi: "Löydä muiden tekemiä appeja",
   },
+  "Discover games made by others": {
+    fi: "Löydä muiden tekemiä pelejä",
+  },
   "Search apps": {
     fi: "Hae appeja",
   },
@@ -311,6 +314,9 @@ export const translations = {
   "Sign in to apply your ideas": {
     fi: "Kirjaudu toteuttaaksesi ideasi",
   },
+  "Remiix is an app store where you can remix any app to fit you — or make a new one. Sign in to continue.": {
+    fi: "Remiix on app store, jossa voit remixata apit itsellesi sopiviksi — tai tehdä uuden. Kirjaudu jatkaaksesi.",
+  },
   "Apply your ideas as apps": {
     fi: "Toteuta ideasi appeina",
   },
@@ -396,6 +402,13 @@ export const translations = {
   "App preview": { fi: "Appin esikatselu" },
   "Chat": { fi: "Keskustelu" },
   "Code": { fi: "Koodi" },
+  "View source": { fi: "Näytä lähdekoodi" },
+  "Open source": { fi: "Avoin lähdekoodi" },
+  "Proudly open source": { fi: "Ylpeästi avointa lähdekoodia" },
+  "Every app in the Store ships with its source. Read it, learn from it, remix it — under the Mozilla Public License 2.0.": {
+    fi: "Jokainen Storen app tulee lähdekoodinsa kanssa. Lue se, opi siitä, remixaa — Mozilla Public License 2.0 -lisenssillä.",
+  },
+  "Mozilla Public License 2.0": { fi: "Mozilla Public License 2.0" },
   "Show Chat": { fi: "Näytä keskustelu" },
   "Show Code": { fi: "Näytä koodi" },
   "History": { fi: "Historia" },
@@ -433,6 +446,7 @@ export const translations = {
   "Intent": { fi: "Intent" },
   "Patch": { fi: "Patch" },
   "Name": { fi: "Nimi" },
+  "Meta": { fi: "Meta" },
   "Build": { fi: "Luonti" },
   "Generate new icon": { fi: "Luo uusi kuvake" },
   "Generating icon…": { fi: "Luodaan kuvaketta…" },
@@ -515,6 +529,42 @@ export const translations = {
   "Browse the Store": { fi: "Selaa Storea" },
   "An app store where every app is remixable to fit you.": {
     fi: "App store, jossa kaikki apit ovat remixattavia itselle sopivaksi.",
+  },
+  "Apps that fit you.": {
+    fi: "Apit jotka sopivat sinulle.",
+  },
+  "Remix an app to fit you.": {
+    fi: "Remixaa app itsellesi sopivaksi.",
+  },
+  "Remix any app to fit you.": {
+    fi: "Remixaa appit itsellesi sopiviksi.",
+  },
+  "Change any app to fit you — or make a new one.": {
+    fi: "Muuta mikä tahansa app itsellesi sopivaksi — tai tee uusi.",
+  },
+  "Browse apps others made and adapt them, or describe what you need and get a working app. No code needed.": {
+    fi: "Selaa muiden tekemiä appeja ja sovita ne itsellesi — tai kuvaile tarve ja saat toimivan appin. Ei koodia tarvita.",
+  },
+  "Browse apps others made, then adapt them until they match how you actually work. No code needed.": {
+    fi: "Selaa muiden tekemiä appeja ja sovita ne siihen, miten sinä oikeasti toimit. Ei koodia tarvita.",
+  },
+  "Open an app from the Store and describe the changes you want — Remiix remakes it to fit you. Or start from scratch with your own idea. No code needed.": {
+    fi: "Avaa app Storesta ja kuvaile mitä haluat muuttaa — Remiix tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla. Ei koodia tarvita.",
+  },
+  "An app store where you can open any app and describe the changes you want — Remiix remakes it to fit you. Or start from scratch with your own idea. No code needed.": {
+    fi: "App Store, jossa voit avata minkä tahansa appin ja kuvailla mitä haluat muuttaa — Remiix tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla. Ei koodia tarvita.",
+  },
+  "An app store where you can open any app and describe the changes you want — Remiix remakes it to fit you. Or start from scratch with your own idea.": {
+    fi: "App Store, jossa voit avata minkä tahansa appin ja kertoa miten haluat sitä muuttaa — Remiix tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla.",
+  },
+  "An app store where you can open any app and say how you want to change it — Remiix remakes it to fit you. Or start from scratch with your own idea.": {
+    fi: "App Store, jossa voit avata minkä tahansa appin ja kertoa miten haluat sitä muuttaa — Remiix tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla.",
+  },
+  "An app store where you can open any app and say how you want to change it — or ask for a new app from your own idea.": {
+    fi: "App Store, jossa voit avata minkä tahansa appin ja kertoa miten haluat sitä muuttaa — tai pyydä uusi app omasta ideastasi.",
+  },
+  "An app store where you can ask Remiix to change any app to fit your needs. If it doesn't exist, you can ask Remiix to make a new one from your own idea.": {
+    fi: "App Store, jossa voit pyytää Remiixiä muuttamaan minkä tahansa appin sopivaksi omiin tarpeisiisi. Ellei appia ole, voit pyytää Remiixiä tekemään uuden omasta ideastasi.",
   },
   "Software that fits — because you shape it.": {
     fi: "Ohjelmisto joka sopii — koska sinä muokkaat sen.",
@@ -635,14 +685,79 @@ export const translations = {
     fi: "Remiix rakentaa toimivia appeja arkikielestä. Kuvaile idea, saat appin minuuteissa ja parannat sitä keskustellen — ilman koodia.",
   },
   "Previously installed": { fi: "Aiemmin asennetut" },
+  "Recently used": { fi: "Viimeksi käyttämäsi" },
   "Popular apps": { fi: "Suositut appit" },
   "Top charts": { fi: "Suosituimmat" },
   "See all": { fi: "Näytä kaikki" },
+  "See all $count apps": {
+    fi: "Näytä kaikki $count appiä",
+  },
   "Store": { fi: "Store" },
+  "Me": { fi: "Minä" },
+  "Main": { fi: "Päävalikko" },
+  "Your apps, settings, and account.": {
+    fi: "Omat appit, asetukset ja tili.",
+  },
+  "Choose the language for Remiix.": {
+    fi: "Valitse Remiixin kieli.",
+  },
+  "Sign in to see your apps.": {
+    fi: "Kirjaudu nähdäksesi appisi.",
+  },
+  "Sign in to manage your account.": {
+    fi: "Kirjaudu hallitaksesi tiliäsi.",
+  },
+  "Make Remiix yours": {
+    fi: "Tee Remiixistä omasi",
+  },
+  "Create a free account to remix apps, build your own with AI, and keep everything in one place.": {
+    fi: "Luo ilmainen tili, niin voit remixata appeja, rakentaa omia tekoälyllä ja pitää kaiken yhdessä paikassa.",
+  },
+  "Remix any app": {
+    fi: "Remixaa mikä tahansa app",
+  },
+  "Open a Store app and ask Remiix to change it until it fits you.": {
+    fi: "Avaa Store-appi ja pyydä Remiixiä muuttamaan se itsellesi sopivaksi.",
+  },
+  "Build with AI": {
+    fi: "Rakenna tekoälyllä",
+  },
+  "Describe an idea and get a working app in minutes — no code needed.": {
+    fi: "Kuvaile idea ja saat toimivan appin minuuteissa — ei koodia tarvita.",
+  },
+  "Monthly AI credit": {
+    fi: "Kuukausittainen AI-saldo",
+  },
+  "Every account gets free AI credit each month to create, edit, and run AI in apps.": {
+    fi: "Joka tili saa ilmaisen AI-saldon joka kuukausi — luomiseen, muokkaukseen ja appien tekoälyyn.",
+  },
+  "Your apps in one place": {
+    fi: "Apit yhdessä paikassa",
+  },
+  "See the apps you made, open them anytime, and install them to your home screen.": {
+    fi: "Näet omat apit, avaat ne milloin vain ja voit asentaa ne kotinäytölle.",
+  },
+  "Publish to the Store": {
+    fi: "Julkaise Storeen",
+  },
+  "Share what you built so others can use it — and remix it further.": {
+    fi: "Jaa tekemäsi, jotta muut voivat käyttää sitä — ja remixata eteenpäin.",
+  },
+  "Play now": { fi: "Pelaa nyt" },
+  "Popular": { fi: "Suositut" },
+  "New drops": { fi: "Uudet" },
+  "No games yet": { fi: "Ei vielä pelejä" },
+  "Published games will show up here.": {
+    fi: "Julkaistut pelit näkyvät täällä.",
+  },
+  "Playful apps made to remix and make your own.": {
+    fi: "Leikkisiä appeja remiksattavaksi ja omaksi tehtäväksi.",
+  },
   "Install": { fi: "Asenna" },
   "Installed": { fi: "Asennettu" },
   "Preview": { fi: "Esikatselu" },
   "Installs": { fi: "Asennukset" },
+  "Opens": { fi: "Avaukset" },
   "Share": { fi: "Jaa" },
   "Link copied": { fi: "Linkki kopioitu" },
   "Share this app": { fi: "Jaa tämä app" },

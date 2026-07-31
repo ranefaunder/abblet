@@ -4,14 +4,13 @@ import { useEffect } from "preact/hooks";
 import { useLocation } from "preact-iso";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
-import { appEditUrl, storeAppUrl, storeUrl } from "/utils/app-url";
+import { appsAppUrl, appsUrl, createUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import type { StoreAppCard } from "/types/app-types";
 import { storeApps, loadStore } from "/app/stores/storeListingStore";
-import { requireLogin } from "/app/stores/userStore";
 
-export const AboutPath = "/:lang" as const;
+export const AboutPath = "/:lang/about" as const;
 
 function pickApps(apps: StoreAppCard[], count: number, offset = 0): StoreAppCard[] {
   if (apps.length === 0) return [];
@@ -39,7 +38,7 @@ function IconLink({
   return html`
     <a
       class=${`icon-link ${className}`.trim()}
-      href=${storeAppUrl(lang, app.slug)}
+      href=${appsAppUrl(lang, app.slug)}
       aria-label=${app.title}
       title=${app.title}
       style=${`--icon-size: ${sizeRem}rem; --icon-rot: ${rotate}deg`}
@@ -116,13 +115,8 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
   const closingApps = pickApps(apps, 7, 1);
 
   useEffect(() => {
-    void loadStore({ q: "", category: null });
+    void loadStore({ q: "", category: null, excludeCategory: null });
   }, []);
-
-  function onCreateClick(e: Event) {
-    if (requireLogin()) return;
-    e.preventDefault();
-  }
 
   const view = html`
     <div data-scope="About">
@@ -141,8 +135,8 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
               ${t("An app store where every app is remixable to fit you.")}
             </p>
             <div class="cta" ui-row="gap-sm wrap y-center">
-              <a href=${storeUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
-              <a href=${appEditUrl(lang)} ui-button onClick=${onCreateClick}>
+              <a href=${appsUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
+              <a href=${createUrl(lang)} ui-button>
                 ${t("Create an app")}
               </a>
             </div>
@@ -172,7 +166,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
                 ${t("Describe what you need in plain language. Remiix builds a working app in minutes — then you improve it by chatting. No code needed.")}
               </p>
               <div class="create-cta">
-                <a href=${appEditUrl(lang)} ui-button="primary" onClick=${onCreateClick}>
+                <a href=${createUrl(lang)} ui-button="primary">
                   ${t("Create an app")}
                 </a>
               </div>
@@ -284,8 +278,8 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
         <div class="wrap" ui-column="gap-lg x-center">
           <h2 class="closing-title">${t("Remix any app, or make your own.")}</h2>
           <div class="cta" ui-row="gap-sm wrap y-center x-center">
-            <a href=${storeUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
-            <a href=${appEditUrl(lang)} ui-button onClick=${onCreateClick}>
+            <a href=${appsUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
+            <a href=${createUrl(lang)} ui-button>
               ${t("Create an app")}
             </a>
           </div>
@@ -305,7 +299,6 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
     @scope ([data-scope="About"]) to ([data-scope]) {
       & {
         color: var(--neutral-900);
-        background: var(--white);
         padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
         overflow-x: clip;
       }

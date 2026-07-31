@@ -37,7 +37,11 @@ Remiix on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun j
 - Front page body (primary home for the pitch)
 - Longer marketing or share blurbs when a paragraph is needed
 
-The front page (`/`) is marketing. The Store product UI lives at `/:lang/store`.
+The splash index (`/:lang/`) is for cold visitors: wordmark (not app icon) + clarifying
+headline/pitch + one CTA (Browse the Store). No bottom tabs. Prefer plain language over
+“remix” jargon on splash; keep the brand slogan for titles/meta and About.
+About / longer marketing lives at `/:lang/about`. Product chrome is the floating bottom tabs
+(Apps · Games · Create · Me · About); Apps browse is `/:lang/apps`, Games `/:lang/games`.
 
 ## Where it does not belong
 
@@ -50,9 +54,10 @@ The front page (`/`) is marketing. The Store product UI lives at `/:lang/store`.
 | File | Use |
 |------|-----|
 | [`../static/images/remiix.svg`](../static/images/remiix.svg) | Wordmark (header, About) |
-| [`../static/images/remiix-icon-dark.svg`](../static/images/remiix-icon-dark.svg) | Icon / favicon on light OS chrome |
-| [`../static/images/remiix-icon-light.svg`](../static/images/remiix-icon-light.svg) | Icon / favicon on dark OS chrome; Patch badge; PWA install icon |
-| [`../static/favicons/`](../static/favicons/) | Raster favicons (regenerate: `bun run gen:favicons`) |
+| [`../static/images/remiix-app-icon.jpg`](../static/images/remiix-app-icon.jpg) | App icon source (favicon + PWA); regenerate rasters: `bun run gen:favicons` |
+| [`../static/favicons/`](../static/favicons/) | Raster favicons / PWA icons from `remiix-app-icon.jpg` |
+| [`../static/images/remiix-icon-dark.svg`](../static/images/remiix-icon-dark.svg) | Monochrome mark (light chrome / inline UI) |
+| [`../static/images/remiix-icon-light.svg`](../static/images/remiix-icon-light.svg) | Monochrome mark (dark chrome; Patch badge) |
 | [`rmix.sketch`](rmix.sketch) | Design source (legacy filename) |
 | [`TRADEMARK.md`](TRADEMARK.md) | Alustava tavaramerkkiselvitys |
 

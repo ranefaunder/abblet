@@ -7,7 +7,13 @@ import clientJsRoute from "./routes/client-js";
 import appRoute from "./routes/app";
 import rootRoute from "./routes/root";
 import redirectRoute from "./routes/redirect";
-import aboutRedirect from "./routes/about-redirect";
+import {
+  accountToMe,
+  editSlugToCreate,
+  editToCreate,
+  storeSlugToApps,
+  storeToApps,
+} from "./routes/legacy-redirect";
 import robotsTxt from "./routes/robots-txt";
 import sitemapXml from "./routes/sitemap-xml";
 import siteWebmanifest from "./routes/site-webmanifest";
@@ -29,7 +35,6 @@ import userMarketing from "./api/user/marketing";
 import appGenerate from "./api/app/generate";
 import appGet from "./api/app/get";
 import appEdit from "./api/app/edit";
-import appUpdateCode from "./api/app/update-code";
 import appEditHistory from "./api/app/edit-history";
 import appList from "./api/app/list";
 import appRegenerateIcon from "./api/app/regenerate-icon";
@@ -38,7 +43,11 @@ import appStore from "./api/app/store";
 import appStoreGet from "./api/app/store-get";
 import appInstall from "./api/app/install";
 import appInstallHistory from "./api/app/install-history";
+import appOpen from "./api/app/open";
+import appOpenHistory from "./api/app/open-history";
 import appUninstall from "./api/app/uninstall";
+import sdkOpen from "./api/sdk/open";
+import sdkCredits from "./api/sdk/credits";
 import appPublish from "./api/app/publish";
 import appUnpublish from "./api/app/unpublish";
 import appRemix from "./api/app/remix";
@@ -133,7 +142,6 @@ const platformApiRoutes = wrapRoutes(
     "/api/:lang/meta": meta,
     "/api/:lang/app/generate": appGenerate,
     "/api/:lang/app/edit": appEdit,
-    "/api/:lang/app/update-code": appUpdateCode,
     "/api/:lang/app/edit-history": appEditHistory,
     "/api/:lang/app/regenerate-icon": appRegenerateIcon,
     "/api/:lang/app/delete": appDelete,
@@ -142,6 +150,8 @@ const platformApiRoutes = wrapRoutes(
     "/api/:lang/app/store-get": appStoreGet,
     "/api/:lang/app/install": appInstall,
     "/api/:lang/app/install-history": appInstallHistory,
+    "/api/:lang/app/open": appOpen,
+    "/api/:lang/app/open-history": appOpenHistory,
     "/api/:lang/app/uninstall": appUninstall,
     "/api/:lang/app/publish": appPublish,
     "/api/:lang/app/unpublish": appUnpublish,
@@ -176,6 +186,8 @@ const server = Bun.serve({
       "/api/sdk/exchange": sdkExchange,
       "/api/sdk/ai": sdkAi,
       "/api/sdk/session": sdkSession,
+      "/api/sdk/open": sdkOpen,
+      "/api/sdk/credits": sdkCredits,
       "/api/sdk/remix": sdkRemix,
 
       "/static/*": staticRoute,
@@ -187,8 +199,14 @@ const server = Bun.serve({
       "/:lang/app/:slug/run.js": appModule,
       "/:lang/app/:slug/run": appRunRedirect,
       "/:lang/app/:slug": appPage,
-      "/:lang/about": aboutRedirect,
-      "/:lang/about/": aboutRedirect,
+      "/:lang/store": storeToApps,
+      "/:lang/store/": storeToApps,
+      "/:lang/store/:slug": storeSlugToApps,
+      "/:lang/edit": editToCreate,
+      "/:lang/edit/": editToCreate,
+      "/:lang/edit/:slug": editSlugToCreate,
+      "/:lang/account": accountToMe,
+      "/:lang/account/": accountToMe,
       "/:lang": redirectRoute,
       "/:lang/": appRoute,
       "/:lang/*": appRoute,

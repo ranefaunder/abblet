@@ -48,6 +48,9 @@ export interface StoreAppCard {
   category: string | null;
   iconId: string | null;
   ownerNickname: string | null;
+  /** How many times this app has been opened (app_open_events). */
+  openCount: number;
+  /** How many users have this app in their library (app_installs). */
   installCount: number;
   remixCount: number;
   /** True when the current user has this app in their library (app_installs). */
@@ -58,7 +61,9 @@ export interface StoreAppCard {
   updatedAt: string;
 }
 
-/** Full Store detail payload for /store/:slug. */
+/** Full Store detail payload for /apps/:slug. */
 export interface StoreAppDetail extends StoreAppCard {
   ownerId: string;
+  /** Published Web Component source (public; same as /module.js). */
+  code: string;
 }

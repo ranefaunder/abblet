@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "phosphor-icons": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "phosphor-icons-semantic-search-mcp"
+      ]
+    }
+  }
+}

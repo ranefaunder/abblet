@@ -10,16 +10,22 @@ export default {
     const q = url.searchParams.get("q") ?? "";
     const categoryRaw = url.searchParams.get("category")?.trim() ?? "";
     const category = isAppCategory(categoryRaw) ? categoryRaw : null;
+    const excludeRaw = url.searchParams.get("excludeCategory")?.trim() ?? "";
+    const excludeCategory = isAppCategory(excludeRaw) ? excludeRaw : null;
     const user = getAuthenticatedUser(req);
 
     const apps = dbListStoreApps({
       q,
       category,
+      excludeCategory: category ? null : excludeCategory,
       userId: user?.id ?? null,
       limit: 48,
     });
-    const categories = dbListStoreCategories({ q });
+    const categories = dbListStoreCategories({
+      q,
+      excludeCategory: category ? null : excludeCategory,
+    });
 
-    return apiSuccess({ data: { apps, categories, category, q } });
+    return apiSuccess({ data: { apps, categories, category, excludeCategory, q } });
   },
 };

@@ -11,9 +11,9 @@ export default {
       return apiSuccess({
         data: {
           balanceUsdMicros: snap.balanceUsdMicros,
-          balanceEur: Math.round(snap.balanceEur * 100) / 100,
+          balanceUsd: Math.round(snap.balanceUsd * 100) / 100,
           periodYm: snap.periodYm,
-          freeGrantEur: snap.freeGrantEur,
+          freeGrantUsd: snap.freeGrantUsd,
         },
       });
     });

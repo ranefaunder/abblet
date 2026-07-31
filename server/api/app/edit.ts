@@ -9,7 +9,7 @@ import {
   classifyEditIntent,
   editAppConfig,
   generateAppConfig,
-  generateAppName,
+  updateAppMeta,
 } from "/utils/ai-apps.server";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
@@ -352,12 +352,12 @@ async function runEditTurn(opts: {
       replyParts.push(result.summary);
     }
 
-    if (tools.includes("rename")) {
+    if (tools.includes("updateMeta")) {
       emitStep();
       const started = Date.now();
-      let renamed;
+      let meta;
       try {
-        renamed = await generateAppName({
+        meta = await updateAppMeta({
           current: nextConfig,
           instruction: message,
           language,
@@ -371,27 +371,27 @@ async function runEditTurn(opts: {
         }
         throw err;
       }
-      if (!renamed) {
+      if (!meta) {
         fail("GENERATION_FAILED", t("Could not update app. Try again.", language));
         return;
       }
       nextConfig = {
         ...nextConfig,
-        title: renamed.title,
-        description: renamed.description,
-        tagline: renamed.tagline || undefined,
-        category: renamed.category as AppConfig["category"],
+        title: meta.title,
+        description: meta.description,
+        tagline: meta.tagline || undefined,
+        category: meta.category as AppConfig["category"],
       };
-      costUsd = addCost(costUsd, renamed.costUsd);
-      modelUsed = renamed.modelUsed ?? modelUsed;
+      costUsd = addCost(costUsd, meta.costUsd);
+      modelUsed = meta.modelUsed ?? modelUsed;
       usage.push({
-        tool: "rename",
-        modelKey: renamed.modelUsed,
-        costUsd: renamed.costUsd,
+        tool: "updateMeta",
+        modelKey: meta.modelUsed,
+        costUsd: meta.costUsd,
         durationMs: Date.now() - started,
-        responseJson: renamed.responseJson ?? undefined,
+        responseJson: meta.responseJson ?? undefined,
       });
-      replyParts.push(renamed.summary);
+      replyParts.push(meta.summary);
     }
 
     needsNewIcon = tools.includes("regenerateIcon") && Boolean(row.icon_id);

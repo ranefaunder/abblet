@@ -18,10 +18,10 @@ const TOKEN_EXP_KEY = "remiix.tokenExpiresAt";
 
 const COPY = {
   en: {
-    title: "Use AI with your Remiix account",
-    body: "This app needs AI. It will use your Remiix account — AI credits and usage are charged to you, not the app creator.",
-    continue: "Continue",
-    cancel: "Cancel",
+    loginTitle: "Sign in to Remiix",
+    loginBody: "This feature needs a Remiix account.",
+    loginCta: "Sign in",
+    loginCancel: "Cancel",
     offlineTitle: "You're offline",
     offlineBody: "AI needs an internet connection. Your app data still works offline.",
     offlineOk: "OK",
@@ -34,14 +34,16 @@ const COPY = {
     remix: "Remix",
     remixing: "Remixing…",
     about: "Remiix.app",
-    update: "Update",
-    updating: "Updating…",
+    creditLabel: "AI credit",
+    creditLoading: "…",
+    creditEmpty: "No credit left",
+    ownedByYou: "Your app",
   },
   fi: {
-    title: "Käytä tekoälyä Remiix-tililläsi",
-    body: "Tämä app tarvitsee tekoälyä. Se käyttää Remiix-tiliäsi — AI-creditit ja käyttö veloitetaan sinulta, ei appin tekijältä.",
-    continue: "Jatka",
-    cancel: "Peruuta",
+    loginTitle: "Kirjaudu Remiixiin",
+    loginBody: "Tämä ominaisuus vaatii Remiix-tilin.",
+    loginCta: "Kirjaudu",
+    loginCancel: "Peruuta",
     offlineTitle: "Olet offline",
     offlineBody: "Tekoäly tarvitsee nettiyhteyden. Appisi data toimii silti offline.",
     offlineOk: "OK",
@@ -54,14 +56,12 @@ const COPY = {
     remix: "Remix",
     remixing: "Remixataan…",
     about: "Remiix.app",
-    update: "Päivitä",
-    updating: "Päivitetään…",
+    creditLabel: "AI-saldo",
+    creditLoading: "…",
+    creditEmpty: "Saldo loppu",
+    ownedByYou: "Oma appisi",
   },
 };
-
-function connectCopy() {
-  return COPY[lang] || COPY.en;
-}
 
 function uiCopy() {
   return COPY[lang] || COPY.en;
@@ -88,23 +88,23 @@ function storeToken(accessToken, expiresAt) {
   sessionStorage.setItem(TOKEN_EXP_KEY, expiresAt);
 }
 
-/** Explain credits, then redirect to /connect/{slug}. Resolves true if continuing. */
-function confirmConnect() {
-  const t = connectCopy();
+/** Ask to sign in, then redirect to /connect/{slug}. Resolves true if continuing. */
+function confirmLogin() {
+  const t = uiCopy();
   return new Promise((resolve) => {
-    const existing = document.getElementById("remiix-connect-dialog");
+    const existing = document.getElementById("remiix-login-dialog");
     if (existing) existing.remove();
 
     const dialog = document.createElement("dialog");
-    dialog.id = "remiix-connect-dialog";
+    dialog.id = "remiix-login-dialog";
     dialog.setAttribute("closedby", "any");
     dialog.innerHTML = `
       <form method="dialog" style="margin:0;display:flex;flex-direction:column;gap:16px;min-width:min(100%,320px)">
-        <h2 style="margin:0;font-size:1.125rem;font-weight:600;line-height:1.3">${t.title}</h2>
-        <p style="margin:0;font-size:0.9375rem;line-height:1.45;color:#3c3c4399">${t.body}</p>
+        <h2 style="margin:0;font-size:1.125rem;font-weight:600;line-height:1.3">${t.loginTitle}</h2>
+        <p style="margin:0;font-size:0.9375rem;line-height:1.45;color:#3c3c4399">${t.loginBody}</p>
         <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-          <button value="cancel" type="submit" style="appearance:none;border:none;background:#e5e5ea;color:#000;font:inherit;font-weight:500;padding:10px 16px;border-radius:10px;cursor:pointer">${t.cancel}</button>
-          <button value="continue" type="submit" style="appearance:none;border:none;background:#007aff;color:#fff;font:inherit;font-weight:500;padding:10px 16px;border-radius:10px;cursor:pointer">${t.continue}</button>
+          <button value="cancel" type="submit" style="appearance:none;border:none;background:#e5e5ea;color:#000;font:inherit;font-weight:500;padding:10px 16px;border-radius:10px;cursor:pointer">${t.loginCancel}</button>
+          <button value="continue" type="submit" style="appearance:none;border:none;background:#007aff;color:#fff;font:inherit;font-weight:500;padding:10px 16px;border-radius:10px;cursor:pointer">${t.loginCta}</button>
         </div>
       </form>
     `;
@@ -129,7 +129,7 @@ function confirmConnect() {
 }
 
 function showOfflineAiNotice() {
-  const t = connectCopy();
+  const t = uiCopy();
   return new Promise((resolve) => {
     const existing = document.getElementById("remiix-offline-dialog");
     if (existing) existing.remove();
@@ -167,6 +167,31 @@ function isProbablyOffline() {
   return typeof navigator !== "undefined" && navigator.onLine === false;
 }
 
+function formatBalanceUsd(usd) {
+  const n = typeof usd === "number" && Number.isFinite(usd) ? usd : 0;
+  return "$" + (Math.round(n * 100) / 100).toFixed(2);
+}
+
+/** Debit float: cents + fractional cents (e.g. -2¢, -0.5¢). */
+function formatDebitCents(usd) {
+  const n = typeof usd === "number" && Number.isFinite(usd) ? Math.max(0, usd) : 0;
+  const cents = n * 100;
+  let formatted = cents.toFixed(2).replace(/\.?0+$/, "");
+  if ((formatted === "" || formatted === "0") && cents > 0) {
+    formatted = cents.toFixed(3).replace(/\.?0+$/, "");
+  }
+  if (!formatted) formatted = "0";
+  return `-${formatted}¢`;
+}
+
+/** Patch UI hooks — filled by mountRemiixPatch so Remiix.ai can animate debits. */
+const creditUi = {
+  balanceUsd: null,
+  setBalance(_usd) {},
+  showDebit(_billedUsd) {},
+  showEmpty() {},
+};
+
 window.Remiix = {
   appSlug,
   platformOrigin,
@@ -195,7 +220,7 @@ window.Remiix = {
     }
     const token = this.getToken();
     if (!token) {
-      const ok = await confirmConnect();
+      const ok = await confirmLogin();
       if (!ok) {
         const err = new Error("CONNECT_CANCELLED");
         err.code = "CONNECT_CANCELLED";
@@ -236,29 +261,74 @@ window.Remiix = {
       }
     }
     if (!data.success) {
-      const err = new Error(data.error?.code || "AI_ERROR");
-      err.code = data.error?.code || "AI_ERROR";
+      const code = data.error?.code || "AI_ERROR";
+      if (code === "INSUFFICIENT_CREDITS") {
+        creditUi.setBalance(0);
+        creditUi.showEmpty();
+      }
+      const err = new Error(code);
+      err.code = code;
       throw err;
+    }
+    if (typeof data.data?.billedUsd === "number" && data.data.billedUsd > 0) {
+      creditUi.showDebit(data.data.billedUsd);
+    }
+    if (typeof data.data?.balanceUsd === "number") {
+      creditUi.setBalance(data.data.balanceUsd);
     }
     return data.data.text;
   },
 };
 
-/** No platform session on app hosts (cookie is host-only on remiix.app). */
+/**
+ * No platform cookie on app hosts (host-only on remiix.app).
+ * A connect token means the user linked their Remiix account in this runtime.
+ */
 async function loadPlatformSession() {
+  const token = readStoredToken();
   const session = {
-    user: null,
+    user: token ? { connected: true } : null,
     isOwner: false,
     published: published,
   };
-  window.Remiix.user = null;
+  window.Remiix.user = session.user;
   window.Remiix.isOwner = false;
   return session;
 }
 
-const sessionPromise = loadPlatformSession();
-
-
+/** Log this open when Patch sees a connected Remiix account (once per tab session). */
+async function recordOpenIfLoggedIn() {
+  const token = readStoredToken()?.accessToken;
+  if (!token) return;
+  const key = "remiix.openLogged:" + appSlug;
+  try {
+    if (sessionStorage.getItem(key) === "1") return;
+  } catch {
+    // ignore
+  }
+  try {
+    const res = await fetch(platformOrigin + "/api/sdk/open", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token },
+    });
+    if (res.ok) {
+      try {
+        sessionStorage.setItem(key, "1");
+      } catch {
+        // ignore
+      }
+    } else if (res.status === 401) {
+      try {
+        sessionStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(TOKEN_EXP_KEY);
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    // Offline / network — skip.
+  }
+}
 
 const params = new URLSearchParams(location.search);
 const code = params.get("code");
@@ -281,7 +351,8 @@ if (code) {
   }
 }
 
-const platformSession = await sessionPromise;
+const platformSession = await loadPlatformSession();
+void recordOpenIfLoggedIn();
 
 const mount = document.getElementById("mount");
 await import(moduleUrl);
@@ -342,8 +413,8 @@ function mountRemiixPatch(session) {
   if (document.getElementById("remiix-patch")) return;
 
   const t = uiCopy();
-  const storeHref = platformOrigin + "/" + lang + "/store/" + encodeURIComponent(appSlug);
-  const editHref = platformOrigin + "/" + lang + "/edit/" + encodeURIComponent(appSlug);
+  const storeHref = platformOrigin + "/" + lang + "/apps/" + encodeURIComponent(appSlug);
+  const editHref = platformOrigin + "/" + lang + "/create/" + encodeURIComponent(appSlug);
   const aboutHref = platformOrigin + "/" + lang + "/";
   const shareUrl = published ? storeHref : location.origin + "/";
   const canOfferInstall = !isThisAppInstalledPwa();
@@ -354,6 +425,15 @@ function mountRemiixPatch(session) {
   const showRemix = published;
 
   const menuItems = [];
+  menuItems.push(`
+    <div class="remiix-patch-meta" data-remiix-meta hidden>
+      <div class="remiix-patch-owned" data-remiix-owned hidden role="status">${t.ownedByYou}</div>
+      <div class="remiix-patch-credit" data-remiix-credit hidden role="status">
+        <span class="remiix-patch-credit-label">${t.creditLabel}</span>
+        <span class="remiix-patch-credit-value" data-remiix-credit-value>${t.creditLoading}</span>
+      </div>
+    </div>
+  `);
   if (showEdit) {
     menuItems.push(`<a role="menuitem" href="${editHref}" data-remiix-edit>${t.edit}</a>`);
   }
@@ -363,11 +443,10 @@ function mountRemiixPatch(session) {
     );
   }
   menuItems.push(`<button type="button" role="menuitem" data-remiix-share>${t.share}</button>`);
-  menuItems.push(`<a role="menuitem" href="${storeHref}">${t.store}</a>`);
+  if (published) {
+    menuItems.push(`<a role="menuitem" href="${storeHref}">${t.store}</a>`);
+  }
   menuItems.push(`<a role="menuitem" href="${aboutHref}">${t.about}</a>`);
-  menuItems.push(
-    `<button type="button" role="menuitem" data-remiix-update class="remiix-patch-primary" hidden>${t.update || "Update"}</button>`,
-  );
   if (canOfferInstall) {
     menuItems.push(
       `<button type="button" role="menuitem" data-remiix-install class="remiix-patch-primary">${t.install}</button>`,
@@ -380,9 +459,10 @@ function mountRemiixPatch(session) {
     <button type="button" class="remiix-patch-btn" aria-haspopup="menu" aria-expanded="false" aria-label="${t.patchAria}">
       <span class="remiix-patch-face">
         <img class="remiix-patch-mark" src="/static/images/remiix-icon-light.svg" width="52" height="52" alt="" draggable="false" />
-        <span class="remiix-patch-dot" data-remiix-update-dot hidden aria-hidden="true"></span>
+        <span class="remiix-patch-dot" data-remiix-install-dot hidden aria-hidden="true"></span>
       </span>
     </button>
+    <div class="remiix-patch-floats" data-remiix-floats aria-hidden="true"></div>
     <div class="remiix-patch-menu" role="menu" hidden>
       ${menuItems.join("")}
     </div>
@@ -519,9 +599,120 @@ function mountRemiixPatch(session) {
     #remiix-patch .remiix-patch-menu .remiix-patch-primary + .remiix-patch-primary {
       margin-top: 2px;
     }
-    #remiix-patch .remiix-patch-menu [data-remiix-install][hidden],
-    #remiix-patch .remiix-patch-menu [data-remiix-update][hidden] {
+    #remiix-patch .remiix-patch-menu [data-remiix-install][hidden] {
       display: none;
+    }
+    #remiix-patch .remiix-patch-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin: 0 0 4px;
+      padding: 0 0 6px;
+      border-bottom: 1px solid #ebebeb;
+    }
+    #remiix-patch .remiix-patch-meta[hidden] {
+      display: none;
+    }
+    #remiix-patch .remiix-patch-owned {
+      margin: 0;
+      padding: 8px 12px 4px;
+      color: #4f46e5;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+      pointer-events: none;
+      user-select: none;
+    }
+    #remiix-patch .remiix-patch-owned[hidden] {
+      display: none;
+    }
+    #remiix-patch .remiix-patch-credit {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0;
+      padding: 4px 12px 8px;
+      color: #525252;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      line-height: 1.25;
+      pointer-events: none;
+      user-select: none;
+    }
+    #remiix-patch .remiix-patch-credit[hidden] {
+      display: none;
+    }
+    #remiix-patch .remiix-patch-credit-label {
+      color: #737373;
+      font-weight: 500;
+    }
+    #remiix-patch .remiix-patch-credit-value {
+      color: #0a0a0a;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    #remiix-patch .remiix-patch-floats {
+      position: absolute;
+      left: 50%;
+      bottom: 100%;
+      width: 0;
+      height: 0;
+      overflow: visible;
+      pointer-events: none;
+      z-index: 1;
+    }
+    #remiix-patch .remiix-credit-float {
+      position: absolute;
+      left: 50%;
+      bottom: 8px;
+      transform: translate(-50%, 0);
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #0a0a0a;
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      white-space: nowrap;
+      box-shadow: 0 6px 16px rgba(15, 20, 25, 0.18);
+      animation: remiix-credit-float 1.15s ease-out forwards;
+    }
+    #remiix-patch .remiix-credit-float.is-empty {
+      background: #b91c1c;
+      animation-duration: 1.6s;
+    }
+    @keyframes remiix-credit-float {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, 6px) scale(0.92);
+      }
+      12% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+      70% {
+        opacity: 1;
+        transform: translate(-50%, -36px) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -52px) scale(0.98);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #remiix-patch .remiix-credit-float {
+        animation: remiix-credit-float-reduced 0.9s ease-out forwards;
+      }
+      @keyframes remiix-credit-float-reduced {
+        0%, 55% { opacity: 1; transform: translate(-50%, -12px); }
+        100% { opacity: 0; transform: translate(-50%, -12px); }
+      }
     }
   `;
 
@@ -530,11 +721,104 @@ function mountRemiixPatch(session) {
 
   const btn = root.querySelector(".remiix-patch-btn");
   const menu = root.querySelector(".remiix-patch-menu");
+  const floats = root.querySelector("[data-remiix-floats]");
+  const metaRow = root.querySelector("[data-remiix-meta]");
+  const ownedRow = root.querySelector("[data-remiix-owned]");
+  const creditRow = root.querySelector("[data-remiix-credit]");
+  const creditValueEl = root.querySelector("[data-remiix-credit-value]");
   const installBtn = root.querySelector("[data-remiix-install]");
   const remixBtn = root.querySelector("[data-remiix-remix]");
   const shareBtn = root.querySelector("[data-remiix-share]");
-  const updateBtn = root.querySelector("[data-remiix-update]");
-  const actionDot = root.querySelector("[data-remiix-update-dot]");
+  const actionDot = root.querySelector("[data-remiix-install-dot]");
+  let autoUpdating = false;
+
+  function syncMetaVisibility() {
+    if (!metaRow) return;
+    const showOwned = !!(ownedRow && !ownedRow.hidden);
+    const showCredit = !!(creditRow && !creditRow.hidden);
+    metaRow.hidden = !(showOwned || showCredit);
+  }
+
+  function setOwned(isOwner) {
+    window.Remiix.isOwner = isOwner === true;
+    if (ownedRow) ownedRow.hidden = !window.Remiix.isOwner;
+    syncMetaVisibility();
+  }
+
+  function setCreditBalance(usd) {
+    creditUi.balanceUsd = typeof usd === "number" && Number.isFinite(usd) ? usd : null;
+    if (!creditRow || !creditValueEl) return;
+    if (creditUi.balanceUsd == null) {
+      creditRow.hidden = true;
+      syncMetaVisibility();
+      return;
+    }
+    creditRow.hidden = false;
+    creditValueEl.textContent = formatBalanceUsd(creditUi.balanceUsd);
+    syncMetaVisibility();
+  }
+
+  function showCreditFloat(text, kind) {
+    if (!floats || !text) return;
+    const pill = document.createElement("span");
+    pill.className = "remiix-credit-float" + (kind === "empty" ? " is-empty" : "");
+    pill.textContent = text;
+    floats.appendChild(pill);
+    const ttl = kind === "empty" ? 2200 : 1600;
+    pill.addEventListener("animationend", () => pill.remove(), { once: true });
+    window.setTimeout(() => pill.remove(), ttl);
+  }
+
+  function showCreditDebit(billedUsd) {
+    if (!(typeof billedUsd === "number") || !Number.isFinite(billedUsd) || billedUsd <= 0) {
+      return;
+    }
+    showCreditFloat(formatDebitCents(billedUsd), "debit");
+  }
+
+  function showCreditEmpty() {
+    showCreditFloat(t.creditEmpty || "No credit left", "empty");
+  }
+
+  creditUi.setBalance = setCreditBalance;
+  creditUi.showDebit = showCreditDebit;
+  creditUi.showEmpty = showCreditEmpty;
+
+  async function refreshCredits() {
+    const token = readStoredToken()?.accessToken;
+    if (!token) {
+      setCreditBalance(null);
+      setOwned(false);
+      return;
+    }
+    try {
+      const res = await fetch(platformOrigin + "/api/sdk/credits", {
+        headers: { Authorization: "Bearer " + token },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        try {
+          sessionStorage.removeItem(TOKEN_KEY);
+          sessionStorage.removeItem(TOKEN_EXP_KEY);
+        } catch {
+          // ignore
+        }
+        setCreditBalance(null);
+        setOwned(false);
+        return;
+      }
+      if (data.success && data.data) {
+        if (typeof data.data.balanceUsd === "number") {
+          setCreditBalance(data.data.balanceUsd);
+        }
+        setOwned(data.data.isOwner === true);
+      }
+    } catch {
+      // Offline — leave last known balance if any.
+    }
+  }
+
+  void refreshCredits();
 
   function closeMenu() {
     menu.hidden = true;
@@ -544,6 +828,7 @@ function mountRemiixPatch(session) {
   function openMenu() {
     menu.hidden = false;
     btn.setAttribute("aria-expanded", "true");
+    void refreshCredits();
   }
 
   function isMenuActionVisible(el) {
@@ -552,12 +837,7 @@ function mountRemiixPatch(session) {
 
   function syncActionDot() {
     if (!actionDot) return;
-    actionDot.hidden = !(isMenuActionVisible(updateBtn) || isMenuActionVisible(installBtn));
-  }
-
-  function setUpdateAvailable(available) {
-    if (updateBtn) updateBtn.hidden = !available;
-    syncActionDot();
+    actionDot.hidden = !isMenuActionVisible(installBtn);
   }
 
   function hideInstall() {
@@ -580,7 +860,7 @@ function mountRemiixPatch(session) {
       "/" +
       lang +
       "/login?next=" +
-      encodeURIComponent("/" + lang + "/store/" + encodeURIComponent(appSlug));
+      encodeURIComponent("/" + lang + "/apps/" + encodeURIComponent(appSlug));
   }
 
   async function installApp() {
@@ -628,15 +908,14 @@ function mountRemiixPatch(session) {
     closeMenu();
   }
 
-  async function applyUpdate() {
-    if (!updateBtn || updateBtn.disabled) return;
-    updateBtn.disabled = true;
-    updateBtn.textContent = t.updating || "Updating…";
+  async function applyUpdateAndReload() {
+    if (autoUpdating || navigator.onLine === false) return;
+    if (!("serviceWorker" in navigator)) {
+      location.reload();
+      return;
+    }
+    autoUpdating = true;
     try {
-      if (!("serviceWorker" in navigator)) {
-        location.reload();
-        return;
-      }
       const reg = await navigator.serviceWorker.ready;
       const worker = reg.active || navigator.serviceWorker.controller;
       if (!worker) {
@@ -657,8 +936,7 @@ function mountRemiixPatch(session) {
       await done;
       location.reload();
     } catch {
-      updateBtn.disabled = false;
-      updateBtn.textContent = t.update || "Update";
+      autoUpdating = false;
     }
   }
 
@@ -710,13 +988,6 @@ function mountRemiixPatch(session) {
     });
   }
 
-  if (updateBtn) {
-    updateBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      void applyUpdate();
-    });
-  }
-
   document.addEventListener("click", (e) => {
     if (!root.contains(e.target)) closeMenu();
   });
@@ -727,8 +998,8 @@ function mountRemiixPatch(session) {
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.addEventListener("message", (event) => {
-      if (event.data && event.data.type === "UPDATE_STATUS") {
-        setUpdateAvailable(event.data.available === true);
+      if (event.data && event.data.type === "UPDATE_STATUS" && event.data.available === true) {
+        void applyUpdateAndReload();
       }
     });
     window.setTimeout(requestUpdateCheck, 1200);

@@ -3,7 +3,7 @@ import { AiRequestError, requestTextFromAi } from "/utils/ai-core.server";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { isOriginForApp } from "/utils/app-host";
 import { resolveAppFromOrigin } from "/utils/app-runtime.server";
-import { assertHasCredits, debitOpenRouterUsage } from "/utils/credits.server";
+import { assertHasCredits, debitOpenRouterUsage, usdMicrosToUsd } from "/utils/credits.server";
 import { checkRateLimit } from "/utils/rate-limit.server";
 import { parseBearerToken, resolveRuntimeToken } from "/utils/sdk-auth.server";
 import { sdkCorsOptions, withSdkCors } from "/utils/sdk-cors.server";
@@ -86,14 +86,23 @@ export default {
         userPrompt: prompt,
         model: getRuntimeAiModel(),
       });
-      debitOpenRouterUsage({
+      const debit = debitOpenRouterUsage({
         userId,
         costUsd,
         floorKind: "runtime",
         reason: "ai_runtime",
         meta: { appSlug },
       });
-      return withSdkCors(apiSuccess({ data: { text } }), origin);
+      return withSdkCors(
+        apiSuccess({
+          data: {
+            text,
+            billedUsd: Math.round(debit.billedUsd * 10000) / 10000,
+            balanceUsd: Math.round(usdMicrosToUsd(debit.balanceUsdMicros) * 100) / 100,
+          },
+        }),
+        origin,
+      );
     } catch (err) {
       if (err instanceof AiRequestError) {
         const status =
