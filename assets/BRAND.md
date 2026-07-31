@@ -60,6 +60,7 @@ About / longer marketing lives at `/:lang/about`. Product chrome is the floating
 | [`../static/images/remiix-icon-light.svg`](../static/images/remiix-icon-light.svg) | Monochrome mark (dark chrome; Patch badge) |
 | [`rmix.sketch`](rmix.sketch) | Design source (legacy filename) |
 | [`TRADEMARK.md`](TRADEMARK.md) | Alustava tavaramerkkiselvitys |
+| [`ROADMAP.md`](ROADMAP.md) | Seuraavat vaiheet (sync, Polar) |
 
 ## Voice (short)
 
