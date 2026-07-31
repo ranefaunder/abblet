@@ -54,3 +54,12 @@ body {
 :where(dialog[ui-dialog]:has(> footer) > :not(header):not(footer)) {
   padding-bottom: 8px;
 }
+
+/* Edge drawers are flush to the screen — clear notch / home indicator. */
+:where(dialog[ui-dialog~="edge"] > header) {
+  padding-top: calc(24px + env(safe-area-inset-top, 0px));
+}
+
+:where(dialog[ui-dialog~="edge"] > footer) {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}

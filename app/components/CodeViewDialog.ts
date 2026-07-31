@@ -15,7 +15,7 @@ export default function CodeViewDialog({
 
   const view = html`
     <dialog id=${id} data-scope="CodeViewDialog" ui-dialog="right lg edge" closedby="any">
-      <header ui-row="x-between y-center gap-md" ui-padding="inline-md block-sm">
+      <header ui-row="x-between y-center gap-md">
         <h2 ui-heading="sm">${t("Code")}</h2>
         <button
           type="button"
@@ -46,6 +46,13 @@ export default function CodeViewDialog({
         flex-direction: column;
       }
 
+      /* Edge drawer is flush to the viewport — keep close clear of notch / Dynamic Island. */
+      &:where(dialog) > header {
+        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+        padding-bottom: 0.5rem;
+        padding-inline: 1rem;
+      }
+
       .code-editor {
         position: relative;
         flex: 1;
@@ -57,7 +64,7 @@ export default function CodeViewDialog({
         position: absolute;
         inset: 0;
         margin: 0;
-        padding: 1rem 1.1rem;
+        padding: 1rem 1.1rem calc(1rem + env(safe-area-inset-bottom, 0px));
         font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
         font-size: 14px;
         line-height: 1.65;
