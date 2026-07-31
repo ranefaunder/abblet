@@ -105,7 +105,17 @@ export default function RegisterDialog() {
               if (termsError) setTermsError("");
             }}
           />
-          <span>${t("I accept the terms of use")}</span>
+          <span>
+            ${t("I accept the")}
+            ${" "}
+            <button
+              type="button"
+              ui-link
+              onClick=${() => window.dispatchEvent(new CustomEvent("open-terms-dialog"))}
+            >
+              ${t("terms of use")}
+            </button>
+          </span>
         </label>
         ${termsError ? html`<p class="terms-error">${termsError}</p>` : null}
         <label ui-row="gap-sm">

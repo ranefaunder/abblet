@@ -347,7 +347,36 @@ export const translations = {
   "Email address is too long": { fi: "Sähköpostiosoite on liian pitkä" },
   "Invalid email address": { fi: "Virheellinen sähköpostiosoite" },
   "I accept the terms of use": { fi: "Hyväksyn käyttöehdot" },
+  "I accept the": { fi: "Hyväksyn" },
+  "terms of use": { fi: "käyttöehdot" },
+  "Terms of use": { fi: "Käyttöehdot" },
   "You must accept the terms of use to register.": { fi: "Sinun on hyväksyttävä käyttöehdot rekisteröityäksesi." },
+  "Remiix is a service by Faunder for requesting, remixing, and running personal apps. By using Remiix you accept these terms.": {
+    fi: "Remiix on Faunderin palvelu henkilökohtaisten appien pyytämiseen, remixaukseen ja käyttöön. Käyttämällä Remiixiä hyväksyt nämä ehdot.",
+  },
+  "How apps are made": { fi: "Miten apit syntyvät" },
+  "When you describe an idea or ask for a change, you are requesting Remiix to create or adapt an app. Remiix generates the software. You are a requester and user of that software — not its author.": {
+    fi: "Kun kuvailet idean tai pyydät muutosta, pyydät Remiixiä luomaan tai sovittamaan apin. Remiix tuottaa ohjelmiston. Olet pyytäjä ja käyttäjä — et appin tekijä.",
+  },
+  "Copyright": { fi: "Tekijänoikeus" },
+  "All apps available through Remiix — including Store apps, remixed apps, and apps created from your requests — are copyrighted by Faunder, the maker of Remiix. Copyright does not transfer to you when you request, remix, install, or run an app.": {
+    fi: "Kaikki Remiixin kautta saatavilla olevat apit — mukaan lukien Storen apit, remixatut apit ja pyynnöstäsi luodut apit — ovat Faunderin (Remiixin tekijän) tekijänoikeuden alaisia. Tekijänoikeus ei siirry sinulle, kun pyydät, remixaat, asennat tai käytät appia.",
+  },
+  "Your prompts, ideas, and the personal data you enter into an app remain yours. The app source code and related software materials do not.": {
+    fi: "Promptisi, ideasi ja appiin syöttämäsi henkilökohtainen data pysyvät sinun. Appin lähdekoodi ja siihen liittyvä ohjelmistoaineisto eivät.",
+  },
+  "License": { fi: "Lisenssi" },
+  "App source code is licensed under the Mozilla Public License 2.0 (MPL 2.0). Under that license you may use, study, modify, and redistribute the licensed source, subject to MPL 2.0’s terms (including sharing modifications to covered files under the same license).": {
+    fi: "Appien lähdekoodi lisensoidaan Mozilla Public License 2.0:lla (MPL 2.0). Sen nojalla saat käyttää, tutkia, muokata ja uudelleenjakaa lisensoitua lähdekoodia MPL 2.0:n ehtojen mukaisesti (mukaan lukien katettujen tiedostojen muutosten jakaminen samalla lisenssillä).",
+  },
+  "Publishing, remixing, or downloading an app through Remiix does not grant you ownership — only the rights MPL 2.0 provides.": {
+    fi: "Appin julkaiseminen, remixaus tai lataaminen Remiixin kautta ei anna sinulle omistusoikeutta — vain MPL 2.0:n mukaiset oikeudet.",
+  },
+  "Acceptable use": { fi: "Hyväksyttävä käyttö" },
+  "Use Remiix for lawful, non-abusive purposes. We may update the service and these terms as the product evolves. Continued use after changes means you accept the updated terms.": {
+    fi: "Käytä Remiixiä lainmukaisiin, ei-väärinkäyttöisiin tarkoituksiin. Voimme päivittää palvelua ja näitä ehtoja tuotteen kehittyessä. Jatkuva käyttö muutosten jälkeen tarkoittaa, että hyväksyt päivitetyt ehdot.",
+  },
+
   "Too many requests. Wait a moment before retrying.": { fi: "Liian monta pyyntöä. Odota hetki ennen uudelleenyritystä." },
   "The AI took too long to respond. Try again or pick another model.": {
     fi: "Tekoäly vastasi liian hitaasti. Kokeile uudelleen tai valitse toinen malli.",
@@ -532,9 +561,6 @@ export const translations = {
   },
   "Email me about Remiix updates": {
     fi: "Lähetä minulle sähköpostia Remiix-päivityksistä",
-  },
-  "Remiix is a platform for creating personal apps. By using the service you accept these terms.": {
-    fi: "Remiix on alusta henkilökohtaisten appien luomiseen. Käyttämällä palvelua hyväksyt nämä ehdot.",
   },
   "About Remiix": { fi: "Tietoa Remiixista" },
   "Faunder — maker of Remiix": { fi: "Faunder — Remiixin tekijä" },
