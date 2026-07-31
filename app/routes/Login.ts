@@ -137,10 +137,7 @@ export default function Login({ params }: RoutePropsForPath<typeof LoginPath>) {
         width: 100%;
         max-width: 28rem;
         margin-inline: auto;
-        padding:
-          calc(1.5rem + env(safe-area-inset-top, 0px))
-          1.25rem
-          1.25rem;
+        padding: 1.5rem 1.25rem 1.25rem;
         box-sizing: border-box;
         text-align: center;
         min-height: 0;

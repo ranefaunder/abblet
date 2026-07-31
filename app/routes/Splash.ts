@@ -268,10 +268,7 @@ export default function Splash({ params }: RoutePropsForPath<typeof SplashPath>)
         width: 100%;
         max-width: 30rem;
         margin-inline: auto;
-        padding:
-          calc(1.5rem + env(safe-area-inset-top, 0px))
-          1.25rem
-          1.25rem;
+        padding: 1.5rem 1.25rem 1.25rem;
         box-sizing: border-box;
         text-align: center;
         min-height: 0;

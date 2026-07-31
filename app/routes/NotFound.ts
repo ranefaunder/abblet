@@ -33,10 +33,7 @@ export default function NotFound({ path, params }: NotFoundPageProps) {
         min-height: 0;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        padding:
-          calc(2rem + env(safe-area-inset-top, 0px))
-          1.5rem
-          calc(2rem + env(safe-area-inset-bottom, 0px));
+        padding: 2rem 1.5rem calc(2rem + env(safe-area-inset-bottom, 0px));
       }
 
       .content {

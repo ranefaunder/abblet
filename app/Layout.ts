@@ -53,6 +53,8 @@ export default function Layout({
         display: flex;
         flex-direction: column;
         min-width: 0;
+        /* iPhone PWA / notch — status bar must not cover page titles */
+        padding-top: env(safe-area-inset-top, 0px);
       }
 
       &.with-tabs .shell {
