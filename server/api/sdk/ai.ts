@@ -1,5 +1,6 @@
 import type { BunRequest } from "bun";
 import { AiRequestError, requestTextFromAi } from "/utils/ai-core.server";
+import { unwrapMarkdownCodeFence } from "/utils/ai-text";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { isOriginForApp } from "/utils/app-host";
 import { resolveAppFromOrigin } from "/utils/app-runtime.server";
@@ -10,7 +11,9 @@ import { sdkCorsOptions, withSdkCors } from "/utils/sdk-cors.server";
 
 const PROMPT_MAX = 8000;
 const SYSTEM_MAX = 2000;
-const DEFAULT_SYSTEM = "You are a helpful assistant. Be concise.";
+/** Discourage ``` fences so apps can JSON.parse the reply reliably. */
+const DEFAULT_SYSTEM =
+  "You are a helpful assistant. Be concise. Reply with plain text only — do not wrap the entire answer in a markdown code fence (```) unless the user explicitly asks for a fenced code block.";
 
 export function getRuntimeAiModel(): string {
   return process.env.RUNTIME_AI_MODEL?.trim() || "google/gemini-2.5-flash-lite";
@@ -86,6 +89,8 @@ export default {
         userPrompt: prompt,
         model: getRuntimeAiModel(),
       });
+      // Models often wrap JSON in ```json … ```; unwrap so app JSON.parse works.
+      const normalized = unwrapMarkdownCodeFence(text);
       const debit = debitOpenRouterUsage({
         userId,
         costUsd,
@@ -96,7 +101,7 @@ export default {
       return withSdkCors(
         apiSuccess({
           data: {
-            text,
+            text: normalized,
             billedUsd: Math.round(debit.billedUsd * 10000) / 10000,
             balanceUsd: Math.round(usdMicrosToUsd(debit.balanceUsdMicros) * 100) / 100,
           },
