@@ -132,6 +132,30 @@ export const translations = {
   "Publish": {
     fi: "Julkaise",
   },
+  "Remiix Store": {
+    fi: "Remiix Store",
+  },
+  "Anyone can open it": {
+    fi: "Kuka tahansa voi avata sen",
+  },
+  "Your app gets a public Store page and a shareable link.": {
+    fi: "Appisi saa julkisen Store-sivun ja jaettavan linkin.",
+  },
+  "Listing and source go public": {
+    fi: "Listaus ja lähdekoodi julkaistaan",
+  },
+  "Title, description, icon, and source code are visible in the Store.": {
+    fi: "Nimi, kuvaus, ikoni ja lähdekoodi näkyvät Storessa.",
+  },
+  "Others can remix it": {
+    fi: "Muut voivat remixata sen",
+  },
+  "People can adapt your app into their own version with a prompt.": {
+    fi: "Ihmiset voivat sovittaa appisi omaksi versiokseen promptilla.",
+  },
+  "Publishing keeps the app under Faunder’s copyright and open source (MPL 2.0). You don’t get ownership — only the rights that license gives.": {
+    fi: "Julkaisu pitää appin Faunderin tekijänoikeuden ja avoimen lähdekoodin (MPL 2.0) alla. Et saa omistusoikeutta — vain sen lisenssin mukaiset oikeudet.",
+  },
   "Publishing makes your app public in the Remiix Store. Anyone can open it, view its source, and remix it.": {
     fi: "Julkaiseminen tekee appista julkisen Remiix Storessa. Kuka tahansa voi avata sen, nähdä lähdekoodin ja remixata sen.",
   },
