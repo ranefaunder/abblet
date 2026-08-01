@@ -72,76 +72,69 @@ export default function TabBar() {
   const style = css`
     @scope ([data-scope="TabBar"]) to ([data-scope]) {
       &.tab-bar {
-        --tab-active: var(--primary-600, #007aff);
-        --tab-active-bg: color-mix(in oklab, var(--primary-500, #007aff) 14%, transparent);
-        --tab-ink: #1c1c1e;
-        --tab-ink-muted: #3a3a3c;
-
         position: fixed;
         z-index: 40;
         left: 50%;
-        bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px));
+        bottom: calc(0.55rem + env(safe-area-inset-bottom, 0px));
         transform: translateX(-50%);
-        width: min(94vw, 26.5rem);
+        display: flex;
+        justify-content: center;
+        max-width: 94vw;
         pointer-events: none;
       }
 
       .tab-bar-inner {
+        /* Nested radii: inner = outer − gap (CSS-Tricks / Cloud Four).
+           Pill exception: both use 999px so ends stay fully round;
+           equal padding keeps the gap even around the curve. */
+        --tab-pad: 0.4rem;
+        --tab-radius: 999px;
+        --tab-radius-inner: 999px;
+
         pointer-events: auto;
         display: flex;
         align-items: stretch;
-        justify-content: space-evenly;
-        gap: 0.1rem;
-        padding: 0.35rem 0.4rem;
-        border-radius: 999px;
-        border: 0.5px solid rgba(255, 255, 255, 0.55);
-        background: rgba(255, 255, 255, 0.72);
-        backdrop-filter: blur(40px) saturate(180%);
-        -webkit-backdrop-filter: blur(40px) saturate(180%);
+        gap: 0.15rem;
+        padding: var(--tab-pad);
+        border-radius: var(--tab-radius);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        background: rgba(0, 0, 0, 0.78);
+        backdrop-filter: blur(36px) saturate(170%);
+        -webkit-backdrop-filter: blur(36px) saturate(170%);
         box-shadow:
-          0 0 0 0.5px rgba(0, 0, 0, 0.04),
-          0 2px 8px rgba(0, 0, 0, 0.04),
-          0 12px 40px rgba(0, 0, 0, 0.12);
-      }
-
-      @supports (background: color-mix(in oklab, white 72%, transparent)) {
-        .tab-bar-inner {
-          border-color: color-mix(in oklab, var(--white) 55%, transparent);
-          background: color-mix(in oklab, var(--white) 72%, transparent);
-        }
+          0 1px 0 rgba(255, 255, 255, 0.05) inset,
+          0 10px 32px rgba(0, 0, 0, 0.5);
       }
 
       .tab {
-        flex: 1 1 0;
-        min-width: 0;
+        min-width: 4.5rem;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.12rem;
-        padding: 0.42rem 0.2rem 0.38rem;
-        border-radius: 1.15rem;
+        gap: 0.2rem;
+        padding: 0.5rem 0.85rem 0.45rem;
+        border-radius: var(--tab-radius-inner);
         text-decoration: none;
-        color: var(--tab-ink-muted);
+        color: rgba(255, 255, 255, 0.72);
         -webkit-tap-highlight-color: transparent;
         transition:
-          color 180ms ease,
-          background 180ms ease,
-          transform 180ms ease;
+          color 160ms ease,
+          background 160ms ease;
       }
 
       .tab > i[ui-icon] {
-        --ui-icon-size: 22px;
-        width: 22px;
-        height: 22px;
+        --ui-icon-size: 1.45rem;
+        width: 1.45rem;
+        height: 1.45rem;
         color: inherit;
       }
 
       .tab-label {
-        font-size: 0.625rem;
+        font-size: 0.6875rem;
         font-weight: 500;
         letter-spacing: -0.01em;
-        line-height: 1.05;
+        line-height: 1;
         max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -149,21 +142,17 @@ export default function TabBar() {
       }
 
       .tab:hover {
-        color: var(--tab-ink);
+        color: #fff;
       }
 
       .tab.active {
-        color: var(--tab-active);
-        background: var(--tab-active-bg);
-        font-weight: 600;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.13);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07) inset;
       }
 
       .tab.active .tab-label {
         font-weight: 600;
-      }
-
-      .tab.active:hover {
-        color: var(--tab-active);
       }
 
       @media (prefers-reduced-motion: reduce) {
