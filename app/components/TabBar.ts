@@ -75,8 +75,6 @@ export default function TabBar() {
         position: fixed;
         z-index: 40;
         left: 50%;
-        /* bottom: 0 + padding — iOS Safari handles this more reliably than
-           calc(gap + safe-area) on bottom, which floats the bar too high. */
         bottom: 0;
         transform: translateX(-50%);
         display: flex;
