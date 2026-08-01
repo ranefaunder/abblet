@@ -107,13 +107,14 @@ export default function TabBar() {
       }
 
       .tab {
-        min-width: 4.5rem;
+        flex: 1 1 0;
+        min-width: 4.15rem;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         gap: 0.2rem;
-        padding: 0.5rem 0.85rem 0.45rem;
+        padding: 0.5rem clamp(0.7rem, 3.2vw, 0.95rem) 0.45rem;
         border-radius: var(--tab-radius-inner);
         text-decoration: none;
         color: rgba(255, 255, 255, 0.72);
