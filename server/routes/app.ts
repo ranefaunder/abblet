@@ -1,5 +1,5 @@
 import type { BunRequest } from "bun";
-import { resolveStaticRootFromUrl } from "/utils/static.server";
+import { resolveStaticRootFromUrl, staticStylesheetHref } from "/utils/static.server";
 import { getMeta } from "/utils/meta.server";
 import { serverSideRender } from "/utils/ssr.server";
 import { createSsrContext } from "/server/ssr";
@@ -81,9 +81,10 @@ export default async function (req: BunRequest<"/:lang/"> | BunRequest<"/:lang/*
             user-select: none;
           }
         </style>
-        <link rel="stylesheet" href="${escapeHtmlAttribute(`${staticRoot}/styles/faunder-ui.css`)}" />
-        <link rel="stylesheet" href="${escapeHtmlAttribute(`${staticRoot}/styles/style.css`)}" />
-        <link rel="stylesheet" href="${escapeHtmlAttribute(`${staticRoot}/styles/font-faces.css`)}" />
+        <link rel="stylesheet" href="${escapeHtmlAttribute(staticStylesheetHref(staticRoot, "faunder-ui.css"))}" />
+        <link rel="stylesheet" href="${escapeHtmlAttribute(staticStylesheetHref(staticRoot, "icons.css"))}" />
+        <link rel="stylesheet" href="${escapeHtmlAttribute(staticStylesheetHref(staticRoot, "style.css"))}" />
+        <link rel="stylesheet" href="${escapeHtmlAttribute(staticStylesheetHref(staticRoot, "font-faces.css"))}" />
       </head>
       <body>
         <div id="app">${ssrHtml}</div>

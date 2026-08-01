@@ -7,6 +7,7 @@ import type { AppEditMessage, AppEditToolUsage } from "/types/app-config-types";
 import { isDraftConfig } from "/types/app-config-types";
 import { t } from "/utils/i18n";
 import { createUrl, openAppUrl, appsUrl, appOwnerPreviewUrl } from "/utils/app-url";
+import { appIconSrc } from "/utils/app-icon";
 import { deleteApp } from "/app/stores/appStore";
 import { requireLogin } from "/app/stores/userStore";
 import CodeViewDialog from "/app/components/CodeViewDialog";
@@ -123,7 +124,9 @@ export default function Create(_props: CreateRouteProps) {
     ? t("Tell Remiix what you need — it builds a working app in minutes.")
     : creating
       ? t("Building")
-      : t("Ask the AI to tweak your app — colors, features, wording, anything.");
+      : (app?.tagline?.trim() ||
+        app?.description?.trim() ||
+        t("Ask the AI to tweak your app — colors, features, wording, anything."));
 
   async function handleDelete() {
     if (!app || !slug || deleting.value) return;
@@ -190,6 +193,7 @@ export default function Create(_props: CreateRouteProps) {
       : app?.id
         ? appOwnerPreviewUrl(app)
         : openAppUrl(lang, slug, { app });
+  const openIconSrc = appIconSrc(app?.iconId);
 
   const toolbar = showTools
     ? html`
@@ -199,7 +203,9 @@ export default function Create(_props: CreateRouteProps) {
             ? html`
               <div class="toolbar-cta">
                 <a class="action" href=${openHref} ui-off>
-                  <i ui-icon="arrow-square-out" aria-hidden="true"></i>
+                  ${openIconSrc
+                    ? html`<img class="action-app-icon" src=${openIconSrc} alt="" width="22" height="22" decoding="async" />`
+                    : html`<i ui-icon="arrow-square-out" aria-hidden="true"></i>`}
                   <span>${t("Open")}</span>
                 </a>
                 ${isPublished
@@ -925,9 +931,29 @@ function style() {
       }
 
       .action [ui-icon] {
-        font-size: 1.15rem;
+        --ui-icon-size: 1.15rem;
+        width: 1.15rem;
+        height: 1.15rem;
         color: inherit;
         flex: none;
+        background-color: currentColor;
+        -webkit-mask-image: var(--ui-icon);
+        mask-image: var(--ui-icon);
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+      }
+
+      .action-app-icon {
+        width: 1.35rem;
+        height: 1.35rem;
+        border-radius: 0.35rem;
+        object-fit: cover;
+        flex: none;
+        background: rgba(255, 255, 255, 0.12);
       }
 
       .action span {
