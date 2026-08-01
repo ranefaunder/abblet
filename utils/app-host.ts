@@ -20,7 +20,7 @@ export type AppRuntimeLabel =
  * Runtime hosts that serve apps on `{label}.{host}`.
  * `APP_RUNTIME_HOST` may be a single host or a comma-separated list; the first
  * entry is the canonical host used when generating app URLs.
- * e.g. `remiix.app` or `remiix.app,abblet.app` or `app.localhost`.
+ * e.g. `remiix.app` or `remiix.app,abblet.app` or `localhost`.
  */
 export function getAppRuntimeHosts(): string[] {
   const raw = process.env.APP_RUNTIME_HOST?.trim().toLowerCase() ?? "";
@@ -29,7 +29,7 @@ export function getAppRuntimeHosts(): string[] {
     .map((h) => h.trim())
     .filter(Boolean);
   if (hosts.length === 0) {
-    throw new Error("APP_RUNTIME_HOST is required (e.g. remiix.app or app.localhost)");
+    throw new Error("APP_RUNTIME_HOST is required (e.g. remiix.app or localhost)");
   }
   return [...new Set(hosts)];
 }

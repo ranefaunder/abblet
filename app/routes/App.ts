@@ -3,7 +3,7 @@ import type { RoutePropsForPath } from "preact-iso";
 import { useEffect, useState } from "preact/hooks";
 import { useLocation, useRoute } from "preact-iso";
 import { t } from "/utils/i18n";
-import { createUrl, appPageUrl, appsAppUrl, appsUrl } from "/utils/app-url";
+import { createUrl, openAppUrl, catalogAppUrl, appsUrl, gamesUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import type { AppCategory } from "/utils/app-categories";
@@ -22,7 +22,12 @@ import {
 import AppSlider from "/app/components/AppSlider";
 import CodeViewDialog from "/app/components/CodeViewDialog";
 
-export const StoreAppPath = "/:lang/apps/:slug" as const;
+export const AppPath = "/:lang/apps/:slug" as const;
+export const GamePath = "/:lang/games/:slug" as const;
+
+type AppRouteProps =
+  | RoutePropsForPath<typeof AppPath>
+  | RoutePropsForPath<typeof GamePath>;
 
 function formatPublishedAt(iso: string | null, lang: string): string | null {
   if (!iso) return null;
@@ -39,11 +44,16 @@ function formatPublishedAt(iso: string | null, lang: string): string | null {
   }
 }
 
-export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>) {
+export default function App(_props: AppRouteProps) {
   const { params } = useRoute();
-  const { route } = useLocation();
+  const { route, path } = useLocation();
   const lang = params.lang ?? "en";
   const slug = params.slug ?? "";
+  const catalog: "apps" | "games" = (path ?? "").includes(`/${lang}/games/`)
+    ? "games"
+    : "apps";
+  const catalogListUrl = catalog === "games" ? gamesUrl(lang) : appsUrl(lang);
+  const detailUrl = (s: string) => catalogAppUrl(lang, s, catalog);
   const app = storeApp.value;
   const loading = storeAppLoading.value;
   const busy = storeBusy.value;
@@ -52,9 +62,15 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
 
   useEffect(() => {
     if (slug) void loadStoreApp(slug);
-    if (storeApps.value.length === 0) void loadStore();
+    if (storeApps.value.length === 0) {
+      void loadStore(
+        catalog === "games"
+          ? { category: "Games", excludeCategory: null }
+          : undefined,
+      );
+    }
     return () => clearStoreApp();
-  }, [slug]);
+  }, [slug, catalog]);
 
   useEffect(() => {
     setShareLabel(t("Share"));
@@ -71,7 +87,7 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
 
   async function onShare() {
     if (!app) return;
-    const url = `${window.location.origin}${appsAppUrl(lang, app.slug)}`;
+    const url = `${window.location.origin}${detailUrl(app.slug)}`;
     const shareData = { title: app.title, text: app.tagline || app.title, url };
     try {
       if (typeof navigator.share === "function") {
@@ -107,7 +123,7 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
       : storeApps.value.filter((a) => a.slug !== slug).slice(0, 8);
 
   const view = html`
-    <div data-scope="StoreApp" ui-column>
+    <div data-scope="App" ui-column>
       ${loading && !app
         ? html`
           <div ui-column="gap-md x-center y-center" ui-padding="xl" class="state">
@@ -118,7 +134,9 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
           ? html`
             <div ui-column="gap-md x-center y-center" ui-padding="xl" class="state">
               <p>${storeAppError.value ?? t("App not found")}</p>
-              <a href=${appsUrl(lang)} ui-button="primary sm">${t("Back to Store")}</a>
+              <a href=${catalogListUrl} ui-button="primary sm">
+                ${catalog === "games" ? t("Back to Games") : t("Back to Apps")}
+              </a>
             </div>`
           : html`
             <div class="content" ui-column="gap-xl" ui-padding="inline-md">
@@ -140,7 +158,7 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
                   <div class="actions" ui-column="gap-sm">
                     <div class="cta-row" ui-row="gap-sm wrap">
                       <a
-                        href=${appPageUrl(lang, app.slug)}
+                        href=${openAppUrl(lang, app.slug)}
                         ui-button="primary"
                         onClick=${() => recordAppOpen(app.slug)}
                       >${t("Open")}</a>
@@ -269,7 +287,7 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
                         slug: item.slug,
                         title: item.title,
                         iconId: item.iconId,
-                        href: appsAppUrl(lang, item.slug),
+                        href: detailUrl(item.slug),
                         subtitle:
                           item.tagline ||
                           (item.category ? t(item.category as AppCategory) : t("App")),
@@ -282,7 +300,7 @@ export default function StoreApp(_props: RoutePropsForPath<typeof StoreAppPath>)
   `;
 
   const style = css`
-    @scope ([data-scope="StoreApp"]) to ([data-scope]) {
+    @scope ([data-scope="App"]) to ([data-scope]) {
       & {
         flex: 1;
         min-height: 0;

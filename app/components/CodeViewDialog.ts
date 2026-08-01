@@ -1,5 +1,6 @@
 import { html, css } from "/utils/markup";
 import { h } from "preact";
+import { useSignal } from "@preact/signals";
 import { t } from "/utils/i18n";
 import { highlightJavaScript } from "/utils/highlight-js";
 
@@ -12,19 +13,46 @@ export default function CodeViewDialog({
   code: string;
 }) {
   const highlighted = highlightJavaScript(code);
+  const copied = useSignal(false);
+
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(code);
+      copied.value = true;
+      window.setTimeout(() => {
+        copied.value = false;
+      }, 1600);
+    } catch {
+      /* ignore */
+    }
+  }
 
   const view = html`
     <dialog id=${id} data-scope="CodeViewDialog" ui-dialog="right lg edge" closedby="any">
-      <header ui-row="x-between y-center gap-md">
-        <h2 ui-heading="sm">${t("Code")}</h2>
-        <button
-          type="button"
-          ui-button="inline"
-          ui-icon="x"
-          commandfor=${id}
-          command="close"
-          aria-label=${t("Close")}
-        ></button>
+      <header class="code-header">
+        <div class="code-header-actions">
+          <button
+            type="button"
+            class="code-header-btn"
+            ui-off
+            disabled=${!code}
+            aria-label=${copied.value ? t("Copied") : t("Copy")}
+            onClick=${() => void copyCode()}
+          >
+            <i ui-icon=${copied.value ? "check" : "copy"} aria-hidden="true"></i>
+            <span>${copied.value ? t("Copied") : t("Copy")}</span>
+          </button>
+          <button
+            type="button"
+            class="code-header-btn"
+            ui-off
+            commandfor=${id}
+            command="close"
+          >
+            <i ui-icon="x" aria-hidden="true"></i>
+            <span>${t("Close")}</span>
+          </button>
+        </div>
       </header>
       <div class="code-editor">
         <pre class="code-highlight" tabindex="0">
@@ -39,6 +67,9 @@ export default function CodeViewDialog({
       &:where(dialog) {
         padding: 0;
         max-height: 100dvh;
+        background: #141414;
+        color: #f4f4f5;
+        border: none;
       }
 
       &:where(dialog[open]) {
@@ -46,11 +77,60 @@ export default function CodeViewDialog({
         flex-direction: column;
       }
 
-      /* Edge drawer is flush to the viewport — keep close clear of notch / Dynamic Island. */
-      &:where(dialog) > header {
-        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
-        padding-bottom: 0.5rem;
-        padding-inline: 1rem;
+      .code-header {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        flex: none;
+        padding-top: calc(0.65rem + env(safe-area-inset-top, 0px));
+        padding-bottom: 0.65rem;
+        padding-inline: 0.85rem 0.75rem;
+        background: #0b0b0c;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .code-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .code-header-btn {
+        appearance: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        min-height: 2.35rem;
+        margin: 0;
+        border: 0;
+        border-radius: 0.7rem;
+        padding: 0.4rem 0.7rem;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.82);
+        font: inherit;
+        font-size: 0.875rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background 0.14s ease, color 0.14s ease;
+      }
+
+      .code-header-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+
+      .code-header-btn:disabled {
+        opacity: 0.4;
+        pointer-events: none;
+      }
+
+      .code-header-btn [ui-icon] {
+        font-size: 1.1rem;
+        color: inherit;
       }
 
       .code-editor {

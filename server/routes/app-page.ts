@@ -2,6 +2,10 @@ import type { BunRequest } from "bun";
 import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 import type { Language } from "/i18n/languages";
 import { dbGetAppBySlug, dbLogOpenEvent, isNumericAppSlug } from "/server/database/queries/apps";
+import {
+  CONNECT_CODE_TTL_SEC,
+  dbCreateConnectCode,
+} from "/server/database/queries/connect";
 import { getAuthenticatedUser } from "/utils/auth.server";
 import { canViewApp } from "/utils/app-access.server";
 import { escapeHtmlAttribute, escapeHtmlTextContent } from "/utils/sanitize.server";
@@ -38,6 +42,7 @@ type AppAccess =
       tagName: string;
       iconId: string | null;
       published: boolean;
+      category: string | null;
     }
   | { kind: "building"; lang: Language; slug: string; title: string; iconId: string | null }
   | { kind: "error"; status: number };
@@ -120,6 +125,7 @@ function resolveAppAccess(
     tagName: config.tagName,
     iconId,
     published: row.visibility === "public" && Boolean(row.published_version_id),
+    category: row.category ?? null,
   };
 }
 
@@ -684,7 +690,8 @@ function renderInstallPage(
   const iconSvg = appIconSrc(access.iconId);
   const letter = (access.title.trim().charAt(0) || "?").toUpperCase();
   const platformOrigin = getPlatformOrigin();
-  const backHref = `${platformOrigin}/${access.lang}/apps/${encodeURIComponent(access.slug)}`;
+  const catalogSeg = access.category === "Games" ? "games" : "apps";
+  const backHref = `${platformOrigin}/${access.lang}/${catalogSeg}/${encodeURIComponent(access.slug)}`;
   const precacheUrls = ["/", "/module.js", "/manifest.webmanifest"];
   if (iconSrc) precacheUrls.push(iconSrc);
   if (iconSvg && iconSvg !== iconSrc) precacheUrls.push(iconSvg);
@@ -1015,6 +1022,8 @@ function renderAppPage(
   const moduleUrl = appRuntimeModulePath();
   const platformOrigin = getPlatformOrigin();
   const connectHref = connectUrl(access.slug);
+  const runtimeIcon = appIconPngSrc(access.iconId) ?? appIconSrc(access.iconId);
+  const runtimeIconSvg = appIconSrc(access.iconId);
   const remiixConfig = {
     appSlug: access.slug,
     platformOrigin,
@@ -1024,15 +1033,16 @@ function renderAppPage(
     lang: access.lang,
     published: access.published,
     title: access.title,
+    iconSrc: runtimeIcon || runtimeIconSvg || null,
+    category: access.category,
   };
-  const runtimeIcon = appIconPngSrc(access.iconId) ?? appIconSrc(access.iconId);
-  const runtimeIconSvg = appIconSrc(access.iconId);
   const runtimePrecache = [
     "/",
     "/module.js",
     "/manifest.webmanifest",
     "/static/remiix-app.js",
     "/static/images/remiix-icon-light.svg",
+    "/static/images/remiix.svg",
   ];
   if (runtimeIcon) runtimePrecache.push(runtimeIcon);
   if (runtimeIconSvg && runtimeIconSvg !== runtimeIcon) runtimePrecache.push(runtimeIconSvg);
@@ -1117,17 +1127,44 @@ function maybeLogOpenFromPlatform(req: BunRequest, row: NonNullable<ReturnType<t
   }
 }
 
-function redirectToAppSubdomain(slug: string, search = ""): Response {
+/**
+ * Redirect to the app runtime. If the user is signed in on the platform, attach a
+ * one-time connect `code` so Patch can show credits (cookie is host-only).
+ */
+function redirectToAppRuntime(
+  req: BunRequest,
+  row: NonNullable<ReturnType<typeof dbGetAppBySlug>>,
+  search = "",
+): Response {
+  const target = new URL(withSearch(appRuntimeOrigin(row), search));
+  if (!target.searchParams.has("code") && isNumericAppSlug(row.slug)) {
+    const user = getAuthenticatedUser(req);
+    if (user) {
+      const code = crypto.randomUUID().replace(/-/g, "");
+      const expiresAt = new Date(Date.now() + CONNECT_CODE_TTL_SEC * 1000).toISOString();
+      dbCreateConnectCode({
+        code,
+        userId: user.id,
+        appSlug: row.slug,
+        expiresAt,
+      });
+      target.searchParams.set("code", code);
+    }
+  }
+  return Response.redirect(target.toString(), 302);
+}
+
+function redirectToAppSubdomain(req: BunRequest, slug: string, search = ""): Response {
   const row = dbGetAppBySlug(slug);
   if (!row) return new Response("Not Found", { status: 404 });
-  return Response.redirect(withSearch(appRuntimeOrigin(row), search), 302);
+  return redirectToAppRuntime(req, row, search);
 }
 
 /**
  * App runtime on `{slug|uuid}.{APP_RUNTIME_HOST}/`.
- * - Published: numeric slug host
- * - Unpublished: UUID capability host (slug host → 404)
- * - Published app on UUID host → 302 to slug host
+ * - Published Store URL: numeric slug host (published version)
+ * - UUID capability host: always latest (owner preview / unpublished share link)
+ * - Unpublished: slug host → 404
  */
 export function appSubdomainPage(req: BunRequest): Response {
   const resolved = resolveAppFromRequestHost(req);
@@ -1141,18 +1178,16 @@ export function appSubdomainPage(req: BunRequest): Response {
     return new Response("Not Found", { status: 404 });
   }
 
-  // Canonical public URL is the numeric slug host.
-  if (label.kind === "id" && isAppPubliclyRunnable(row)) {
-    const dest = withSearch(appOrigin(row.slug), url.search);
-    if (url.searchParams.get("mode") === "install") {
-      return Response.redirect(`${appOrigin(row.slug)}/install`, 302);
-    }
-    return Response.redirect(dest, 302);
-  }
-
   const lang = resolveRequestLang(req);
   if (url.searchParams.get("mode") === "install") {
-    return Response.redirect(`${appRuntimeOrigin(row)}/install`, 302);
+    // Public install UI lives on the Store (slug) host when published.
+    if (label.kind === "id" && isAppPubliclyRunnable(row)) {
+      return Response.redirect(`${appOrigin(row.slug)}/install`, 302);
+    }
+    return Response.redirect(
+      `${label.kind === "id" ? appOrigin(row.id) : appOrigin(row.slug)}/install`,
+      302,
+    );
   }
   return renderAppPage(resolveAppAccess(lang, row, req, { viaCapabilityIdHost }));
 }
@@ -1188,9 +1223,6 @@ export function appSubdomainModule(req: BunRequest): Response {
   if (label.kind === "slug" && !isAppPubliclyRunnable(row)) {
     return new Response("// Not found", { status: 404 });
   }
-  if (label.kind === "id" && isAppPubliclyRunnable(row)) {
-    return Response.redirect(`${appOrigin(row.slug)}/module.js`, 302);
-  }
 
   const lang = resolveRequestLang(req);
   const result = getReadyApp(lang, row, req, { viaCapabilityIdHost });
@@ -1213,7 +1245,7 @@ export function shortAppPage(req: ShortAppRequest | BunRequest<"/:lang">): Respo
     return new Response("Not Found", { status: 404 });
   }
   const url = new URL(req.url);
-  return redirectToAppSubdomain(appId, url.search);
+  return redirectToAppSubdomain(req, appId, url.search);
 }
 
 /** Platform path /452352/module.js → redirect to runtime module. */
@@ -1243,7 +1275,7 @@ export function appPage(req: LangAppRequest): Response {
       return Response.redirect(`${appRuntimeOrigin(row)}/install`, 302);
     }
     maybeLogOpenFromPlatform(req, row);
-    return Response.redirect(withSearch(appRuntimeOrigin(row), url.search), 302);
+    return redirectToAppRuntime(req, row, url.search);
   }
 
   const row = dbGetAppBySlug(slug);
@@ -1262,7 +1294,7 @@ export function appRunRedirect(req: AppRunRedirectRequest): Response {
   }
   const url = new URL(req.url);
   if (isNumericAppSlug(slug)) {
-    return redirectToAppSubdomain(slug, url.search);
+    return redirectToAppSubdomain(req, slug, url.search);
   }
   return Response.redirect(`${url.origin}/${lang}/app/${slug}${url.search}`, 302);
 }

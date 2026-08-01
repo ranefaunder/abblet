@@ -72,6 +72,8 @@ export default {
         category: updated.category ?? nextConfig.category ?? null,
         tagline: updated.tagline ?? nextConfig.tagline ?? null,
         nextPrompt: updated.next_prompt ?? null,
+        latestVersionId: updated.latest_version_id ?? null,
+        publishedVersionId: updated.published_version_id ?? null,
       };
 
       return apiSuccess({ data: { app: detail } });

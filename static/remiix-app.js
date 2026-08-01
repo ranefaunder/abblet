@@ -1,7 +1,7 @@
 /**
  * Remiix app companion — Patch badge + Remiix.ai / connect API.
  * Loaded as <script type="module" src="/static/remiix-app.js"> on the app page.
- * Expects window.__REMIIX__ = { appSlug, platformOrigin, connectHref, tagName, moduleUrl, lang, published, title }.
+ * Expects window.__REMIIX__ = { appSlug, platformOrigin, connectHref, tagName, moduleUrl, lang, published, title, iconSrc?, category? }.
  */
 const cfg = window.__REMIIX__;
 const appSlug = cfg.appSlug;
@@ -12,9 +12,15 @@ const moduleUrl = cfg.moduleUrl;
 const lang = cfg.lang || "en";
 const published = cfg.published === true;
 const appTitle = typeof cfg.title === "string" && cfg.title.trim() ? cfg.title.trim() : "Remiix";
+const appIconSrc =
+  typeof cfg.iconSrc === "string" && cfg.iconSrc.trim() ? cfg.iconSrc.trim() : null;
+const catalogSeg = cfg.category === "Games" ? "games" : "apps";
+const catalogAppPath = "/" + lang + "/" + catalogSeg + "/" + encodeURIComponent(appSlug);
 
 const TOKEN_KEY = "remiix.token";
 const TOKEN_EXP_KEY = "remiix.tokenExpiresAt";
+/** Prevents optional-connect redirect loops when the user is not signed in on the platform. */
+const CONNECT_TRIED_KEY = "remiix.connectTried:" + appSlug;
 
 const COPY = {
   en: {
@@ -37,6 +43,7 @@ const COPY = {
     creditLabel: "AI credit",
     creditLoading: "…",
     creditEmpty: "No credit left",
+    creditSignIn: "Sign in",
     ownedByYou: "Your app",
   },
   fi: {
@@ -59,12 +66,21 @@ const COPY = {
     creditLabel: "AI-saldo",
     creditLoading: "…",
     creditEmpty: "Saldo loppu",
+    creditSignIn: "Kirjaudu",
     ownedByYou: "Oma appisi",
   },
 };
 
 function uiCopy() {
   return COPY[lang] || COPY.en;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function readStoredToken() {
@@ -86,6 +102,57 @@ function readStoredToken() {
 function storeToken(accessToken, expiresAt) {
   sessionStorage.setItem(TOKEN_KEY, accessToken);
   sessionStorage.setItem(TOKEN_EXP_KEY, expiresAt);
+}
+
+function isProbablyOnline() {
+  return typeof navigator === "undefined" || navigator.onLine !== false;
+}
+
+function markConnectTried() {
+  try {
+    sessionStorage.setItem(CONNECT_TRIED_KEY, "1");
+  } catch {
+    // ignore
+  }
+}
+
+function clearConnectTried() {
+  try {
+    sessionStorage.removeItem(CONNECT_TRIED_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function wasConnectTried() {
+  try {
+    return sessionStorage.getItem(CONNECT_TRIED_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * When online and there is no runtime token, redirect through platform /connect
+ * (optional — guests bounce back without login).
+ * @returns {boolean} true if a redirect was started
+ */
+function ensureConnected() {
+  if (!isProbablyOnline()) return false;
+  if (readStoredToken()) {
+    clearConnectTried();
+    return false;
+  }
+  if (wasConnectTried()) return false;
+
+  markConnectTried();
+  const returnUrl = new URL(location.href);
+  returnUrl.searchParams.delete("code");
+  const dest = new URL(connectHref);
+  dest.searchParams.set("optional", "1");
+  dest.searchParams.set("return", returnUrl.toString());
+  location.replace(dest.toString());
+  return true;
 }
 
 /** Ask to sign in, then redirect to /connect/{slug}. Resolves true if continuing. */
@@ -345,11 +412,23 @@ if (code) {
     const data = await res.json();
     if (data.success && data.data?.accessToken) {
       storeToken(data.data.accessToken, data.data.expiresAt);
+      clearConnectTried();
     }
   } catch {
     // Connect exchange failed — app still loads without token.
   }
 }
+
+if (ensureConnected()) {
+  // Navigating to platform connect — do not mount the app on this document.
+  await new Promise(() => {});
+}
+
+window.addEventListener("online", () => {
+  if (readStoredToken()) return;
+  clearConnectTried();
+  if (ensureConnected()) return;
+});
 
 const platformSession = await loadPlatformSession();
 void recordOpenIfLoggedIn();
@@ -366,6 +445,7 @@ const PRECACHE_URLS = [
   "/manifest.webmanifest",
   "/static/remiix-app.js",
   "/static/images/remiix-icon-light.svg",
+  "/static/images/remiix.svg",
 ];
 
 /**
@@ -413,45 +493,65 @@ function mountRemiixPatch(session) {
   if (document.getElementById("remiix-patch")) return;
 
   const t = uiCopy();
-  const storeHref = platformOrigin + "/" + lang + "/apps/" + encodeURIComponent(appSlug);
+  const storeHref = platformOrigin + catalogAppPath;
   const editHref = platformOrigin + "/" + lang + "/create/" + encodeURIComponent(appSlug);
   const aboutHref = platformOrigin + "/" + lang + "/";
   const shareUrl = published ? storeHref : location.origin + "/";
   const canOfferInstall = !isThisAppInstalledPwa();
   let deferredPrompt = null;
 
-  // Cookie is host-only on remiix.app — Edit/Remix always go to the platform.
-  const showEdit = true;
-  const showRemix = published;
+  // Edit XOR Remix: owner → Edit; others → Remix (published only). Toggled by setOwned.
+  const appLetter = escapeHtml((appTitle.trim().charAt(0) || "?").toUpperCase());
+  const appIconHtml = appIconSrc
+    ? `<img class="remiix-patch-app-icon" src="${escapeHtml(appIconSrc)}" alt="" width="40" height="40" decoding="async" />`
+    : `<span class="remiix-patch-app-letter" aria-hidden="true">${appLetter}</span>`;
+
+  const shareIconSvg =
+    '<svg class="remiix-patch-share-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
+    '<path d="M229.66,109.66l-48,48a8,8,0,0,1-11.32-11.32L204.69,112H165a88,88,0,0,0-85.23,66,8,8,0,0,1-15.5-4A103.94,103.94,0,0,1,165,96h39.71L170.34,61.66a8,8,0,0,1,11.32-11.32l48,48A8,8,0,0,1,229.66,109.66ZM192,208H40V88a8,8,0,0,0-16,0V216a8,8,0,0,0,8,8H192a8,8,0,0,0,0-16Z"/>' +
+    "</svg>";
+
+  const appIdentityHtml = `
+      ${appIconHtml}
+      <div class="remiix-patch-app-text">
+        <strong class="remiix-patch-app-name">${escapeHtml(appTitle)}</strong>
+        <span class="remiix-patch-owned" data-remiix-owned hidden role="status">${t.ownedByYou}</span>
+      </div>`;
 
   const menuItems = [];
   menuItems.push(`
-    <div class="remiix-patch-meta" data-remiix-meta hidden>
-      <div class="remiix-patch-owned" data-remiix-owned hidden role="status">${t.ownedByYou}</div>
-      <div class="remiix-patch-credit" data-remiix-credit hidden role="status">
+    <div class="remiix-patch-app" data-remiix-app>
+      <a class="remiix-patch-app-link" href="${escapeHtml(storeHref)}" data-remiix-store>
+        ${appIdentityHtml}
+      </a>
+      <button type="button" class="remiix-patch-share" data-remiix-share aria-label="${escapeHtml(t.share)}">
+        ${shareIconSvg}
+        <span class="remiix-patch-share-label" data-remiix-share-label>${escapeHtml(t.share)}</span>
+      </button>
+    </div>
+  `);
+  menuItems.push(`
+    <div class="remiix-patch-actions">
+      <a role="menuitem" class="remiix-patch-action" href="${editHref}" data-remiix-edit hidden>${t.edit}</a>
+      ${
+        published
+          ? `<button type="button" role="menuitem" class="remiix-patch-action" data-remiix-remix>${t.remix}</button>`
+          : ""
+      }
+      ${
+        canOfferInstall
+          ? `<button type="button" role="menuitem" class="remiix-patch-action remiix-patch-primary" data-remiix-install>${t.install}</button>`
+          : ""
+      }
+    </div>
+    <a class="remiix-patch-footer" role="menuitem" href="${escapeHtml(aboutHref)}" data-remiix-footer aria-label="Remiix">
+      <img class="remiix-patch-wordmark" src="/static/images/remiix.svg" alt="" width="120" height="25" decoding="async" />
+      <div class="remiix-patch-credit" data-remiix-credit role="status">
         <span class="remiix-patch-credit-label">${t.creditLabel}</span>
         <span class="remiix-patch-credit-value" data-remiix-credit-value>${t.creditLoading}</span>
       </div>
-    </div>
+    </a>
   `);
-  if (showEdit) {
-    menuItems.push(`<a role="menuitem" href="${editHref}" data-remiix-edit>${t.edit}</a>`);
-  }
-  if (showRemix) {
-    menuItems.push(
-      `<button type="button" role="menuitem" data-remiix-remix>${t.remix}</button>`,
-    );
-  }
-  menuItems.push(`<button type="button" role="menuitem" data-remiix-share>${t.share}</button>`);
-  if (published) {
-    menuItems.push(`<a role="menuitem" href="${storeHref}">${t.store}</a>`);
-  }
-  menuItems.push(`<a role="menuitem" href="${aboutHref}">${t.about}</a>`);
-  if (canOfferInstall) {
-    menuItems.push(
-      `<button type="button" role="menuitem" data-remiix-install class="remiix-patch-primary">${t.install}</button>`,
-    );
-  }
 
   const root = document.createElement("div");
   root.id = "remiix-patch";
@@ -545,7 +645,7 @@ function mountRemiixPatch(session) {
       position: absolute;
       right: 0;
       bottom: calc(100% + 10px);
-      min-width: 12rem;
+      min-width: 14rem;
       padding: 6px;
       border-radius: 14px;
       background:
@@ -557,103 +657,237 @@ function mountRemiixPatch(session) {
         0 1px 0 rgba(255, 255, 255, 0.5) inset;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 0;
     }
     #remiix-patch .remiix-patch-menu[hidden] {
       display: none;
     }
-    #remiix-patch .remiix-patch-menu a,
-    #remiix-patch .remiix-patch-menu button {
+    #remiix-patch .remiix-patch-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 2px 0 0;
+      padding: 8px 4px 8px;
+      border-top: 1px solid #ebebeb;
+    }
+    #remiix-patch .remiix-patch-action {
       appearance: none;
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 100%;
+      box-sizing: border-box;
       margin: 0;
-      padding: 10px 12px;
-      border: none;
-      border-radius: 10px;
-      background: transparent;
+      padding: 0.7rem 0.85rem;
+      border: 1px solid #e5e5e5;
+      border-radius: 11px;
+      background: #f5f5f5;
       color: #0a0a0a;
-      text-align: left;
+      text-align: center;
       text-decoration: none;
       font: inherit;
       font-size: 0.875rem;
-      font-weight: 600;
+      font-weight: 650;
       letter-spacing: -0.02em;
-      line-height: 1.25;
+      line-height: 1.2;
       cursor: pointer;
+      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
     }
-    #remiix-patch .remiix-patch-menu a:hover,
-    #remiix-patch .remiix-patch-menu button:hover {
-      background: #f5f5f5;
+    #remiix-patch .remiix-patch-action:hover {
+      background: #ececef;
+      border-color: #dcdce0;
     }
-    #remiix-patch .remiix-patch-menu .remiix-patch-primary {
+    #remiix-patch .remiix-patch-action.remiix-patch-primary {
+      border-color: transparent;
       background: #6366f1;
       color: #ffffff;
-      text-align: center;
-      margin-top: 4px;
     }
-    #remiix-patch .remiix-patch-menu .remiix-patch-primary:hover {
+    #remiix-patch .remiix-patch-action.remiix-patch-primary:hover {
       background: #4f46e5;
-      filter: brightness(1.02);
+      border-color: transparent;
+      filter: none;
     }
-    #remiix-patch .remiix-patch-menu .remiix-patch-primary + .remiix-patch-primary {
-      margin-top: 2px;
+    #remiix-patch .remiix-patch-footer {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0;
+      padding: 10px 10px 8px;
+      border-top: 1px solid #ebebeb;
+      border-radius: 0 0 10px 10px;
+      background: transparent;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+      transition: background 0.12s ease;
     }
-    #remiix-patch .remiix-patch-menu [data-remiix-install][hidden] {
+    #remiix-patch .remiix-patch-footer:hover {
+      background: #fafafa;
+    }
+    #remiix-patch .remiix-patch-footer .remiix-patch-wordmark {
+      display: block;
+      flex: none;
+      height: 0.8rem;
+      width: auto;
+      max-width: 5.75rem;
+      opacity: 0.45;
+      transition: opacity 0.15s ease;
+    }
+    #remiix-patch .remiix-patch-footer:hover .remiix-patch-wordmark {
+      opacity: 0.75;
+    }
+    #remiix-patch .remiix-patch-footer .remiix-patch-credit {
+      display: flex;
+      flex-direction: row;
+      align-items: baseline;
+      justify-content: flex-end;
+      gap: 0.35rem;
+      margin: 0;
+      padding: 0;
+      min-width: 0;
+      color: #525252;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+      pointer-events: none;
+      user-select: none;
+      text-align: right;
+      white-space: nowrap;
+    }
+    #remiix-patch .remiix-patch-footer .remiix-patch-credit-label {
+      color: #a3a3a3;
+      font-weight: 500;
+    }
+    #remiix-patch .remiix-patch-footer .remiix-patch-credit-value {
+      color: #0a0a0a;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    #remiix-patch .remiix-patch-actions .remiix-patch-action[hidden],
+    #remiix-patch .remiix-patch-menu [data-remiix-install][hidden],
+    #remiix-patch .remiix-patch-menu [data-remiix-edit][hidden],
+    #remiix-patch .remiix-patch-menu [data-remiix-remix][hidden] {
       display: none;
     }
-    #remiix-patch .remiix-patch-meta {
+    #remiix-patch .remiix-patch-app {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      padding: 8px 10px 8px;
+      border: none;
+      min-width: 0;
+    }
+    #remiix-patch .remiix-patch-app-link {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    #remiix-patch .remiix-patch-app-link:hover .remiix-patch-app-name {
+      color: #4f46e5;
+    }
+    #remiix-patch .remiix-patch-app-icon {
+      flex: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: #f0f0f0;
+    }
+    #remiix-patch .remiix-patch-app-letter {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #e8e8ed;
+      color: #1c1c1e;
+      font-size: 1.05rem;
+      font-weight: 750;
+      letter-spacing: -0.03em;
+    }
+    #remiix-patch .remiix-patch-app-text {
+      flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 2px;
-      margin: 0 0 4px;
-      padding: 0 0 6px;
-      border-bottom: 1px solid #ebebeb;
     }
-    #remiix-patch .remiix-patch-meta[hidden] {
-      display: none;
+    #remiix-patch .remiix-patch-app-name {
+      margin: 0;
+      font-size: 0.9375rem;
+      font-weight: 750;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      color: #0a0a0a;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #remiix-patch .remiix-patch-share {
+      appearance: none;
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      margin: 0;
+      padding: 4px 6px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: #4f46e5;
+      cursor: pointer;
+      font: inherit;
+      line-height: 1;
+      min-width: 2.75rem;
+    }
+    #remiix-patch .remiix-patch-share:hover {
+      background: #f5f5f5;
+      color: #4338ca;
+    }
+    #remiix-patch .remiix-patch-share-icon {
+      display: block;
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+    #remiix-patch .remiix-patch-share-label {
+      font-size: 0.625rem;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      line-height: 1;
+      color: inherit;
     }
     #remiix-patch .remiix-patch-owned {
       margin: 0;
-      padding: 8px 12px 4px;
+      padding: 0;
       color: #4f46e5;
-      font-size: 0.75rem;
+      font-size: 0.6875rem;
       font-weight: 700;
       letter-spacing: -0.01em;
-      line-height: 1.25;
+      line-height: 1.2;
       pointer-events: none;
       user-select: none;
     }
     #remiix-patch .remiix-patch-owned[hidden] {
       display: none;
-    }
-    #remiix-patch .remiix-patch-credit {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 0;
-      padding: 4px 12px 8px;
-      color: #525252;
-      font-size: 0.8125rem;
-      font-weight: 500;
-      letter-spacing: -0.01em;
-      line-height: 1.25;
-      pointer-events: none;
-      user-select: none;
-    }
-    #remiix-patch .remiix-patch-credit[hidden] {
-      display: none;
-    }
-    #remiix-patch .remiix-patch-credit-label {
-      color: #737373;
-      font-weight: 500;
-    }
-    #remiix-patch .remiix-patch-credit-value {
-      color: #0a0a0a;
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: -0.02em;
     }
     #remiix-patch .remiix-patch-floats {
       position: absolute;
@@ -722,40 +956,41 @@ function mountRemiixPatch(session) {
   const btn = root.querySelector(".remiix-patch-btn");
   const menu = root.querySelector(".remiix-patch-menu");
   const floats = root.querySelector("[data-remiix-floats]");
-  const metaRow = root.querySelector("[data-remiix-meta]");
   const ownedRow = root.querySelector("[data-remiix-owned]");
-  const creditRow = root.querySelector("[data-remiix-credit]");
+  const footerLink = root.querySelector("[data-remiix-footer]");
   const creditValueEl = root.querySelector("[data-remiix-credit-value]");
   const installBtn = root.querySelector("[data-remiix-install]");
+  const editBtn = root.querySelector("[data-remiix-edit]");
   const remixBtn = root.querySelector("[data-remiix-remix]");
   const shareBtn = root.querySelector("[data-remiix-share]");
+  const shareLabel = root.querySelector("[data-remiix-share-label]");
   const actionDot = root.querySelector("[data-remiix-install-dot]");
   let autoUpdating = false;
-
-  function syncMetaVisibility() {
-    if (!metaRow) return;
-    const showOwned = !!(ownedRow && !ownedRow.hidden);
-    const showCredit = !!(creditRow && !creditRow.hidden);
-    metaRow.hidden = !(showOwned || showCredit);
-  }
 
   function setOwned(isOwner) {
     window.Remiix.isOwner = isOwner === true;
     if (ownedRow) ownedRow.hidden = !window.Remiix.isOwner;
-    syncMetaVisibility();
+    if (editBtn) editBtn.hidden = !window.Remiix.isOwner;
+    if (remixBtn) remixBtn.hidden = window.Remiix.isOwner || !published;
+  }
+
+  function setCreditNeedsConnect() {
+    creditUi.balanceUsd = null;
+    if (creditValueEl) {
+      creditValueEl.textContent = t.creditSignIn || t.loginCta || "Sign in";
+    }
+    if (footerLink) footerLink.href = connectHref;
   }
 
   function setCreditBalance(usd) {
     creditUi.balanceUsd = typeof usd === "number" && Number.isFinite(usd) ? usd : null;
-    if (!creditRow || !creditValueEl) return;
+    if (!creditValueEl) return;
     if (creditUi.balanceUsd == null) {
-      creditRow.hidden = true;
-      syncMetaVisibility();
+      creditValueEl.textContent = t.creditLoading || "…";
       return;
     }
-    creditRow.hidden = false;
     creditValueEl.textContent = formatBalanceUsd(creditUi.balanceUsd);
-    syncMetaVisibility();
+    if (footerLink) footerLink.href = aboutHref;
   }
 
   function showCreditFloat(text, kind) {
@@ -787,8 +1022,8 @@ function mountRemiixPatch(session) {
   async function refreshCredits() {
     const token = readStoredToken()?.accessToken;
     if (!token) {
-      setCreditBalance(null);
       setOwned(false);
+      setCreditNeedsConnect();
       return;
     }
     try {
@@ -803,8 +1038,8 @@ function mountRemiixPatch(session) {
         } catch {
           // ignore
         }
-        setCreditBalance(null);
         setOwned(false);
+        setCreditNeedsConnect();
         return;
       }
       if (data.success && data.data) {
@@ -860,7 +1095,7 @@ function mountRemiixPatch(session) {
       "/" +
       lang +
       "/login?next=" +
-      encodeURIComponent("/" + lang + "/apps/" + encodeURIComponent(appSlug));
+      encodeURIComponent(catalogAppPath);
   }
 
   async function installApp() {
@@ -895,11 +1130,11 @@ function mountRemiixPatch(session) {
     }
     try {
       await navigator.clipboard.writeText(shareUrl);
-      if (shareBtn) {
-        const prev = shareBtn.textContent;
-        shareBtn.textContent = t.shareCopied;
+      if (shareLabel) {
+        const prev = shareLabel.textContent;
+        shareLabel.textContent = t.shareCopied;
         window.setTimeout(() => {
-          shareBtn.textContent = prev;
+          shareLabel.textContent = prev;
         }, 1600);
       }
     } catch {

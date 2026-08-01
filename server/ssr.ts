@@ -58,6 +58,8 @@ function getInitialApp(req: BunRequest, user: AuthenticatedUser | null): AppDeta
     category: row.category ?? config.category ?? null,
     tagline: row.tagline ?? config.tagline ?? null,
     nextPrompt: row.next_prompt ?? null,
+    latestVersionId: row.latest_version_id ?? null,
+    publishedVersionId: row.published_version_id ?? null,
   };
 }
 

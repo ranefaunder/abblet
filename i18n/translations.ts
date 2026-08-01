@@ -129,6 +129,20 @@ export const translations = {
   "Publish to Store": {
     fi: "Julkaise Storeen",
   },
+  "Publish": {
+    fi: "Julkaise",
+  },
+  "Publishing makes your app public in the Remiix Store. Anyone can open it, view its source, and remix it.": {
+    fi: "Julkaiseminen tekee appista julkisen Remiix Storessa. Kuka tahansa voi avata sen, nähdä lähdekoodin ja remixata sen.",
+  },
+  "What becomes public": {
+    fi: "Mikä julkaistaan",
+  },
+  "Your app’s title, description, icon, and source code appear in the Store. People can run the app and create their own remixed copies.": {
+    fi: "Appisi nimi, kuvaus, ikoni ja lähdekoodi näkyvät Storessa. Ihmiset voivat käyttää appia ja tehdä siitä omia remixejään.",
+  },
+  "Update": { fi: "Päivitä" },
+  "Update published": { fi: "Päivitä julkaistu" },
   "In Store": {
     fi: "Storessa",
   },
@@ -806,6 +820,8 @@ export const translations = {
   "More like this": { fi: "Lisää samankaltaisia" },
   "Published": { fi: "Julkaistu" },
   "Back to Store": { fi: "Takaisin Storeen" },
+  "Back to Games": { fi: "Takaisin peleihin" },
+  "Back to Apps": { fi: "Takaisin appeihin" },
   "Install adds the app to your home screen so you can open it anytime.": {
     fi: "Asennus lisää appin kotinäytölle, jotta avaat sen milloin vain.",
   },

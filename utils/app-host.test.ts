@@ -22,56 +22,58 @@ import { appModuleUrl, appPageUrl, appRuntimeModulePath } from "/utils/app-url";
 
 describe("app-host", () => {
   test("stripHostPort removes port", () => {
-    expect(stripHostPort("34211.app.localhost:8090")).toBe("34211.app.localhost");
+    expect(stripHostPort("34211.localhost:8090")).toBe("34211.localhost");
     expect(stripHostPort("localhost:8090")).toBe("localhost");
     expect(stripHostPort("remiix.app")).toBe("remiix.app");
   });
 
   test("parseAppSubdomain matches numeric slug", () => {
-    expect(parseAppSubdomain("34211.app.localhost:8090")).toBe("34211");
-    expect(parseAppSubdomain("foo.app.localhost")).toBeNull();
-    expect(parseAppSubdomain("app.localhost")).toBeNull();
-    expect(parseAppSubdomain("12.app.localhost")).toBeNull(); // too short
+    expect(parseAppSubdomain("34211.localhost:8090")).toBe("34211");
+    expect(parseAppSubdomain("foo.localhost")).toBeNull();
+    expect(parseAppSubdomain("localhost")).toBeNull();
+    expect(parseAppSubdomain("12.localhost")).toBeNull(); // too short
     expect(parseAppSubdomain("34211.abblet.app")).toBeNull(); // wrong runtime host in this env
   });
 
   test("parseAppRuntimeLabel matches slug and UUID", () => {
-    expect(parseAppRuntimeLabel("34211.app.localhost:8090")).toEqual({
+    expect(parseAppRuntimeLabel("34211.localhost:8090")).toEqual({
       kind: "slug",
       value: "34211",
     });
     const id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
-    expect(parseAppRuntimeLabel(`${id}.app.localhost`)).toEqual({
+    expect(parseAppRuntimeLabel(`${id}.localhost`)).toEqual({
       kind: "id",
       value: id,
     });
-    expect(parseAppRuntimeLabel("not-a-uuid.app.localhost")).toBeNull();
+    expect(parseAppRuntimeLabel("not-a-uuid.localhost")).toBeNull();
   });
 
   test("apex and runtime host detection", () => {
-    expect(isAppRuntimeApex("app.localhost:8090")).toBe(true);
-    expect(isAppRuntimeApex("34211.app.localhost:8090")).toBe(false);
-    expect(isAppRuntimeHost("foo.app.localhost")).toBe(true);
-    expect(isAppRuntimeHost("localhost:8090")).toBe(false);
+    expect(isAppRuntimeApex("localhost:8090")).toBe(true);
+    expect(isAppRuntimeApex("34211.localhost:8090")).toBe(false);
+    expect(isAppRuntimeHost("foo.localhost")).toBe(true);
+    expect(isAppRuntimeHost("localhost:8090")).toBe(true);
+    expect(isAppOnlyHost("localhost:8090")).toBe(false);
+    expect(isAppOnlyHost("34211.localhost:8090")).toBe(true);
   });
 
   test("appOrigin includes port from PLATFORM_ORIGIN", () => {
-    expect(appOrigin("34211")).toBe("http://34211.app.localhost:8090");
+    expect(appOrigin("34211")).toBe("http://34211.localhost:8090");
   });
   test("connectUrl points at platform", () => {
     expect(connectUrl("34211")).toBe("http://localhost:8090/connect/34211");
   });
 
   test("isOriginForAppSlug and isOriginForApp", () => {
-    expect(isOriginForAppSlug("http://34211.app.localhost:8090", "34211")).toBe(true);
-    expect(isOriginForAppSlug("http://99999.app.localhost:8090", "34211")).toBe(false);
-    expect(isAppRuntimeOrigin("http://34211.app.localhost:8090")).toBe("34211");
+    expect(isOriginForAppSlug("http://34211.localhost:8090", "34211")).toBe(true);
+    expect(isOriginForAppSlug("http://99999.localhost:8090", "34211")).toBe(false);
+    expect(isAppRuntimeOrigin("http://34211.localhost:8090")).toBe("34211");
     const id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     expect(
-      isOriginForApp(`http://${id}.app.localhost:8090`, { id, slug: "34211" }),
+      isOriginForApp(`http://${id}.localhost:8090`, { id, slug: "34211" }),
     ).toBe(true);
     expect(
-      isOriginForApp("http://34211.app.localhost:8090", { id, slug: "34211" }),
+      isOriginForApp("http://34211.localhost:8090", { id, slug: "34211" }),
     ).toBe(true);
   });
 
@@ -84,7 +86,7 @@ describe("app-host", () => {
         visibility: "private",
         published_version_id: null,
       }),
-    ).toBe(`http://${id}.app.localhost:8090`);
+    ).toBe(`http://${id}.localhost:8090`);
     expect(
       appRuntimeOrigin({
         id,
@@ -92,7 +94,7 @@ describe("app-host", () => {
         visibility: "public",
         published_version_id: "ver-1",
       }),
-    ).toBe("http://34211.app.localhost:8090");
+    ).toBe("http://34211.localhost:8090");
   });
 
   test("comma-separated APP_RUNTIME_HOST accepts aliases", () => {
@@ -159,7 +161,7 @@ describe("app-host", () => {
   test("appPageUrl prefers UUID host for private apps", () => {
     const id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     expect(appPageUrl("en", "34211", { id, slug: "34211", visibility: "private" })).toBe(
-      `http://${id}.app.localhost:8090/`,
+      `http://${id}.localhost:8090/`,
     );
     expect(
       appPageUrl("en", "34211", {
@@ -168,7 +170,9 @@ describe("app-host", () => {
         visibility: "public",
         publishedVersionId: "v1",
       }),
-    ).toBe("http://34211.app.localhost:8090/");
+    ).toBe("http://34211.localhost:8090/");
+    // Store cards have id but no visibility — must stay on slug (published) host
+    expect(appPageUrl("en", "34211", { id, slug: "34211" })).toBe("http://34211.localhost:8090/");
     expect(appModuleUrl("en", "34211")).toContain("/module.js");
     expect(appRuntimeModulePath()).toBe("/module.js");
   });

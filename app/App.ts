@@ -15,11 +15,11 @@ import { initI18nStore } from "./stores/i18nStore";
 import { initAppStore } from "./stores/appStore";
 import { initEditStore } from "./stores/editStore";
 import DevStores from "./components/headless/DevStores";
-import Home, { HomePath } from "./routes/Home";
+import Apps, { AppsPath } from "./routes/Apps";
 import Me, { MePath } from "./routes/Me";
 import Login, { LoginPath } from "./routes/Login";
-import Edit, { EditPath, EditSlugPath } from "./routes/Edit";
-import StoreApp, { StoreAppPath } from "./routes/StoreApp";
+import Create, { CreatePath, CreateSlugPath } from "./routes/Create";
+import AppPage, { AppPath, GamePath } from "./routes/App";
 import About, { AboutPath } from "./routes/About";
 import Splash, { SplashPath } from "./routes/Splash";
 import Games, { GamesPath } from "./routes/Games";
@@ -60,14 +60,15 @@ export default function App() {
       >
         <div data-scope="App" ui-column>
           <${Router}>
-            <${Route} path=${StoreAppPath} component=${withLayout(StoreApp, { atmosphere: "detail" })} />
-            <${Route} path=${HomePath} component=${withLayout(Home, { atmosphere: "apps" })} />
+            <${Route} path=${AppPath} component=${withLayout(AppPage, { atmosphere: "detail" })} />
+            <${Route} path=${GamePath} component=${withLayout(AppPage, { atmosphere: "games" })} />
+            <${Route} path=${AppsPath} component=${withLayout(Apps, { atmosphere: "apps" })} />
             <${Route} path=${GamesPath} component=${withLayout(Games, { atmosphere: "games" })} />
             <${Route} path=${AboutPath} component=${withLayout(About, { atmosphere: "about" })} />
             <${Route} path=${MePath} component=${withLayout(Me, { atmosphere: "me" })} />
             <${Route} path=${LoginPath} component=${withLayout(Login, { atmosphere: "splash" })} />
-            <${Route} path=${EditSlugPath} component=${withLayout(Edit, { atmosphere: "create" })} />
-            <${Route} path=${EditPath} component=${withLayout(Edit, { atmosphere: "create" })} />
+            <${Route} path=${CreateSlugPath} component=${withLayout(Create, { atmosphere: "create" })} />
+            <${Route} path=${CreatePath} component=${withLayout(Create, { atmosphere: "create" })} />
             <${Route} path=${SplashPath} component=${withLayout(Splash, { tabBar: false, atmosphere: "splash" })} />
             <${Route} default component=${withLayout(NotFound, { atmosphere: "default" })} />
           <//>

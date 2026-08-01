@@ -59,6 +59,7 @@ function shouldHandle(url) {
   if (path.startsWith("/static/favicons/")) return true;
   if (path === "/static/remiix-app.js") return true;
   if (path === "/static/images/remiix-icon-light.svg") return true;
+  if (path === "/static/images/remiix.svg") return true;
   return false;
 }
 

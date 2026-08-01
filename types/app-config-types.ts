@@ -58,6 +58,10 @@ export type AppDetail = {
   tagline: string | null;
   /** Intent-suggested next user prompt — Edit composer placeholder. */
   nextPrompt: string | null;
+  /** Latest working copy version (owner edits). */
+  latestVersionId?: string | null;
+  /** Version currently in the Store (null if unpublished). */
+  publishedVersionId?: string | null;
 };
 
 export type AppEditRole = "user" | "assistant";

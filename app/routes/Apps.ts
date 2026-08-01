@@ -21,7 +21,7 @@ import AppSlider from "/app/components/AppSlider";
 import AppList from "/app/components/AppList";
 import AppCard from "/app/components/AppCard";
 
-export const HomePath = "/:lang/apps" as const;
+export const AppsPath = "/:lang/apps" as const;
 
 function categoryLabel(category: AppCategory): string {
   return t(category);
@@ -83,7 +83,7 @@ function groupByCategory(apps: StoreAppCard[]): { category: AppCategory; apps: S
  *
  * Filtered / search: single AppList.
  */
-export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
+export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
   const { path } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
   const apps = storeApps.value;
@@ -116,7 +116,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   }
 
   const view = html`
-    <div data-scope="Store">
+    <div data-scope="Apps">
       <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
         <header class="page-head" ui-column="gap-sm">
           <h1 class="page-title">${t("Apps")}</h1>
@@ -236,7 +236,7 @@ export default function Home(_props: RoutePropsForPath<typeof HomePath>) {
   `;
 
   const style = css`
-    @scope ([data-scope="Store"]) to ([data-scope]) {
+    @scope ([data-scope="Apps"]) to ([data-scope]) {
       & {
         color: var(--neutral-900);
       }

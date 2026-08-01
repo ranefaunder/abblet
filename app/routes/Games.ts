@@ -4,7 +4,7 @@ import { useEffect } from "preact/hooks";
 import { useLocation } from "preact-iso";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
-import { appsAppUrl, createUrl } from "/utils/app-url";
+import { gamesAppUrl, createUrl } from "/utils/app-url";
 import type { StoreAppCard } from "/types/app-types";
 import {
   storeApps,
@@ -25,7 +25,7 @@ function toListItems(list: StoreAppCard[], lang: string) {
     slug: app.slug,
     title: app.title,
     iconId: app.iconId,
-    href: appsAppUrl(lang, app.slug),
+    href: gamesAppUrl(lang, app.slug),
     subtitle: app.tagline || app.description || t("Games"),
   }));
 }
@@ -35,7 +35,7 @@ function toSliderItems(list: StoreAppCard[], lang: string) {
     slug: app.slug,
     title: app.title,
     iconId: app.iconId,
-    href: appsAppUrl(lang, app.slug),
+    href: gamesAppUrl(lang, app.slug),
   }));
 }
 
@@ -110,7 +110,7 @@ export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
                     <section>
                       <${AppCard}
                         app=${featured}
-                        href=${appsAppUrl(lang, featured.slug)}
+                        href=${gamesAppUrl(lang, featured.slug)}
                         eyebrow=${t("Play now")}
                       />
                     </section>`
@@ -126,7 +126,7 @@ export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
                           slug: item.slug,
                           title: item.title,
                           iconId: item.iconId,
-                          href: appsAppUrl(lang, item.slug),
+                          href: gamesAppUrl(lang, item.slug),
                         }))}
                       />
                     </section>`

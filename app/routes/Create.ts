@@ -6,10 +6,11 @@ import { useEffect, useRef } from "preact/hooks";
 import type { AppEditMessage, AppEditToolUsage } from "/types/app-config-types";
 import { isDraftConfig } from "/types/app-config-types";
 import { t } from "/utils/i18n";
-import { createUrl, appPageUrl, appsUrl } from "/utils/app-url";
+import { createUrl, openAppUrl, appsUrl, appOwnerPreviewUrl } from "/utils/app-url";
 import { deleteApp } from "/app/stores/appStore";
 import { requireLogin } from "/app/stores/userStore";
 import CodeViewDialog from "/app/components/CodeViewDialog";
+import PublishDialog, { openPublishDialog } from "/app/components/PublishDialog";
 import {
   editApp,
   editMessages,
@@ -59,14 +60,14 @@ const WELCOME_KEY =
   "Hey — I'm Remiix.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?";
 
 /** New app: /:lang/create — existing: /:lang/create/:slug */
-export const EditPath = "/:lang/create" as const;
-export const EditSlugPath = "/:lang/create/:slug" as const;
+export const CreatePath = "/:lang/create" as const;
+export const CreateSlugPath = "/:lang/create/:slug" as const;
 
-type EditRouteProps =
-  | RoutePropsForPath<typeof EditPath>
-  | RoutePropsForPath<typeof EditSlugPath>;
+type CreateRouteProps =
+  | RoutePropsForPath<typeof CreatePath>
+  | RoutePropsForPath<typeof CreateSlugPath>;
 
-export default function Edit(_props: EditRouteProps) {
+export default function Create(_props: CreateRouteProps) {
   const { params } = useRoute();
   const { route } = useLocation();
   const lang = params.lang ?? "en";
@@ -80,6 +81,25 @@ export default function Edit(_props: EditRouteProps) {
       return;
     }
     void loadEdit(slug);
+
+    // Browser back from app runtime often restores this page from bfcache
+    // without remounting — refresh so Update published matches the DB.
+    const refreshIfIdle = () => {
+      if (editSending.value) return;
+      void loadEdit(slug);
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) refreshIfIdle();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshIfIdle();
+    };
+    window.addEventListener("pageshow", onPageShow);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [slug, isNew]);
 
   const app = editApp.value;
@@ -87,6 +107,11 @@ export default function Edit(_props: EditRouteProps) {
   const creating = isNew || (app != null && isDraftConfig(app.config));
   const publishing = editPublishing.value;
   const isPublished = app?.visibility === "public";
+  const needsStoreUpdate =
+    Boolean(isPublished) &&
+    Boolean(app?.latestVersionId) &&
+    Boolean(app?.publishedVersionId) &&
+    app!.latestVersionId !== app!.publishedVersionId;
   const pageTitle = isNew
     ? t("Create")
     : app
@@ -112,12 +137,27 @@ export default function Edit(_props: EditRouteProps) {
 
   async function handlePublishToggle() {
     if (!app || !slug || creating || publishing) return;
-    closeTopbarMenu();
     await setAppPublished(slug, !isPublished);
   }
 
-  function closeTopbarMenu() {
-    const menu = document.getElementById("edit-topbar-menu") as HTMLElement & {
+  function requestPublish() {
+    if (!requireLogin()) return;
+    openPublishDialog();
+  }
+
+  async function confirmPublish() {
+    if (!app || !slug || creating || publishing || isPublished) return false;
+    return setAppPublished(slug, true);
+  }
+
+  async function handleUpdateStore() {
+    if (!app || !slug || creating || publishing || !needsStoreUpdate) return;
+    if (!requireLogin()) return;
+    await setAppPublished(slug, true);
+  }
+
+  function closeToolbarMenu() {
+    const menu = document.getElementById("create-toolbar-menu") as HTMLElement & {
       hidePopover?: () => void;
     } | null;
     try {
@@ -128,13 +168,13 @@ export default function Edit(_props: EditRouteProps) {
   }
 
   function openCodeDialog() {
-    closeTopbarMenu();
+    closeToolbarMenu();
     const dialog = document.getElementById("edit-code-dialog") as HTMLDialogElement | null;
     dialog?.showModal();
   }
 
   async function openHistoryDialog() {
-    closeTopbarMenu();
+    closeToolbarMenu();
     if (!slug) return;
     const dialog = document.getElementById("edit-history-dialog") as HTMLDialogElement | null;
     dialog?.showModal();
@@ -143,109 +183,127 @@ export default function Edit(_props: EditRouteProps) {
 
   const showTools = Boolean(app?.canEdit && slug);
   const showReadyTools = Boolean(app?.canEdit && !creating && slug);
+  /** Public Store URL when published snapshot is current; otherwise UUID latest preview. */
+  const openHref =
+    isPublished && !needsStoreUpdate && slug
+      ? openAppUrl(lang, slug, { app })
+      : app?.id
+        ? appOwnerPreviewUrl(app)
+        : openAppUrl(lang, slug, { app });
 
-  const view = html`
-    <div data-scope="Edit">
-      <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
-        <header class="page-head" ui-row="x-between y-start gap-md">
-          <div ui-column="gap-sm" class="page-copy">
-            <h1 class="page-title">${pageTitle}</h1>
-            <p class="page-lede">${pageLede}</p>
-          </div>
-
-          <div class="page-actions" ui-row="y-center gap-xs">
-            ${app && !creating && slug
-              ? isPublished
-                ? html`
-                  <a ui-button="sm" href=${appPageUrl(lang, slug, app)}>
-                    ${t("Open")}
-                  </a>`
-                : showReadyTools
+  const toolbar = showTools
+    ? html`
+      <nav class="toolbar" role="toolbar" aria-label=${t("Create")}>
+        <div class="toolbar-inner">
+          ${showReadyTools
+            ? html`
+              <div class="toolbar-cta">
+                <a class="action" href=${openHref} ui-off>
+                  <i ui-icon="arrow-square-out" aria-hidden="true"></i>
+                  <span>${t("Open")}</span>
+                </a>
+                ${isPublished
+                  ? needsStoreUpdate
+                    ? html`
+                      <button
+                        type="button"
+                        class="action"
+                        ui-off
+                        disabled=${publishing}
+                        aria-busy=${publishing}
+                        onClick=${() => void handleUpdateStore()}
+                      >
+                        <i ui-icon="arrows-clockwise" aria-hidden="true"></i>
+                        <span>${t("Update published")}</span>
+                      </button>`
+                    : html`<span class="status-live">${t("In Store")}</span>`
+                  : html`
+                    <button
+                      type="button"
+                      class="action"
+                      ui-off
+                      disabled=${publishing}
+                      aria-busy=${publishing}
+                      onClick=${requestPublish}
+                    >
+                      <i ui-icon="upload-simple" aria-hidden="true"></i>
+                      <span>${t("Publish")}</span>
+                    </button>`}
+              </div>`
+            : html`<div class="toolbar-grow"></div>`}
+          <button
+            type="button"
+            class="action-more"
+            ui-off
+            aria-label=${t("More")}
+            popovertarget="create-toolbar-menu"
+          >
+            <i ui-icon="dots-three-vertical" aria-hidden="true"></i>
+          </button>
+          <div id="create-toolbar-menu" class="toolbar-menu" popover="auto" role="menu">
+            ${showReadyTools
+              ? html`
+                <button type="button" role="menuitem" ui-off onClick=${openCodeDialog}>
+                  ${t("Show Code")}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  ui-off
+                  onClick=${() => void openHistoryDialog()}
+                >
+                  ${t("History")}
+                </button>
+                ${isPublished
                   ? html`
                     <button
                       type="button"
-                      ui-button="primary sm"
+                      role="menuitem"
+                      ui-off
                       disabled=${publishing}
-                      aria-busy=${publishing}
                       onClick=${() => {
-                        if (!requireLogin()) return;
+                        if (!requireLogin()) {
+                          closeToolbarMenu();
+                          return;
+                        }
+                        closeToolbarMenu();
                         void handlePublishToggle();
                       }}
                     >
-                      ${t("Publish to Store")}
+                      ${t("Unpublish")}
                     </button>`
-                  : ""
+                  : ""}
+                <div class="toolbar-menu-sep" role="separator"></div>`
               : ""}
-            ${showTools
-              ? html`
-                <div class="page-menu" ui-menu="bottom-left">
-                  <button
-                    type="button"
-                    ui-button="tertiary square sm"
-                    ui-icon="dots-three-vertical"
-                    aria-label=${t("More")}
-                    popovertarget="edit-topbar-menu"
-                  ></button>
-                  <div id="edit-topbar-menu" popover="auto" role="menu">
-                    ${showReadyTools
-                      ? html`
-                        ${isPublished
-                          ? html`
-                            <button
-                              type="button"
-                              role="menuitem"
-                              disabled=${publishing}
-                              onClick=${() => {
-                                if (!requireLogin()) {
-                                  closeTopbarMenu();
-                                  return;
-                                }
-                                void handlePublishToggle();
-                              }}
-                            >
-                              <i ui-icon="prohibit" aria-hidden="true"></i>
-                              ${t("Unpublish")}
-                            </button>`
-                          : ""}
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick=${openCodeDialog}
-                        >
-                          <i ui-icon="code" aria-hidden="true"></i>
-                          ${t("Show Code")}
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick=${() => void openHistoryDialog()}
-                        >
-                          <i ui-icon="clock-countdown" aria-hidden="true"></i>
-                          ${t("History")}
-                        </button>
-                        <hr />`
-                      : ""}
-                    <button
-                      type="button"
-                      role="menuitem"
-                      class="danger"
-                      disabled=${deleting.value}
-                      onClick=${() => {
-                        closeTopbarMenu();
-                        void handleDelete();
-                      }}
-                    >
-                      <i ui-icon="trash" aria-hidden="true"></i>
-                      ${t("Delete")}
-                    </button>
-                  </div>
-                </div>`
-              : ""}
+            <button
+              type="button"
+              role="menuitem"
+              class="danger"
+              ui-off
+              disabled=${deleting.value}
+              onClick=${() => {
+                closeToolbarMenu();
+                void handleDelete();
+              }}
+            >
+              ${t("Delete")}
+            </button>
           </div>
+        </div>
+      </nav>`
+    : "";
+
+  const view = html`
+    <div data-scope="Create">
+      ${toolbar}
+      <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
+        <header class="page-head" ui-column="gap-sm">
+          <h1 class="page-title">${pageTitle}</h1>
+          <p class="page-lede">${pageLede}</p>
         </header>
 
         ${isNew
-          ? html`<${EditWorkspace} slug="" creating=${true} lang=${lang} />`
+          ? html`<${CreateWorkspace} slug="" creating=${true} lang=${lang} />`
           : loading && !app
             ? html`
               <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
@@ -261,13 +319,16 @@ export default function Edit(_props: EditRouteProps) {
                 ? html`
                   <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
                     <p ui-heading="sm">${t("You can only edit your own apps.")}</p>
-                    <a href=${appPageUrl(lang, slug, app)} ui-button>${t("Open app")}</a>
+                    <a href=${openAppUrl(lang, slug, { app })} ui-button>${t("Open app")}</a>
                   </div>`
-                : html`<${EditWorkspace} slug=${slug} creating=${creating} lang=${lang} />`}
+                : html`<${CreateWorkspace} slug=${slug} creating=${creating} lang=${lang} />`}
       </div>
 
       ${showReadyTools && app && !isDraftConfig(app.config)
         ? html`<${CodeViewDialog} id="edit-code-dialog" code=${app.config.code} />`
+        : ""}
+      ${showReadyTools
+        ? html`<${PublishDialog} publishing=${publishing} onConfirm=${confirmPublish} />`
         : ""}
       ${showReadyTools ? html`<${HistoryDialog} slug=${slug} />` : ""}
     </div>
@@ -276,7 +337,7 @@ export default function Edit(_props: EditRouteProps) {
   return [view, style()];
 }
 
-function EditWorkspace({
+function CreateWorkspace({
   slug,
   creating,
   lang,
@@ -467,7 +528,6 @@ function ChatPanel({
                   msg.role === "assistant" && msg.id !== "welcome" ? idx : acc,
                 -1,
               );
-              const canOpenApp = Boolean(app?.title && slug && !creating);
               const canRetry = Boolean(editRetryPrompt.value) && !sending;
               return displayMessages.map((m, i) => {
                   const usageLines =
@@ -495,42 +555,31 @@ function ChatPanel({
                   );
                   const showInfo = usageLines.length > 0 || creditUsd != null;
                   const isLastAssistant = i === lastAssistantIdx;
-                  const showAppCard = canOpenApp && isLastAssistant;
                   const showRetry = canRetry && isLastAssistant && m.role === "assistant";
-                  const showActions = showAppCard || showRetry;
                   return html`
                   <div
-                    class=${`msg ${m.role === "user" ? "user" : "assistant"}${showAppCard ? " result" : ""}`}
+                    class=${`msg ${m.role === "user" ? "user" : "assistant"}`}
                     style=${`--i: ${i}`}
                   >
                     ${m.id === "original-prompt"
                       ? html`<p class="msg-label">${t("Original prompt")}</p>`
                       : ""}
-                    <div class=${`bubble${showInfo ? " has-info" : ""}${showActions ? " has-open" : ""}`}>
+                    <div class=${`bubble${showInfo ? " has-info" : ""}${showRetry ? " has-open" : ""}`}>
                       <div class="bubble-body">${m.content}</div>
-                      ${showActions
+                      ${showRetry
                         ? html`
                           <div class="bubble-open" ui-row="gap-sm y-center wrap">
-                            ${showAppCard
-                              ? html`
-                                <a href=${appPageUrl(lang, slug, app)} ui-button="sm">
-                                  ${t("Open App")}
-                                </a>`
-                              : ""}
-                            ${showRetry
-                              ? html`
-                                <button
-                                  type="button"
-                                  ui-button="sm"
-                                  disabled=${sending}
-                                  onClick=${() => {
-                                    if (!slug || sending) return;
-                                    void retryLastChatMessage(slug);
-                                  }}
-                                >
-                                  ${t("Try again")}
-                                </button>`
-                              : ""}
+                            <button
+                              type="button"
+                              ui-button="sm"
+                              disabled=${sending}
+                              onClick=${() => {
+                                if (!slug || sending) return;
+                                void retryLastChatMessage(slug);
+                              }}
+                            >
+                              ${t("Try again")}
+                            </button>
                           </div>`
                         : ""}
                       ${showInfo
@@ -595,42 +644,44 @@ function ChatPanel({
           ${sending
             ? html`
               <div class="msg assistant build" aria-live="polite">
-                <div class="build-row">
-                  <span class="build-dots" aria-hidden="true">
-                    <i></i><i></i><i></i>
-                  </span>
-                  <span class="build-label">
-                    ${statusText
-                      ?? (creating ? t("Building your app…") : t("AI is updating your app…"))}
-                  </span>
-                  <span class="build-elapsed" aria-label=${t("Elapsed time")}>
-                    ${formatElapsed(elapsedSec.value)}
-                  </span>
+                <div class="bubble">
+                  <div class="build-row">
+                    <span class="build-dots" aria-hidden="true">
+                      <i></i><i></i><i></i>
+                    </span>
+                    <span class="build-label">
+                      ${statusText
+                        ?? (creating ? t("Building your app…") : t("AI is updating your app…"))}
+                    </span>
+                    <span class="build-elapsed" aria-label=${t("Elapsed time")}>
+                      ${formatElapsed(elapsedSec.value)}
+                    </span>
+                  </div>
+                  <div class="build-bars" aria-hidden="true">
+                    <span style="--w: 88%"></span>
+                    <span style="--w: 64%"></span>
+                    <span style="--w: 76%"></span>
+                  </div>
+                  ${statusSteps.length > 0
+                    ? html`
+                      <ul class="status-steps">
+                        ${statusSteps.map(
+                          (step, i) => html`
+                            <li
+                              class=${i < statusIndex
+                                ? "done"
+                                : i === statusIndex
+                                  ? "active"
+                                  : "pending"}
+                            >
+                              <span class="status-dot" aria-hidden="true"></span>
+                              <span>${step}</span>
+                            </li>
+                          `,
+                        )}
+                      </ul>`
+                    : ""}
                 </div>
-                <div class="build-bars" aria-hidden="true">
-                  <span style="--w: 88%"></span>
-                  <span style="--w: 64%"></span>
-                  <span style="--w: 76%"></span>
-                </div>
-                ${statusSteps.length > 0
-                  ? html`
-                    <ul class="status-steps">
-                      ${statusSteps.map(
-                        (step, i) => html`
-                          <li
-                            class=${i < statusIndex
-                              ? "done"
-                              : i === statusIndex
-                                ? "active"
-                                : "pending"}
-                          >
-                            <span class="status-dot" aria-hidden="true"></span>
-                            <span>${step}</span>
-                          </li>
-                        `,
-                      )}
-                    </ul>`
-                  : ""}
               </div>`
             : ""}
 
@@ -789,7 +840,7 @@ function HistoryDialog({ slug }: { slug: string }) {
 
 function style() {
   return css`
-    @scope ([data-scope="Edit"]) to ([data-scope]) {
+    @scope ([data-scope="Create"]) to ([data-scope]) {
       & {
         color: var(--neutral-900);
       }
@@ -802,13 +853,210 @@ function style() {
         box-sizing: border-box;
       }
 
-      .page-head {
-        align-items: flex-start;
+      .toolbar {
+        position: sticky;
+        top: env(safe-area-inset-top, 0px);
+        z-index: 40;
+        background: #0b0b0c;
+        color: #fff;
       }
 
-      .page-copy {
-        min-width: 0;
+      .toolbar-inner {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        max-width: 48rem;
+        margin-inline: auto;
+        padding: 0.75rem 1rem;
+        box-sizing: border-box;
+      }
+
+      .toolbar-grow {
+        flex: 1;
+      }
+
+      .toolbar-cta {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.15rem;
         flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .action {
+        appearance: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.45rem;
+        flex: none;
+        min-height: 2.75rem;
+        margin: 0;
+        border: 0;
+        border-radius: 0.75rem;
+        padding: 0.5rem 0.7rem;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.88);
+        font: inherit;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        text-decoration: none;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        transition: color 0.14s ease, background 0.14s ease;
+      }
+
+      .action:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .action:active {
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .action:disabled {
+        opacity: 0.4;
+        pointer-events: none;
+      }
+
+      .action [ui-icon] {
+        font-size: 1.15rem;
+        color: inherit;
+        flex: none;
+      }
+
+      .action span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .status-live {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-inline: 0.15rem 0.25rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(52, 199, 89, 0.14);
+        color: #6ee7a0;
+        font-size: 0.75rem;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+      }
+
+      .status-live::before {
+        content: "";
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 50%;
+        background: #34c759;
+        box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.22);
+      }
+
+      .action-more {
+        appearance: none;
+        anchor-name: --create-tb-more;
+        flex: none;
+        width: 2.75rem;
+        height: 2.75rem;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background 0.14s ease, color 0.14s ease;
+      }
+
+      .action-more:hover {
+        background: rgba(255, 255, 255, 0.22);
+        color: #fff;
+      }
+
+      .action-more [ui-icon] {
+        font-size: 1.4rem;
+        color: inherit;
+      }
+
+      .toolbar-menu {
+        margin: 0;
+        min-width: 12.5rem;
+        padding: 0.4rem;
+        border: 0;
+        border-radius: 1rem;
+        background: #1c1c1e;
+        color: #fff;
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 18px 40px rgba(0, 0, 0, 0.45);
+        position-anchor: --create-tb-more;
+      }
+
+      .toolbar-menu:popover-open {
+        inset: auto;
+        top: anchor(bottom);
+        right: anchor(right);
+        margin-top: 0.45rem;
+      }
+
+      .toolbar-menu [role="menuitem"] {
+        appearance: none;
+        display: flex;
+        width: 100%;
+        align-items: center;
+        margin: 0;
+        border: 0;
+        border-radius: 0.75rem;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.92);
+        padding: 0.8rem 0.9rem;
+        font: inherit;
+        font-size: 0.9375rem;
+        font-weight: 550;
+        letter-spacing: -0.01em;
+        text-align: left;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .toolbar-menu [role="menuitem"]:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .toolbar-menu [role="menuitem"]:disabled {
+        opacity: 0.4;
+        pointer-events: none;
+      }
+
+      .toolbar-menu [role="menuitem"].danger {
+        color: #ff7b72;
+      }
+
+      .toolbar-menu [role="menuitem"].danger:hover {
+        background: rgba(255, 59, 48, 0.12);
+      }
+
+      .toolbar-menu-sep {
+        height: 1px;
+        margin: 0.3rem 0.55rem;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .page-head {
+        align-items: flex-start;
       }
 
       .page-title {
@@ -826,20 +1074,6 @@ function style() {
         font-size: 1.05rem;
         line-height: 1.4;
         color: var(--neutral-600);
-      }
-
-      .page-actions {
-        flex: none;
-        justify-content: flex-end;
-        margin-top: 0.2rem;
-      }
-
-      .page-menu {
-        flex: none;
-      }
-
-      #edit-topbar-menu [role="menuitem"].danger {
-        color: var(--danger, #c00);
       }
 
       .state {
@@ -943,12 +1177,18 @@ function style() {
         box-shadow: 0 8px 18px rgba(15, 20, 25, 0.18);
       }
 
-      .msg.assistant:not(.build) .bubble {
+      .msg.assistant .bubble {
         background: var(--white);
         color: var(--neutral-700);
         border: 1px solid var(--neutral-200);
         border-radius: 1.05rem 1.05rem 1.05rem 0.3rem;
         font-weight: 500;
+      }
+
+      .msg.build .bubble {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
       }
 
       .msg-info {
@@ -1109,10 +1349,7 @@ function style() {
         display: flex;
         flex-direction: column;
         gap: 0.35rem;
-        padding: 0.75rem;
-        border-radius: 0.95rem;
-        background: color-mix(in oklab, var(--white) 70%, var(--neutral-50));
-        border: 1px solid var(--neutral-200);
+        padding: 0.15rem 0;
       }
 
       .build-bars span {

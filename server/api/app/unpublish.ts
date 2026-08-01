@@ -47,6 +47,8 @@ export default {
         category: updated.category ?? config.category ?? null,
         tagline: updated.tagline ?? config.tagline ?? null,
         nextPrompt: updated.next_prompt ?? null,
+        latestVersionId: updated.latest_version_id ?? null,
+        publishedVersionId: updated.published_version_id ?? null,
       };
 
       return apiSuccess({ data: { app: detail } });

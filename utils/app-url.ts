@@ -11,8 +11,18 @@ export function appRuntimePageUrl(row: AppRuntimeRow): string {
 }
 
 /**
- * Prefer passing `app` with id/visibility/publishedVersionId when available so
- * unpublished apps open on the UUID capability host.
+ * Owner working-copy preview — always the UUID capability host (latest version),
+ * even when a Store (slug) URL exists for the published snapshot.
+ */
+export function appOwnerPreviewUrl(app: { id: string }): string {
+  return `${appOrigin(app.id)}/`;
+}
+
+/**
+ * Prefer passing `app` with id + visibility (+ publishedVersionId) when available
+ * so unpublished apps open on the UUID capability host.
+ * Incomplete objects (e.g. Store cards with only `id`) must not default to private —
+ * that incorrectly routes published Store apps to the UUID preview host.
  */
 export function appPageUrl(
   _lang: string,
@@ -25,17 +35,17 @@ export function appPageUrl(
     published_version_id?: string | null;
   } | null,
 ): string {
-  if (app?.id) {
+  if (app?.id && app.visibility != null) {
     const published =
       app.publishedVersionId ?? app.published_version_id ?? null;
     return appRuntimePageUrl({
       id: app.id,
       slug: app.slug ?? slug,
-      visibility: app.visibility ?? "private",
+      visibility: app.visibility,
       published_version_id: published,
     });
   }
-  return `${appOrigin(slug)}/`;
+  return `${appOrigin(app?.slug ?? slug)}/`;
 }
 
 /** App subdomain install UI (PWA Add to Home Screen). */
@@ -66,6 +76,20 @@ export function connectUrl(slug: string): string {
   return platformConnectUrl(slug);
 }
 
+/**
+ * URL to open a runnable app on its runtime host.
+ * Connect/token is handled by remiix-app.js (`ensureConnected`) on load.
+ */
+export function openAppUrl(
+  lang: string,
+  slug: string,
+  opts?: {
+    app?: Parameters<typeof appPageUrl>[2];
+  },
+): string {
+  return appPageUrl(lang, slug, opts?.app);
+}
+
 /** Splash / marketing index. */
 export function splashUrl(lang: string): string {
   return `/${lang}/`;
@@ -85,6 +109,19 @@ export function appsAppUrl(lang: string, slug: string): string {
 
 export function gamesUrl(lang: string): string {
   return `/${lang}/games`;
+}
+
+export function gamesAppUrl(lang: string, slug: string): string {
+  return `/${lang}/games/${slug}`;
+}
+
+/** Detail URL in the apps or games catalog. */
+export function catalogAppUrl(
+  lang: string,
+  slug: string,
+  catalog: "apps" | "games" = "apps",
+): string {
+  return catalog === "games" ? gamesAppUrl(lang, slug) : appsAppUrl(lang, slug);
 }
 
 export function meUrl(lang: string): string {
