@@ -6,7 +6,7 @@ import { useEffect, useRef } from "preact/hooks";
 import type { AppEditMessage, AppEditToolUsage } from "/types/app-config-types";
 import { isDraftConfig } from "/types/app-config-types";
 import { t } from "/utils/i18n";
-import { createUrl, openAppUrl, appsUrl, appOwnerPreviewUrl } from "/utils/app-url";
+import { createUrl, openAppUrl, appsUrl, appOwnerPreviewUrl, catalogAppUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { deleteApp } from "/app/stores/appStore";
 import { requireLogin } from "/app/stores/userStore";
@@ -194,6 +194,9 @@ export default function Create(_props: CreateRouteProps) {
         ? appOwnerPreviewUrl(app)
         : openAppUrl(lang, slug, { app });
   const openIconSrc = appIconSrc(app?.iconId);
+  const storeHref = slug
+    ? catalogAppUrl(lang, slug, app?.category === "Games" ? "games" : "apps")
+    : "";
 
   const toolbar = showTools
     ? html`
@@ -227,7 +230,10 @@ export default function Create(_props: CreateRouteProps) {
                         </svg>
                         <span>${t("Update published")}</span>
                       </button>`
-                    : html`<span class="status-live">${t("In Store")}</span>`
+                    : html`
+                      <a class="status-live" href=${storeHref} ui-off>
+                        ${t("Published")}
+                      </a>`
                   : html`
                     <button
                       type="button"
@@ -272,6 +278,14 @@ export default function Create(_props: CreateRouteProps) {
                 </button>
                 ${isPublished
                   ? html`
+                    <a
+                      role="menuitem"
+                      href=${storeHref}
+                      ui-off
+                      onClick=${() => closeToolbarMenu()}
+                    >
+                      ${t("View in Store")}
+                    </a>
                     <button
                       type="button"
                       role="menuitem"
@@ -984,6 +998,14 @@ function style() {
         font-weight: 650;
         letter-spacing: -0.01em;
         white-space: nowrap;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background 0.14s ease, color 0.14s ease;
+      }
+
+      a.status-live:hover {
+        background: rgba(52, 199, 89, 0.22);
+        color: #8af0b0;
       }
 
       .status-live::before {
@@ -1064,6 +1086,8 @@ function style() {
         font-weight: 550;
         letter-spacing: -0.01em;
         text-align: left;
+        text-decoration: none;
+        box-sizing: border-box;
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
       }

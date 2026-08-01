@@ -170,6 +170,9 @@ export const translations = {
   "In Store": {
     fi: "Storessa",
   },
+  "View in Store": {
+    fi: "Näytä Storessa",
+  },
   "Unpublish": {
     fi: "Poista julkaisu",
   },
