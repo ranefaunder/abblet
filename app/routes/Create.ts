@@ -936,15 +936,6 @@ function style() {
         height: 1.15rem;
         color: inherit;
         flex: none;
-        background-color: currentColor;
-        -webkit-mask-image: var(--ui-icon);
-        mask-image: var(--ui-icon);
-        -webkit-mask-size: contain;
-        mask-size: contain;
-        -webkit-mask-repeat: no-repeat;
-        mask-repeat: no-repeat;
-        -webkit-mask-position: center;
-        mask-position: center;
       }
 
       .action-app-icon {
@@ -1013,7 +1004,9 @@ function style() {
       }
 
       .action-more [ui-icon] {
-        font-size: 1.4rem;
+        --ui-icon-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
         color: inherit;
       }
 
