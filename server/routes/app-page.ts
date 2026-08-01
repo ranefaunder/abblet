@@ -729,7 +729,7 @@ function renderInstallPage(
         var precacheUrls = ${JSON.stringify(precacheUrls)};
         var platformOrigin = ${JSON.stringify(platformOrigin)};
         var appSlug = ${JSON.stringify(access.slug)};
-        var CACHE = "remiix-app-runtime-v5";
+        var CACHE = "remiix-app-runtime-v6";
         var installBtn = document.getElementById("install");
         var openBtn = document.getElementById("open");
         var ledeEl = document.getElementById("lede");
@@ -1052,7 +1052,7 @@ function renderAppPage(
     <script>
       (function () {
         var urls = ${JSON.stringify(runtimePrecache)};
-        var CACHE = "remiix-app-runtime-v5";
+        var CACHE = "remiix-app-runtime-v6";
         async function warm() {
           try {
             if (navigator.storage && navigator.storage.persist) {

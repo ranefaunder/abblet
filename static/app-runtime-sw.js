@@ -1,12 +1,14 @@
 /**
  * Service Worker for a single app origin (`{slug}.{APP_RUNTIME_HOST}`).
  *
- * - Precaches shell on install / PRECACHE (only then does cache update)
- * - Cache-first for `/`, `/module.js`, icons — no automatic background refresh
- * - CHECK_UPDATE compares network /module.js to cache; client auto-applies + reloads when online
+ * - Precaches shell on install / PRECACHE (offline fallback)
+ * - Network-first for mutable assets (`/`, `/module.js`, remiix-app.js, manifest)
+ *   so edits/publishes show up when online; cache only when offline
+ * - Cache-first for icons (immutable)
+ * - CHECK_UPDATE / APPLY_UPDATE still available for in-session refresh
  * - Never treats `/install` as the app shell
  */
-const CACHE = "remiix-app-runtime-v5";
+const CACHE = "remiix-app-runtime-v6";
 const CORE = ["/", "/module.js", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -60,11 +62,50 @@ function shouldHandle(url) {
   return false;
 }
 
+/** App code / shell — must refresh when online. */
+function isMutableAppAsset(url) {
+  const path = url.pathname;
+  return (
+    path === "/" ||
+    path === "" ||
+    path === "/module.js" ||
+    path === "/manifest.webmanifest" ||
+    path === "/static/remiix-app.js"
+  );
+}
+
 function cacheKeyFor(request, url) {
   if (url.pathname === "/" || url.pathname === "") {
     return new Request(new URL("/", url.origin).href, { credentials: request.credentials });
   }
   return request;
+}
+
+function offlineResponse() {
+  return new Response("Offline", {
+    status: 503,
+    statusText: "Service Unavailable",
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
+}
+
+async function networkFirst(request, url) {
+  const cache = await caches.open(CACHE);
+  const key = cacheKeyFor(request, url);
+  try {
+    const network =
+      request.mode === "navigate"
+        ? await fetch(request)
+        : await fetch(new Request(request, { cache: "no-store", credentials: "same-origin" }));
+    if (network.ok) {
+      void cache.put(key, network.clone());
+    }
+    return network;
+  } catch {
+    const cached = await cache.match(key);
+    if (cached) return cached;
+    return offlineResponse();
+  }
 }
 
 async function cacheFirst(request, url) {
@@ -80,11 +121,7 @@ async function cacheFirst(request, url) {
     }
     return network;
   } catch {
-    return new Response("Offline", {
-      status: 503,
-      statusText: "Service Unavailable",
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
+    return offlineResponse();
   }
 }
 
@@ -92,7 +129,11 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   if (!shouldHandle(url)) return;
-  event.respondWith(cacheFirst(event.request, url));
+  if (isMutableAppAsset(url)) {
+    event.respondWith(networkFirst(event.request, url));
+  } else {
+    event.respondWith(cacheFirst(event.request, url));
+  }
 });
 
 function buffersEqual(a, b) {
