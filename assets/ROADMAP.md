@@ -59,7 +59,7 @@ Polar: Checkout + webhooks + Customer Portal (ei korttien säilytystä meillä).
 
 - free = `CREDIT_FREE_GRANT_USD` (oletus $0.99)
 - premium = `CREDIT_PREMIUM_GRANT_USD` (oletus $5.99)
-- markup = `CREDIT_MARKUP` (oletus 2×)
+- markup = `CREDIT_MARKUP` (oletus 5×)
 - Gift-koodit (`gift_codes`) jäävät Polarinkin rinnalle testaajille / lähipiirille
 
 Polar-saldoa ei sekoiteta OpenRouter-debitiin suoraan — oma ledger; Polar vain täyttää / entitlee.

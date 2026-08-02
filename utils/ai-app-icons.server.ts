@@ -1,6 +1,6 @@
 import { mkdirSync, readdirSync, readFileSync } from "fs";
 import { z } from "zod";
-import { requestJsonFromAi } from "/utils/ai-core.server";
+import { getIconAiModel, requestJsonFromAi } from "/utils/ai-core.server";
 import { checkRateLimit } from "/utils/rate-limit.server";
 
 const LUCIDE_DIR = "./app/lucide-icons";
@@ -216,6 +216,7 @@ Pick the clearest on-topic Lucide icon metaphor (icons[0] most important, then c
       systemPrompt,
       userPrompt,
       schema: iconSpecSchema,
+      model: getIconAiModel(),
     });
     if (!data) return null;
     return { spec: data, costUsd, model };

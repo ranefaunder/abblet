@@ -62,7 +62,7 @@ export const EDIT_AI_MODELS = [
 
 export type EditAiModelKey = (typeof EDIT_AI_MODELS)[number]["key"];
 
-export const DEFAULT_EDIT_AI_MODEL: EditAiModelKey = "gemini-flash";
+export const DEFAULT_EDIT_AI_MODEL: EditAiModelKey = "deepseek-flash";
 
 const EDIT_AI_MODEL_BY_KEY = Object.fromEntries(
   EDIT_AI_MODELS.map((m) => [m.key, m]),
@@ -123,7 +123,7 @@ export function formatAiRequestStats(opts: {
  */
 export function estimateEditCreditUsd(costUsd: number | null | undefined): number | null {
   if (typeof costUsd !== "number" || !Number.isFinite(costUsd) || costUsd < 0) return null;
-  const markup = 2;
+  const markup = 5;
   const floorUsd = 0.01;
   const openrouterUsd = costUsd > 0 ? costUsd : floorUsd;
   return openrouterUsd * markup;

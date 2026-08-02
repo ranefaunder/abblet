@@ -1,5 +1,5 @@
 import type { BunRequest } from "bun";
-import { AiRequestError, requestTextFromAi } from "/utils/ai-core.server";
+import { AiRequestError, getRuntimeAiModel, requestTextFromAi } from "/utils/ai-core.server";
 import { unwrapMarkdownCodeFence } from "/utils/ai-text";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { isOriginForApp } from "/utils/app-host";
@@ -15,9 +15,7 @@ const SYSTEM_MAX = 2000;
 const DEFAULT_SYSTEM =
   "You are a helpful assistant. Be concise. Reply with plain text only — do not wrap the entire answer in a markdown code fence (```) unless the user explicitly asks for a fenced code block.";
 
-export function getRuntimeAiModel(): string {
-  return process.env.RUNTIME_AI_MODEL?.trim() || "google/gemini-2.5-flash-lite";
-}
+export { getRuntimeAiModel };
 
 /**
  * POST /api/sdk/ai — run a cheap text completion for an app runtime (Bearer token).

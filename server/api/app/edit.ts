@@ -13,7 +13,7 @@ import {
 } from "/utils/ai-apps.server";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
-import { resolveEditAiModel } from "/utils/ai-core.server";
+import { getIntentionAiModel, resolveEditAiModel } from "/utils/ai-core.server";
 import { assertHasCredits, debitOpenRouterUsage, sumOpenRouterCosts } from "/utils/credits.server";
 import {
   DEFAULT_EDIT_AI_MODEL,
@@ -271,7 +271,6 @@ async function runEditTurn(opts: {
     send({ type: "progress", text: t("Figuring out what you need…", language) });
 
     const history = dbListAppMessages(row.id);
-    const intentModel = resolveEditAiModel("gpt-mini");
     const intentStarted = Date.now();
     let intent;
     try {
@@ -280,7 +279,7 @@ async function runEditTurn(opts: {
         history,
         instruction: message,
         language,
-        model: intentModel,
+        model: getIntentionAiModel(),
       });
     } catch (err) {
       const aiError = apiErrorFromAi(err, language);

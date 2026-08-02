@@ -26,11 +26,11 @@ describe("billing plan grants", () => {
     const prevMarkup = process.env.CREDIT_MARKUP;
     const prevFree = process.env.CREDIT_FREE_GRANT_USD;
     const prevPrem = process.env.CREDIT_PREMIUM_GRANT_USD;
-    process.env.CREDIT_MARKUP = "2";
+    process.env.CREDIT_MARKUP = "3";
     process.env.CREDIT_FREE_GRANT_USD = "0.99";
     process.env.CREDIT_PREMIUM_GRANT_USD = "5.99";
     try {
-      expect(getCreditMarkup()).toBe(2);
+      expect(getCreditMarkup()).toBe(3);
       expect(getFreeGrantUsd()).toBeCloseTo(0.99, 5);
       expect(getPremiumGrantUsd()).toBeCloseTo(5.99, 5);
       expect(getPlanGrantUsd("free")).toBe(getFreeGrantUsd());

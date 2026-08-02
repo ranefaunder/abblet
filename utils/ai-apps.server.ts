@@ -332,7 +332,7 @@ ${designGuidelines(langName)}`;
 /**
  * Lightweight first pass: decide which edit tools to run. Does NOT receive app
  * source code — only title, description, and recent chat.
- * Caller should pass a fixed routing model (gpt-mini); not the chat picker model.
+ * Caller should pass INTENTION_AI_MODEL (fixed router); not the chat picker model.
  */
 export async function classifyEditIntent(opts: {
   current: AppConfig;

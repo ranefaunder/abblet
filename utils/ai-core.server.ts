@@ -15,10 +15,31 @@ export const OPENROUTER_CONFIG = {
   },
 };
 
-const DEFAULT_AI_MODEL = "google/gemini-3-flash-preview";
+const DEFAULT_AI_MODEL = "deepseek/deepseek-v4-flash";
 
+function envModel(name: string, fallback: string): string {
+  const value = process.env[name]?.trim();
+  return value || fallback;
+}
+
+/** Edit / create chat default (OpenRouter id). */
 export function getPrimaryAiModel(): string {
-  return process.env.AI_MODEL ?? DEFAULT_AI_MODEL;
+  return envModel("AI_MODEL", DEFAULT_AI_MODEL);
+}
+
+/** Remiix.ai() in app runtimes. */
+export function getRuntimeAiModel(): string {
+  return envModel("RUNTIME_AI_MODEL", DEFAULT_AI_MODEL);
+}
+
+/** Edit-intent router (classifyEditIntent) — no app source in prompt. */
+export function getIntentionAiModel(): string {
+  return envModel("INTENTION_AI_MODEL", DEFAULT_AI_MODEL);
+}
+
+/** Home-screen icon design (Lucide + palette JSON). */
+export function getIconAiModel(): string {
+  return envModel("ICON_AI_MODEL", DEFAULT_AI_MODEL);
 }
 
 /** Resolve edit-chat model key → OpenRouter model id. */

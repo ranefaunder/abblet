@@ -20,7 +20,7 @@ function envNumber(name: string, fallback: number): number {
 }
 
 export function getCreditMarkup(): number {
-  return envNumber("CREDIT_MARKUP", 2);
+  return envNumber("CREDIT_MARKUP", 5);
 }
 
 /** @deprecated Prefer getPlanGrantUsd — kept for callers that mean the Free tier. */
