@@ -33,6 +33,8 @@ export default {
           balanceUsd: Math.round(snap.balanceUsd * 100) / 100,
           periodYm: snap.periodYm,
           freeGrantUsd: snap.freeGrantUsd,
+          grantUsd: snap.grantUsd,
+          plan: snap.plan,
           dailySpend,
           byApp,
         },

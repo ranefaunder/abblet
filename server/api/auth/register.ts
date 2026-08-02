@@ -94,6 +94,7 @@ export default {
           nickname,
           createdAt: new Date().toISOString(),
           marketingOptIn,
+          plan: "free" as const,
         },
       },
     });

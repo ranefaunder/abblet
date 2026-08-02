@@ -2,6 +2,7 @@ import { db } from "/server/database/db";
 
 export type CreditReason =
   | "grant_free"
+  | "grant_premium"
   | "ai_generate"
   | "ai_edit"
   | "ai_icon"
@@ -49,13 +50,14 @@ function insertLedger(data: {
 }
 
 /**
- * If the user's free-grant period is stale, top balance up to `grantUsdMicros` (cap).
+ * If the user's grant period is stale, top balance up to `grantUsdMicros` (cap).
  * Does not reduce a balance already above the grant.
  */
 export function dbEnsureMonthlyFreeGrant(
   userId: string,
   periodYm: string,
   grantUsdMicros: number,
+  reason: CreditReason = "grant_free",
 ): { balanceUsdMicros: number; granted: boolean } {
   const run = db.transaction(() => {
     const row = dbGetCreditBalance(userId);
@@ -79,7 +81,7 @@ export function dbEnsureMonthlyFreeGrant(
         userId,
         deltaUsdMicros: delta,
         balanceAfter: next,
-        reason: "grant_free",
+        reason,
         metaJson: JSON.stringify({ periodYm, grantUsdMicros }),
       });
     } else {
@@ -88,6 +90,45 @@ export function dbEnsureMonthlyFreeGrant(
     }
 
     return { balanceUsdMicros: next, granted: delta > 0 };
+  });
+
+  return run();
+}
+
+/**
+ * Mid-period bump when upgrading to Premium (or similar). Tops up to grant cap.
+ * Does not change credit_period_ym.
+ */
+export function dbBumpBalanceToGrant(
+  userId: string,
+  grantUsdMicros: number,
+  reason: CreditReason,
+  meta?: Record<string, unknown>,
+): { balanceUsdMicros: number; granted: boolean } {
+  const run = db.transaction(() => {
+    const row = dbGetCreditBalance(userId);
+    if (!row) return { balanceUsdMicros: 0, granted: false };
+
+    const prev = row.credit_balance_usd_micros;
+    if (prev >= grantUsdMicros) {
+      return { balanceUsdMicros: prev, granted: false };
+    }
+
+    const next = grantUsdMicros;
+    const delta = next - prev;
+    db.query(`UPDATE users SET credit_balance_usd_micros = ? WHERE id = ?`).run(
+      next,
+      userId,
+    );
+    insertLedger({
+      id: crypto.randomUUID(),
+      userId,
+      deltaUsdMicros: delta,
+      balanceAfter: next,
+      reason,
+      metaJson: meta ? JSON.stringify(meta) : JSON.stringify({ grantUsdMicros }),
+    });
+    return { balanceUsdMicros: next, granted: true };
   });
 
   return run();

@@ -82,6 +82,7 @@ export default {
           lastLogin: existingUser.last_login,
           nickname: existingUser.nickname ?? null,
           marketingOptIn: (existingUser.marketing_opt_in ?? 0) === 1,
+          plan: existingUser.plan === "premium" ? "premium" : "free",
         },
       },
     });

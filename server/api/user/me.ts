@@ -1,6 +1,7 @@
 import type { BunRequest } from "bun";
 import { withAuth } from "/utils/auth.server";
 import { apiSuccess } from "/utils/api.server";
+import { getUserPlan } from "/utils/entitlements.server";
 
 export default {
   async GET(req: BunRequest) {
@@ -13,6 +14,7 @@ export default {
           lastLogin: authUser.lastLogin,
           nickname: authUser.nickname ?? null,
           marketingOptIn: authUser.marketingOptIn === true,
+          plan: getUserPlan(authUser.id),
         },
       });
     });

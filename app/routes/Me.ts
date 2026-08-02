@@ -17,6 +17,7 @@ import { apiFetch } from "/utils/api.client";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import AppGrid from "/app/components/AppGrid";
+import { openPremiumDialog } from "/app/components/PremiumDialog";
 
 export const MePath = "/:lang/me" as const;
 
@@ -40,6 +41,8 @@ type CreditAppBreakdown = {
 type CreditsSnapshot = {
   balanceUsd: number;
   freeGrantUsd: number;
+  grantUsd: number;
+  plan: "free" | "premium";
   periodYm: string;
   dailySpend: CreditDailySpend[];
   byApp: CreditAppSpend[];
@@ -59,7 +62,7 @@ const JOIN_FEATURES = [
   {
     icon: "wallet",
     title: "Monthly AI credit",
-    body: "Every account gets free AI credit each month to create, edit, and run AI in apps.",
+    body: "Every account gets free AI credit each month. Premium unlocks a larger monthly grant.",
   },
   {
     icon: "squares-four",
@@ -97,10 +100,13 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
       return;
     }
     void loadApps();
-    void (async () => {
+
+    async function loadCredits() {
       const result = await apiFetch<{
         balanceUsd: number;
         freeGrantUsd: number;
+        grantUsd?: number;
+        plan?: "free" | "premium";
         periodYm: string;
         dailySpend?: CreditDailySpend[];
         byApp?: CreditAppSpend[];
@@ -112,11 +118,21 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
       setCredits({
         balanceUsd: result.data.balanceUsd,
         freeGrantUsd: result.data.freeGrantUsd,
+        grantUsd: result.data.grantUsd ?? result.data.freeGrantUsd,
+        plan: result.data.plan ?? "free",
         periodYm: result.data.periodYm,
         dailySpend: result.data.dailySpend ?? [],
         byApp: result.data.byApp ?? [],
       });
-    })();
+    }
+
+    void loadCredits();
+
+    const onRedeemed = () => {
+      void loadCredits();
+    };
+    window.addEventListener("premium-redeemed", onRedeemed);
+    return () => window.removeEventListener("premium-redeemed", onRedeemed);
   }, [loggedIn, lang]);
 
   function formatCreditDay(isoDay: string): string {
@@ -342,23 +358,41 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                 <section class="panel credits" ui-column="gap-lg">
                   <header class="credits-head" ui-row="x-between y-start gap-md">
                     <div ui-column="gap-sm">
-                      <h2 class="panel-title">${t("AI credit")}</h2>
+                      <div ui-row="gap-sm y-center wrap">
+                        <h2 class="panel-title">${t("AI credit")}</h2>
+                        <span class=${`plan-badge${credits.plan === "premium" ? " is-premium" : ""}`}>
+                          ${credits.plan === "premium" ? t("Premium") : t("Free")}
+                        </span>
+                      </div>
                       <p class="credits-balance">$${credits.balanceUsd.toFixed(2)}</p>
                       <p class="credits-grant">
-                        ${t("Monthly free grant")} · $${credits.freeGrantUsd.toFixed(2)}
+                        ${t("Monthly grant")} · $${credits.grantUsd.toFixed(2)}
                       </p>
                     </div>
-                    ${appBreakdown.length > 0
-                      ? html`
-                        <button
-                          type="button"
-                          ui-button="sm"
-                          commandfor="me-credits-by-app"
-                          command="show-modal"
-                        >
-                          ${t("By app")}
-                        </button>`
-                      : ""}
+                    <div ui-row="gap-sm wrap y-start">
+                      ${credits.plan !== "premium"
+                        ? html`
+                          <button
+                            type="button"
+                            ui-button="primary sm"
+                            onClick=${() => openPremiumDialog()}
+                          >
+                            ${t("Get Premium")}
+                          </button>`
+                        : html`
+                          <span class="credits-premium-note">${t("You're on Premium")}</span>`}
+                      ${appBreakdown.length > 0
+                        ? html`
+                          <button
+                            type="button"
+                            ui-button="sm"
+                            commandfor="me-credits-by-app"
+                            command="show-modal"
+                          >
+                            ${t("By app")}
+                          </button>`
+                        : ""}
+                    </div>
                   </header>
 
                   <div class="credits-usage" ui-column="gap-md">
@@ -604,6 +638,34 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
         margin: 0;
         font-size: 0.875rem;
         color: var(--neutral-500);
+      }
+
+      .plan-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.15rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        background: var(--neutral-100);
+        color: var(--neutral-700);
+      }
+
+      .plan-badge.is-premium {
+        background: var(--primary-100, var(--neutral-200));
+        color: var(--primary-800, var(--neutral-900));
+      }
+
+      .credits-premium-note {
+        font-size: 0.875rem;
+        color: var(--neutral-600);
+        margin-top: 0.25rem;
+      }
+
+      .credits-upgrade-hint {
+        margin: 0;
       }
 
       .credits-usage {

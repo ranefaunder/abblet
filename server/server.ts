@@ -25,6 +25,8 @@ import sdkAi from "./api/sdk/ai";
 import sdkSession from "./api/sdk/session";
 import sdkRemix from "./api/sdk/remix";
 import credits from "./api/credits";
+import billingStatus from "./api/billing/status";
+import billingRedeemGift from "./api/billing/redeem-gift";
 
 import authLogout from "./api/auth/logout";
 import authRegister from "./api/auth/register";
@@ -161,6 +163,8 @@ const platformApiRoutes = wrapRoutes(
     "/api/:lang/user/me": userMe,
     "/api/:lang/user/marketing": userMarketing,
     "/api/:lang/credits": credits,
+    "/api/:lang/billing/status": billingStatus,
+    "/api/:lang/billing/redeem-gift": billingRedeemGift,
     "/api/:lang/auth/logout": authLogout,
     "/api/:lang/auth/register": authRegister,
     "/api/:lang/auth/request-login-code": authRequestLoginCode,

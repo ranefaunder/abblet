@@ -15,6 +15,8 @@ export const editStatusText = signal<string | null>(null);
 export const editStatusSteps = signal<string[]>([]);
 export const editStatusIndex = signal(0);
 export const editError = signal<string | null>(null);
+/** True when the last failure was an empty AI wallet — show Premium CTA. */
+export const editNeedsPremium = signal(false);
 export const editRegeneratingIcon = signal(false);
 export const editPublishing = signal(false);
 /** User AI wallet (USD), refreshed after grant/debit. */
@@ -63,6 +65,16 @@ function lang(): string {
   return getLang(window.location.pathname) ?? "en";
 }
 
+function setEditFailure(error: { code?: string; message?: string }): void {
+  editNeedsPremium.value = error.code === "INSUFFICIENT_CREDITS";
+  editError.value = error.message ?? error.code ?? null;
+}
+
+export function clearEditFailure(): void {
+  editError.value = null;
+  editNeedsPremium.value = false;
+}
+
 function resetEditRequestFlags(): void {
   editSending.value = false;
   editRegeneratingIcon.value = false;
@@ -88,7 +100,7 @@ export function initEditStore(): void {
 }
 
 export async function loadEdit(slug: string): Promise<void> {
-  editError.value = null;
+  clearEditFailure();
   // Never leave a sticky "sending" lock from a previous SPA visit.
   resetEditRequestFlags();
 
@@ -107,7 +119,7 @@ export async function loadEdit(slug: string): Promise<void> {
       `/api/${l}/app/get?slug=${encodeURIComponent(slug)}`,
     );
     if (!appResult.success) {
-      editError.value = appResult.error.message ?? appResult.error.code;
+      setEditFailure(appResult.error);
       return;
     }
     editApp.value = appResult.data.app;
@@ -130,7 +142,7 @@ export async function loadEdit(slug: string): Promise<void> {
 
 /** Clear editor state for a fresh /{lang}/create (new app) session. */
 export function startNewEdit(): void {
-  editError.value = null;
+  clearEditFailure();
   resetEditRequestFlags();
   editLoading.value = false;
   editApp.value = null;
@@ -153,7 +165,7 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
   }
   if (editSending.value) return null;
 
-  editError.value = null;
+  clearEditFailure();
   editSending.value = true;
   editStatusText.value = null;
   editStatusSteps.value = [];
@@ -181,7 +193,7 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
     );
     if (!result.success) {
       if (result.status === 401) openLoginDialog();
-      editError.value = result.error.message ?? result.error.code;
+      setEditFailure(result.error);
       editMessages.value = editMessages.value.filter((m) => m.id !== optimistic.id);
       return null;
     }
@@ -200,6 +212,7 @@ export async function createAppFromPrompt(text: string): Promise<string | null> 
     return result.data.app.slug;
   } catch (err) {
     console.error("Create app request failed:", err);
+    editNeedsPremium.value = false;
     editError.value = "Network request failed. Try again.";
     editMessages.value = editMessages.value.filter((m) => m.id !== optimistic.id);
     return null;
@@ -221,7 +234,7 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
   }
   if (editSending.value) return false;
 
-  editError.value = null;
+  clearEditFailure();
   editSending.value = true;
   editRetryPrompt.value = null;
   editStatusText.value = null;
@@ -239,7 +252,7 @@ export async function sendChatMessage(slug: string, text: string): Promise<boole
 
   const failAsAssistant = (errorText: string, messages?: AppEditMessage[]) => {
     // Never surface chat failures in the top banner — keep them in the thread.
-    editError.value = null;
+    clearEditFailure();
     editRetryPrompt.value = trimmed;
     if (messages && messages.length > 0) {
       editMessages.value = messages;
@@ -421,7 +434,7 @@ export async function retryLastChatMessage(slug: string): Promise<boolean> {
 /** Regenerate the launcher icon on explicit user request. */
 export async function regenerateIcon(slug: string): Promise<boolean> {
   if (editRegeneratingIcon.value) return false;
-  editError.value = null;
+  clearEditFailure();
   editRegeneratingIcon.value = true;
   try {
     const result = await apiFetch<{ app: AppDetail; messages: AppEditMessage[] }>(
@@ -432,7 +445,7 @@ export async function regenerateIcon(slug: string): Promise<boolean> {
       },
     );
     if (!result.success) {
-      editError.value = result.error.message ?? result.error.code;
+      setEditFailure(result.error);
       return false;
     }
     editApp.value = result.data.app;
@@ -448,7 +461,7 @@ export async function regenerateIcon(slug: string): Promise<boolean> {
 /** Publish (or remove) the current app from the Store. */
 export async function setAppPublished(slug: string, publish: boolean): Promise<boolean> {
   if (editPublishing.value) return false;
-  editError.value = null;
+  clearEditFailure();
   editPublishing.value = true;
   try {
     const endpoint = publish ? "publish" : "unpublish";
@@ -457,7 +470,7 @@ export async function setAppPublished(slug: string, publish: boolean): Promise<b
       body: JSON.stringify({ slug }),
     });
     if (!result.success) {
-      editError.value = result.error.message ?? result.error.code;
+      setEditFailure(result.error);
       return false;
     }
     editApp.value = result.data.app;
@@ -474,7 +487,7 @@ export async function loadEditVersions(slug: string): Promise<void> {
       `/api/${lang()}/app/versions?slug=${encodeURIComponent(slug)}`,
     );
     if (!result.success) {
-      editError.value = result.error.message ?? result.error.code;
+      setEditFailure(result.error);
       return;
     }
     editVersions.value = result.data.versions;
@@ -486,7 +499,7 @@ export async function loadEditVersions(slug: string): Promise<void> {
 /** Restore an old version as a new latest (immutable copy). Title/icon unchanged. */
 export async function restoreAppVersion(slug: string, versionId: string): Promise<boolean> {
   if (editRestoring.value) return false;
-  editError.value = null;
+  clearEditFailure();
   editRestoring.value = true;
   try {
     const result = await apiFetch<{ app: AppDetail }>(`/api/${lang()}/app/restore`, {
@@ -494,7 +507,7 @@ export async function restoreAppVersion(slug: string, versionId: string): Promis
       body: JSON.stringify({ slug, versionId }),
     });
     if (!result.success) {
-      editError.value = result.error.message ?? result.error.code;
+      setEditFailure(result.error);
       return false;
     }
     editApp.value = result.data.app;

@@ -4,6 +4,7 @@ export interface User {
   createdAt: string;
   lastLogin?: string;
   marketingOptIn?: boolean;
+  plan?: "free" | "premium";
 }
 
 export interface LoggedInUser extends User {

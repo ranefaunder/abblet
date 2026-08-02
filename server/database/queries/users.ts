@@ -10,6 +10,12 @@ export type UserInDatabase = {
   is_guest?: number;
   credit_balance_usd_micros?: number;
   credit_period_ym?: string | null;
+  plan?: string;
+  plan_source?: string | null;
+  plan_updated_at?: string | null;
+  polar_customer_id?: string | null;
+  polar_subscription_id?: string | null;
+  gift_code_id?: string | null;
 };
 
 export const dbGetUserByEmail = (email: string): UserInDatabase | null =>

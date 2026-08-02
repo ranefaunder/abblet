@@ -2,6 +2,8 @@
 
 Järjestys: **sync ensin**, sitten **Polar**. Sync tekee apista “oikean tuotteen” (data ei katoa); Polar muuttaa sen liiketoiminnaksi.
 
+**Valmis:** Premium-entitlement + gift-koodit (`users.plan`, `gift_codes`, `/api/:lang/billing/*`). Polar = provider-vaihto samaan `setUserPlan`-polkuun.
+
 Liittyy: [`BRAND.md`](BRAND.md), [`TRADEMARK.md`](TRADEMARK.md).
 
 ---
@@ -43,27 +45,30 @@ Vaihtoehto: yksi metodi `Remiix.sync(data?)` — get ilman argia, set argilla. C
 
 Polar: Checkout + webhooks + Customer Portal (ei korttien säilytystä meillä).
 
-### Malli
+**Entitlement on jo paikallinen:** `users.plan` (`free` | `premium`), `plan_source` (`gift` | `polar`), kuukausigrant planin mukaan (`CREDIT_FREE_GRANT_USD` / `CREDIT_PREMIUM_GRANT_USD`). Gift-redeem: `POST /api/:lang/billing/redeem-gift`. UI: Me, About `#plans`, Create credit-wall, Premium-dialog.
 
-1. **Tuote(et)** Polarissa — esim. Pro-tilaus (€/kk) ja/tai credit-paketit (one-time)
+### Malli (Polar-PR)
+
+1. Tuote Polarissa — Premium **$5.99/mo** (grant $5.99, 1:1)
 2. Checkout serverillä (OAT), `customer_external_id` / metadata = Remiix `user.id`
-3. Webhookit: `subscription.*`, `order.paid` → päivitä paikallinen entitlement (`plan`, `polar_customer_id`, …)
+3. Webhookit: `subscription.*`, `order.paid` → sama `setUserPlan(userId, "premium", { source: "polar" })` + `applyPlanGrant` kuin gift
 4. Me-sivulle: “Manage billing” → Polar Customer Session / portal
+5. `BILLING_PROVIDER` tai checkout-endpoint: UI jo valmis gift-redeemille; Polar lisää `{ checkoutUrl }` -polun
 
 ### Creditiin suhde
 
-Nykyinen **kuukausittainen free grant** (`CREDIT_FREE_GRANT_USD`) + Polar Pro rinnakkain:
-
-- free = grant
-- paid = isompi grant, soft-cap, tai credit top-up
+- free = `CREDIT_FREE_GRANT_USD` (oletus $0.99)
+- premium = `CREDIT_PREMIUM_GRANT_USD` (oletus $5.99)
+- markup = `CREDIT_MARKUP` (oletus 2×)
+- Gift-koodit (`gift_codes`) jäävät Polarinkin rinnalle testaajille / lähipiirille
 
 Polar-saldoa ei sekoiteta OpenRouter-debitiin suoraan — oma ledger; Polar vain täyttää / entitlee.
 
 ### Toteutus
 
 1. Polar sandbox: yksi subscription + webhook
-2. DB: `plan` / `polar_customer_id` (users tai erillinen taulu)
-3. Me: tilaus-CTA + portal
-4. Credit-grant planin mukaan
+2. Täytä `polar_customer_id` / `polar_subscription_id` (sarakkeet jo migraatiossa)
+3. Me: maksettu checkout-CTA + portal (gift-redeem säilyy)
+4. Grandfather: `plan=premium` + `plan_source=gift` ilman Polar-tilausta
 
 Pidä Polar **erillisenä PR:nä** syncin jälkeen.

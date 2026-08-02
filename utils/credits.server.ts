@@ -4,11 +4,13 @@ import {
   dbGetCreditBalance,
   type CreditReason,
 } from "/server/database/queries/credits";
+import { dbGetUserPlan } from "/server/database/queries/entitlements";
 import { AiRequestError } from "/utils/ai-core.server";
 
 const USD_MICROS = 1_000_000;
 
 export type CreditFloorKind = "runtime" | "edit";
+export type UserPlan = "free" | "premium";
 
 function envNumber(name: string, fallback: number): number {
   const raw = process.env[name]?.trim();
@@ -18,11 +20,20 @@ function envNumber(name: string, fallback: number): number {
 }
 
 export function getCreditMarkup(): number {
-  return envNumber("CREDIT_MARKUP", 5);
+  return envNumber("CREDIT_MARKUP", 2);
 }
 
+/** @deprecated Prefer getPlanGrantUsd — kept for callers that mean the Free tier. */
 export function getFreeGrantUsd(): number {
-  return envNumber("CREDIT_FREE_GRANT_USD", 2);
+  return envNumber("CREDIT_FREE_GRANT_USD", 0.99);
+}
+
+export function getPremiumGrantUsd(): number {
+  return envNumber("CREDIT_PREMIUM_GRANT_USD", 5.99);
+}
+
+export function getPlanGrantUsd(plan: UserPlan = "free"): number {
+  return plan === "premium" ? getPremiumGrantUsd() : getFreeGrantUsd();
 }
 
 export function getFloorUsd(kind: CreditFloorKind): number {
@@ -46,6 +57,15 @@ export function currentPeriodYm(now = new Date()): string {
 
 export function freeGrantUsdMicros(): number {
   return usdToUsdMicros(getFreeGrantUsd());
+}
+
+export function planGrantUsdMicros(plan: UserPlan): number {
+  return usdToUsdMicros(getPlanGrantUsd(plan));
+}
+
+function userPlan(userId: string): UserPlan {
+  const row = dbGetUserPlan(userId);
+  return row?.plan === "premium" ? "premium" : "free";
 }
 
 /** OpenRouter USD → billed micros (markup × floor). */
@@ -75,18 +95,27 @@ export function sumOpenRouterCosts(costs: Array<number | null | undefined>): num
   return any ? sum : null;
 }
 
-export function ensureMonthlyFreeGrant(userId: string): number {
+/** Monthly grant for the user's current plan (Free or Premium). */
+export function ensureMonthlyPlanGrant(userId: string): number {
+  const plan = userPlan(userId);
+  const reason: CreditReason = plan === "premium" ? "grant_premium" : "grant_free";
   const { balanceUsdMicros } = dbEnsureMonthlyFreeGrant(
     userId,
     currentPeriodYm(),
-    freeGrantUsdMicros(),
+    planGrantUsdMicros(plan),
+    reason,
   );
   return balanceUsdMicros;
 }
 
+/** @deprecated Use ensureMonthlyPlanGrant */
+export function ensureMonthlyFreeGrant(userId: string): number {
+  return ensureMonthlyPlanGrant(userId);
+}
+
 /** Throw before calling OpenRouter when the wallet is empty. */
 export function assertHasCredits(userId: string): number {
-  const balance = ensureMonthlyFreeGrant(userId);
+  const balance = ensureMonthlyPlanGrant(userId);
   if (balance <= 0) {
     throw new AiRequestError("INSUFFICIENT_CREDITS", "INSUFFICIENT_CREDITS");
   }
@@ -133,12 +162,18 @@ export function getCreditsSnapshot(userId: string): {
   balanceUsd: number;
   periodYm: string;
   freeGrantUsd: number;
+  grantUsd: number;
+  plan: UserPlan;
 } {
-  const balanceUsdMicros = ensureMonthlyFreeGrant(userId);
+  const plan = userPlan(userId);
+  const balanceUsdMicros = ensureMonthlyPlanGrant(userId);
+  const grantUsd = getPlanGrantUsd(plan);
   return {
     balanceUsdMicros,
     balanceUsd: usdMicrosToUsd(balanceUsdMicros),
     periodYm: currentPeriodYm(),
-    freeGrantUsd: getFreeGrantUsd(),
+    freeGrantUsd: grantUsd,
+    grantUsd,
+    plan,
   };
 }

@@ -37,6 +37,8 @@ export default {
           balanceUsdMicros: snap.balanceUsdMicros,
           periodYm: snap.periodYm,
           freeGrantUsd: snap.freeGrantUsd,
+          grantUsd: snap.grantUsd,
+          plan: snap.plan,
           isOwner: fromOrigin.row.owner_id === userId,
         },
       }),

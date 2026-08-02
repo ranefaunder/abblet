@@ -9,6 +9,14 @@ import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import type { StoreAppCard } from "/types/app-types";
 import { storeApps, loadStore } from "/app/stores/storeListingStore";
+import { isLoggedIn, openLoginDialog, user, refreshSessionUser } from "/app/stores/userStore";
+import { openPremiumDialog } from "/app/components/PremiumDialog";
+import {
+  FREE_GRANT_USD,
+  PREMIUM_GRANT_USD,
+  PREMIUM_PRICE_USD,
+  formatUsdAmount,
+} from "/utils/billing-plans";
 
 export const AboutPath = "/:lang/about" as const;
 
@@ -113,10 +121,33 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
   const heroApps = pickApps(apps, HERO_COLS * HERO_ROWS, 0);
   const riverApps = pickApps(apps, Math.max(apps.length, 12), 2);
   const closingApps = pickApps(apps, 7, 1);
+  const loggedIn = isLoggedIn();
+  const plan = user.value?.plan === "premium" ? "premium" : "free";
+  const onFree = loggedIn && plan === "free";
+  const onPremium = loggedIn && plan === "premium";
+  const creditMultiplier = Math.max(2, Math.round(PREMIUM_GRANT_USD / FREE_GRANT_USD));
 
   useEffect(() => {
     void loadStore({ q: "", category: null, excludeCategory: null });
+    if (isLoggedIn()) void refreshSessionUser();
+    const onPremium = () => {
+      void refreshSessionUser();
+    };
+    window.addEventListener("premium-redeemed", onPremium);
+    return () => window.removeEventListener("premium-redeemed", onPremium);
   }, []);
+
+  function openRegister() {
+    window.dispatchEvent(new CustomEvent("open-register-dialog"));
+  }
+
+  function onGetPremium() {
+    if (!isLoggedIn()) {
+      openLoginDialog();
+      return;
+    }
+    openPremiumDialog();
+  }
 
   const view = html`
     <div data-scope="About">
@@ -258,6 +289,119 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
               </div>
             </li>
           </ol>
+        </div>
+      </section>
+
+      <section class="pricing" id="plans">
+        <div class="pricing-inner">
+          <header class="pricing-head">
+            <p class="pricing-eyebrow">${t("Pricing")}</p>
+            <h2 class="pricing-title">${t("Start free. Upgrade when ideas keep coming.")}</h2>
+            <p class="pricing-lede">
+              ${t("Creating and remixing apps uses AI credit. Premium gives you $times× more of it every month.", {
+                times: creditMultiplier,
+              })}
+            </p>
+          </header>
+
+          <div class="tiers">
+            <article class=${`tier tier-free${onFree ? " is-current" : ""}`}>
+              <div class="tier-head">
+                <div class="tier-title-row">
+                  <h3 class="tier-name">${t("Free")}</h3>
+                  ${onFree ? html`<span class="tier-tag">${t("Your current plan")}</span>` : ""}
+                </div>
+                <p class="tier-price">
+                  <span class="tier-amount">$0</span>
+                  <span class="tier-per">/mo</span>
+                </p>
+                <p class="tier-lede">${t("Everything you need to try Remiix.")}</p>
+              </div>
+
+              <div class="tier-metric">
+                <span class="tier-metric-value">${formatUsdAmount(FREE_GRANT_USD)}</span>
+                <span class="tier-metric-label">${t("AI credit / month")}</span>
+              </div>
+
+              <ul class="tier-perks" ui-off>
+                <li>
+                  <i ui-icon="check" aria-hidden="true"></i>
+                  <span>${t("Remix any app in the Store")}</span>
+                </li>
+                <li>
+                  <i ui-icon="check" aria-hidden="true"></i>
+                  <span>${t("Create your own apps with AI")}</span>
+                </li>
+                <li>
+                  <i ui-icon="check" aria-hidden="true"></i>
+                  <span>${t("Install apps to your home screen")}</span>
+                </li>
+              </ul>
+
+              <div class="tier-cta">
+                ${!loggedIn
+                  ? html`
+                    <button type="button" ui-button="block" onClick=${openRegister}>
+                      ${t("Register free")}
+                    </button>
+                    <p class="tier-fine">${t("No card needed")}</p>`
+                  : onFree
+                    ? html`<p class="tier-state">${t("You're on Free")}</p>`
+                    : html`<p class="tier-state is-muted">${t("Included with every account")}</p>`}
+              </div>
+            </article>
+
+            <article class=${`tier tier-premium${onPremium ? " is-current" : ""}`}>
+              <div class="tier-head">
+                <div class="tier-title-row">
+                  <h3 class="tier-name">${t("Premium")}</h3>
+                  <span class="tier-tag is-accent">
+                    ${onPremium ? t("Your current plan") : t("Recommended")}
+                  </span>
+                </div>
+                <p class="tier-price">
+                  <span class="tier-amount">${formatUsdAmount(PREMIUM_PRICE_USD)}</span>
+                  <span class="tier-per">/mo</span>
+                </p>
+                <p class="tier-lede">${t("For people who build every week.")}</p>
+              </div>
+
+              <div class="tier-metric">
+                <span class="tier-metric-value">${formatUsdAmount(PREMIUM_GRANT_USD)}</span>
+                <span class="tier-metric-label">${t("AI credit / month")}</span>
+                <span class="tier-metric-chip">
+                  ${t("$times× more", { times: creditMultiplier })}
+                </span>
+              </div>
+
+              <ul class="tier-perks" ui-off>
+                <li>
+                  <i ui-icon="check" aria-hidden="true"></i>
+                  <span>${t("Everything in Free")}</span>
+                </li>
+                <li>
+                  <i ui-icon="check" aria-hidden="true"></i>
+                  <span>${t("Keep creating when Free runs out")}</span>
+                </li>
+                <li>
+                  <i ui-icon="check" aria-hidden="true"></i>
+                  <span>${t("Bigger builds and more iterations")}</span>
+                </li>
+              </ul>
+
+              <div class="tier-cta">
+                ${onPremium
+                  ? html`<p class="tier-state">${t("You're on Premium")}</p>`
+                  : html`
+                    <button type="button" ui-button="primary block" onClick=${onGetPremium}>
+                      ${t("Get Premium")}
+                    </button>
+                    <p class="tier-fine">${t("Free during early access")}</p>`}
+              </div>
+            </article>
+          </div>
+
+          <p class="pricing-foot">${t("Prices in USD. AI credit resets every month.")}</p>
         </div>
       </section>
 
@@ -820,6 +964,370 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
         margin-top: 0.1rem;
       }
 
+      .pricing {
+        position: relative;
+        overflow: hidden;
+        padding-block: clamp(4.5rem, 10vw, 7.5rem);
+        border-top: 1px solid var(--neutral-200);
+        background:
+          radial-gradient(ellipse 70% 55% at 78% 8%, color-mix(in oklab, var(--primary-100) 70%, transparent), transparent 60%),
+          radial-gradient(ellipse 60% 50% at 8% 100%, var(--neutral-100), transparent 55%),
+          var(--neutral-50);
+      }
+
+      .pricing-inner {
+        position: relative;
+        z-index: 1;
+        width: min(100% - 2rem, 46rem);
+        margin-inline: auto;
+        display: flex;
+        flex-direction: column;
+        gap: clamp(2.25rem, 5vw, 3.25rem);
+      }
+
+      .pricing-head {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        text-align: center;
+      }
+
+      .pricing-eyebrow {
+        margin: 0;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--primary-600);
+      }
+
+      .pricing-title {
+        margin: 0;
+        max-width: 20ch;
+        font-size: clamp(2.1rem, 5.6vw, 3.15rem);
+        font-weight: 750;
+        letter-spacing: -0.045em;
+        line-height: 1.03;
+        color: var(--neutral-950);
+        text-wrap: balance;
+      }
+
+      .pricing-lede {
+        margin: 0;
+        max-width: 30rem;
+        font-size: clamp(1.0625rem, 2vw, 1.2rem);
+        line-height: 1.5;
+        color: var(--neutral-600);
+        text-wrap: pretty;
+      }
+
+      .tiers {
+        display: grid;
+        gap: 1rem;
+        align-items: stretch;
+      }
+
+      .tier {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 1.35rem;
+        padding: 1.75rem 1.6rem 1.6rem;
+        border-radius: 1.5rem;
+        border: 1px solid var(--neutral-200);
+        background: var(--white);
+        transition: transform 220ms ease, box-shadow 220ms ease;
+      }
+
+      .tier:hover {
+        transform: translateY(-3px);
+      }
+
+      .tier-free {
+        box-shadow: 0 1px 2px rgba(15, 20, 25, 0.04);
+      }
+
+      .tier-premium {
+        border-color: transparent;
+        color: var(--white);
+        background:
+          radial-gradient(ellipse 90% 60% at 85% 0%, color-mix(in oklab, var(--primary-600) 55%, transparent), transparent 62%),
+          linear-gradient(168deg, var(--neutral-900), var(--neutral-950) 55%);
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.14) inset,
+          0 24px 60px -18px rgba(15, 20, 25, 0.45),
+          0 4px 14px -6px rgba(15, 20, 25, 0.28);
+      }
+
+      .tier-premium:hover {
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.18) inset,
+          0 32px 70px -18px rgba(15, 20, 25, 0.5),
+          0 6px 18px -6px rgba(15, 20, 25, 0.3);
+      }
+
+      .tier-head {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .tier-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        min-height: 1.6rem;
+      }
+
+      .tier-name {
+        margin: 0;
+        font-size: 1.0625rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: inherit;
+      }
+
+      .tier-free .tier-name {
+        color: var(--neutral-950);
+      }
+
+      .tier-tag {
+        flex: none;
+        padding: 0.3rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--neutral-600);
+        background: var(--neutral-100);
+      }
+
+      .tier-tag.is-accent {
+        color: var(--white);
+        background: color-mix(in oklab, var(--primary-500) 88%, var(--white));
+        box-shadow: 0 6px 18px -8px color-mix(in oklab, var(--primary-500) 90%, transparent);
+      }
+
+      .tier-price {
+        margin: 0.1rem 0 0;
+        display: flex;
+        align-items: baseline;
+        gap: 0.2rem;
+        line-height: 0.9;
+      }
+
+      .tier-amount {
+        font-size: clamp(2.85rem, 7.5vw, 3.5rem);
+        font-weight: 800;
+        letter-spacing: -0.055em;
+        font-variant-numeric: tabular-nums;
+        color: inherit;
+      }
+
+      .tier-free .tier-amount {
+        color: var(--neutral-950);
+      }
+
+      .tier-per {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--neutral-500);
+      }
+
+      .tier-premium .tier-per {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .tier-lede {
+        margin: 0.2rem 0 0;
+        font-size: 0.9375rem;
+        line-height: 1.45;
+        color: var(--neutral-600);
+        text-wrap: pretty;
+      }
+
+      .tier-premium .tier-lede {
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .tier-metric {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.3rem 0.55rem;
+        padding: 1rem 1.1rem;
+        border-radius: 1.1rem;
+        border: 1px solid var(--neutral-200);
+        background: var(--neutral-50);
+      }
+
+      .tier-premium .tier-metric {
+        border-color: rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.07);
+      }
+
+      .tier-metric-value {
+        font-size: 1.5rem;
+        font-weight: 750;
+        letter-spacing: -0.035em;
+        font-variant-numeric: tabular-nums;
+        color: var(--neutral-950);
+      }
+
+      .tier-premium .tier-metric-value {
+        color: var(--white);
+      }
+
+      .tier-metric-label {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--neutral-500);
+      }
+
+      .tier-premium .tier-metric-label {
+        color: rgba(255, 255, 255, 0.62);
+      }
+
+      .tier-metric-chip {
+        margin-left: auto;
+        padding: 0.25rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.6875rem;
+        font-weight: 750;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        color: var(--white);
+        background: color-mix(in oklab, var(--primary-500) 85%, var(--white));
+      }
+
+      .tier-perks {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        flex: 1;
+      }
+
+      .tier-perks li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        font-size: 0.9375rem;
+        line-height: 1.4;
+        color: var(--neutral-700);
+      }
+
+      .tier-premium .tier-perks li {
+        color: rgba(255, 255, 255, 0.86);
+      }
+
+      .tier-perks li [ui-icon] {
+        flex: none;
+        width: 1.05rem;
+        height: 1.05rem;
+        margin-top: 0.15rem;
+        background: var(--primary-600);
+      }
+
+      .tier-premium .tier-perks li [ui-icon] {
+        background: var(--primary-300);
+      }
+
+      .tier-cta {
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+
+      .tier-cta [ui-button] {
+        width: 100%;
+      }
+
+      .tier-premium .tier-cta [ui-button] {
+        border-color: var(--white);
+        background: linear-gradient(to bottom, var(--white), var(--neutral-100));
+        color: var(--neutral-950);
+        font-weight: 700;
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.8) inset,
+          0 10px 24px -10px rgba(0, 0, 0, 0.55);
+      }
+
+      .tier-premium .tier-cta [ui-button]:hover {
+        background: linear-gradient(to bottom, var(--white), var(--white));
+      }
+
+      .tier-fine {
+        margin: 0;
+        text-align: center;
+        font-size: 0.8125rem;
+        color: var(--neutral-500);
+      }
+
+      .tier-premium .tier-fine {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .tier-state {
+        margin: 0;
+        padding: 0.7rem 0.5rem;
+        border-radius: 0.85rem;
+        text-align: center;
+        font-size: 0.9rem;
+        font-weight: 650;
+        color: var(--neutral-800);
+        background: var(--neutral-50);
+        border: 1px solid var(--neutral-200);
+      }
+
+      .tier-premium .tier-state {
+        color: var(--white);
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.16);
+      }
+
+      .tier-state.is-muted {
+        font-weight: 500;
+        color: var(--neutral-500);
+        background: transparent;
+        border-color: transparent;
+      }
+
+      .pricing-foot {
+        margin: 0;
+        text-align: center;
+        font-size: 0.8125rem;
+        color: var(--neutral-500);
+      }
+
+      @media (min-width: 640px) {
+        .tiers {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr);
+          gap: 1.25rem;
+          align-items: center;
+        }
+
+        .tier-free {
+          margin-block: 0.9rem;
+        }
+
+        .tier-premium {
+          padding: 2.15rem 1.85rem 1.85rem;
+        }
+      }
+
+      @media (max-width: 639px) {
+        .tier-premium {
+          order: -1;
+        }
+      }
+
       .closing {
         position: relative;
         padding-block: clamp(3.5rem, 9vw, 6.5rem);
@@ -950,6 +1458,12 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
         .create-demo-bars span,
         .icon-river-track {
           animation: none;
+        }
+
+        .tier,
+        .tier:hover {
+          transition: none;
+          transform: none;
         }
 
         .icon-link,

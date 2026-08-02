@@ -123,7 +123,7 @@ export function formatAiRequestStats(opts: {
  */
 export function estimateEditCreditUsd(costUsd: number | null | undefined): number | null {
   if (typeof costUsd !== "number" || !Number.isFinite(costUsd) || costUsd < 0) return null;
-  const markup = 5;
+  const markup = 2;
   const floorUsd = 0.01;
   const openrouterUsd = costUsd > 0 ? costUsd : floorUsd;
   return openrouterUsd * markup;

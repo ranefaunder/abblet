@@ -42,7 +42,7 @@ const COPY = {
     about: "Remiix.app",
     creditLabel: "AI credit",
     creditLoading: "…",
-    creditEmpty: "No credit left",
+    creditEmpty: "No credit left — Get Premium on Me",
     creditSignIn: "Sign in",
     ownedByYou: "Your app",
   },
@@ -65,7 +65,7 @@ const COPY = {
     about: "Remiix.app",
     creditLabel: "AI-saldo",
     creditLoading: "…",
-    creditEmpty: "Saldo loppu",
+    creditEmpty: "Saldo loppu — Hanki Premium Me-sivulla",
     creditSignIn: "Kirjaudu",
     ownedByYou: "Oma appisi",
   },
@@ -496,6 +496,7 @@ function mountRemiixPatch(session) {
   const storeHref = platformOrigin + catalogAppPath;
   const editHref = platformOrigin + "/" + lang + "/create/" + encodeURIComponent(appSlug);
   const aboutHref = platformOrigin + "/" + lang + "/";
+  const meHref = platformOrigin + "/" + lang + "/me";
   const shareUrl = published ? storeHref : location.origin + "/";
   const canOfferInstall = !isThisAppInstalledPwa();
   let deferredPrompt = null;
@@ -1013,6 +1014,7 @@ function mountRemiixPatch(session) {
 
   function showCreditEmpty() {
     showCreditFloat(t.creditEmpty || "No credit left", "empty");
+    if (footerLink) footerLink.href = meHref;
   }
 
   creditUi.setBalance = setCreditBalance;

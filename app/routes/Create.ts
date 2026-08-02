@@ -12,6 +12,7 @@ import { deleteApp } from "/app/stores/appStore";
 import { requireLogin } from "/app/stores/userStore";
 import CodeViewDialog from "/app/components/CodeViewDialog";
 import PublishDialog, { openPublishDialog } from "/app/components/PublishDialog";
+import { openPremiumDialog } from "/app/components/PremiumDialog";
 import {
   editApp,
   editMessages,
@@ -21,6 +22,7 @@ import {
   editStatusSteps,
   editStatusIndex,
   editError,
+  editNeedsPremium,
   loadEdit,
   startNewEdit,
   createAppFromPrompt,
@@ -36,6 +38,8 @@ import {
   editRestoring,
   loadEditVersions,
   restoreAppVersion,
+  refreshEditCredits,
+  clearEditFailure,
 } from "/app/stores/editStore";
 import { formatAiRequestStats, estimateEditCreditUsd, sumUsageCostUsd } from "/utils/ai-models";
 
@@ -79,14 +83,14 @@ export default function Create(_props: CreateRouteProps) {
   useEffect(() => {
     if (isNew) {
       startNewEdit();
-      return;
+    } else {
+      void loadEdit(slug);
     }
-    void loadEdit(slug);
 
     // Browser back from app runtime often restores this page from bfcache
     // without remounting — refresh so Update published matches the DB.
     const refreshIfIdle = () => {
-      if (editSending.value) return;
+      if (editSending.value || isNew) return;
       void loadEdit(slug);
     };
     const onPageShow = (e: PageTransitionEvent) => {
@@ -95,11 +99,17 @@ export default function Create(_props: CreateRouteProps) {
     const onVisible = () => {
       if (document.visibilityState === "visible") refreshIfIdle();
     };
+    const onPremium = () => {
+      clearEditFailure();
+      void refreshEditCredits();
+    };
     window.addEventListener("pageshow", onPageShow);
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("premium-redeemed", onPremium);
     return () => {
       window.removeEventListener("pageshow", onPageShow);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("premium-redeemed", onPremium);
     };
   }, [slug, isNew]);
 
@@ -379,7 +389,20 @@ function CreateWorkspace({
   return html`
     <div class="workspace" ui-column="gap-md">
       ${editError.value
-        ? html`<div class="error-banner" role="alert">${editError.value}</div>`
+        ? html`<div class="error-banner" role="alert" ui-column="gap-sm">
+            <p class="error-banner-text">${editError.value}</p>
+            ${editNeedsPremium.value
+              ? html`
+                <div ui-row="gap-sm wrap y-center">
+                  <button type="button" ui-button="primary sm" onClick=${() => openPremiumDialog()}>
+                    ${t("Get Premium")}
+                  </button>
+                  <span class="error-banner-hint">
+                    ${t("Get more AI credit with Premium.")}
+                  </span>
+                </div>`
+              : ""}
+          </div>`
         : ""}
       <${ChatPanel} slug=${slug} creating=${creating} lang=${lang} />
     </div>
@@ -1153,6 +1176,15 @@ function style() {
         color: var(--danger, #c00);
         font-size: 0.8125rem;
         line-height: 1.4;
+      }
+
+      .error-banner-text {
+        margin: 0;
+      }
+
+      .error-banner-hint {
+        font-size: 0.75rem;
+        color: var(--neutral-600);
       }
 
       .chat-inner {

@@ -19,7 +19,7 @@ export async function runMigrations(db: Database) {
   const dir = `${import.meta.dir}/migrations`
   const files = await readdir(dir).catch(() => [])
   const migrationFiles = files
-    .filter(f => f.endsWith(".ts") && f !== "index.ts" && !f.startsWith("_"))
+    .filter(f => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "index.ts" && !f.startsWith("_"))
     .sort()
   const pending = migrationFiles.filter(
     f => !applied.has(f) && !applied.has(f.replace(".ts", ""))
