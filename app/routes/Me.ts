@@ -22,8 +22,9 @@ import { openPremiumDialog } from "/app/components/PremiumDialog";
 export const MePath = "/:lang/me" as const;
 
 type CreditDailySpend = { day: string; spentUsd: number };
+type CreditAppSpendKind = "create" | "edit" | "intent" | "icon" | "runtime";
 type CreditAppSpend = {
-  kind: "build" | "runtime";
+  kind: CreditAppSpendKind;
   slug: string | null;
   title: string | null;
   iconId: string | null;
@@ -34,7 +35,10 @@ type CreditAppBreakdown = {
   slug: string;
   title: string;
   iconId: string | null;
-  buildUsd: number;
+  createUsd: number;
+  editUsd: number;
+  intentUsd: number;
+  iconUsd: number;
   runtimeUsd: number;
   totalUsd: number;
 };
@@ -164,15 +168,22 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
         slug: slug || key,
         title: row.title?.trim() || slug || t("Unknown app"),
         iconId: row.iconId,
-        buildUsd: 0,
+        createUsd: 0,
+        editUsd: 0,
+        intentUsd: 0,
+        iconUsd: 0,
         runtimeUsd: 0,
         totalUsd: 0,
       };
       if (row.title?.trim()) cur.title = row.title.trim();
       if (row.iconId) cur.iconId = row.iconId;
-      if (row.kind === "build") cur.buildUsd += row.spentUsd;
+      if (row.kind === "create") cur.createUsd += row.spentUsd;
+      else if (row.kind === "edit") cur.editUsd += row.spentUsd;
+      else if (row.kind === "intent") cur.intentUsd += row.spentUsd;
+      else if (row.kind === "icon") cur.iconUsd += row.spentUsd;
       else cur.runtimeUsd += row.spentUsd;
-      cur.totalUsd = cur.buildUsd + cur.runtimeUsd;
+      cur.totalUsd =
+        cur.createUsd + cur.editUsd + cur.intentUsd + cur.iconUsd + cur.runtimeUsd;
       map.set(key, cur);
     }
     return [...map.values()].sort((a, b) => b.totalUsd - a.totalUsd);
@@ -454,11 +465,32 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                                 <div class="credits-app-body">
                                   <strong class="credits-app-name">${app.title}</strong>
                                   <dl class="credits-app-meta">
-                                    ${app.buildUsd > 0
+                                    ${app.createUsd > 0
                                       ? html`
                                         <div>
-                                          <dt>${t("Building")}</dt>
-                                          <dd>${formatSpendUsd(app.buildUsd)}</dd>
+                                          <dt>${t("Create credit")}</dt>
+                                          <dd>${formatSpendUsd(app.createUsd)}</dd>
+                                        </div>`
+                                      : ""}
+                                    ${app.editUsd > 0
+                                      ? html`
+                                        <div>
+                                          <dt>${t("Edit credit")}</dt>
+                                          <dd>${formatSpendUsd(app.editUsd)}</dd>
+                                        </div>`
+                                      : ""}
+                                    ${app.intentUsd > 0
+                                      ? html`
+                                        <div>
+                                          <dt>${t("Routing")}</dt>
+                                          <dd>${formatSpendUsd(app.intentUsd)}</dd>
+                                        </div>`
+                                      : ""}
+                                    ${app.iconUsd > 0
+                                      ? html`
+                                        <div>
+                                          <dt>${t("Icon credit")}</dt>
+                                          <dd>${formatSpendUsd(app.iconUsd)}</dd>
                                         </div>`
                                       : ""}
                                     ${app.runtimeUsd > 0

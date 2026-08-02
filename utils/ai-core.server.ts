@@ -15,7 +15,7 @@ export const OPENROUTER_CONFIG = {
   },
 };
 
-const DEFAULT_AI_MODEL = "deepseek/deepseek-v4-flash";
+const DEFAULT_AI_MODEL = "google/gemini-3-flash-preview";
 
 function envModel(name: string, fallback: string): string {
   const value = process.env[name]?.trim();

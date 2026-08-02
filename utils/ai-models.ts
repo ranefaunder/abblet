@@ -62,7 +62,7 @@ export const EDIT_AI_MODELS = [
 
 export type EditAiModelKey = (typeof EDIT_AI_MODELS)[number]["key"];
 
-export const DEFAULT_EDIT_AI_MODEL: EditAiModelKey = "deepseek-flash";
+export const DEFAULT_EDIT_AI_MODEL: EditAiModelKey = "gemini-flash";
 
 const EDIT_AI_MODEL_BY_KEY = Object.fromEntries(
   EDIT_AI_MODELS.map((m) => [m.key, m]),

@@ -11,6 +11,7 @@ export type CreditReason =
   | "grant_premium"
   | "ai_generate"
   | "ai_edit"
+  | "ai_intent"
   | "ai_icon"
   | "ai_runtime";
 
@@ -411,7 +412,7 @@ export function dbListDailyCreditSpend(
     }));
 }
 
-export type CreditAppSpendKind = "build" | "runtime";
+export type CreditAppSpendKind = "create" | "edit" | "intent" | "icon" | "runtime";
 
 export type CreditAppSpendRow = {
   kind: CreditAppSpendKind;
@@ -421,9 +422,17 @@ export type CreditAppSpendRow = {
   spentUsdMicros: number;
 };
 
+const CREDIT_APP_SPEND_KINDS = new Set<CreditAppSpendKind>([
+  "create",
+  "edit",
+  "intent",
+  "icon",
+  "runtime",
+]);
+
 /**
- * Spend by app, split into building (generate/edit/icon) vs using (runtime AI).
- * Newest / highest spend first within each kind (caller can group).
+ * Spend by app, split by purpose (create / edit / intent / icon / runtime).
+ * Highest spend first.
  */
 export function dbListCreditSpendByApp(userId: string): CreditAppSpendRow[] {
   return db
@@ -438,9 +447,12 @@ export function dbListCreditSpendByApp(userId: string): CreditAppSpendRow[] {
       [string]
     >(
       `SELECT
-         CASE
-           WHEN l.reason IN ('ai_generate', 'ai_edit', 'ai_icon') THEN 'build'
-           WHEN l.reason = 'ai_runtime' THEN 'runtime'
+         CASE l.reason
+           WHEN 'ai_generate' THEN 'create'
+           WHEN 'ai_edit' THEN 'edit'
+           WHEN 'ai_intent' THEN 'intent'
+           WHEN 'ai_icon' THEN 'icon'
+           WHEN 'ai_runtime' THEN 'runtime'
            ELSE 'other'
          END as kind,
          NULLIF(
@@ -461,15 +473,17 @@ export function dbListCreditSpendByApp(userId: string): CreditAppSpendRow[] {
          )
        WHERE l.user_id = ?
          AND l.delta_usd_micros < 0
-         AND l.reason IN ('ai_generate', 'ai_edit', 'ai_icon', 'ai_runtime')
+         AND l.reason IN ('ai_generate', 'ai_edit', 'ai_intent', 'ai_icon', 'ai_runtime')
        GROUP BY kind, slug
        HAVING spent_usd_micros > 0
        ORDER BY spent_usd_micros DESC`,
     )
     .all(userId)
-    .filter((r) => r.kind === "build" || r.kind === "runtime")
+    .filter((r): r is typeof r & { kind: CreditAppSpendKind } =>
+      CREDIT_APP_SPEND_KINDS.has(r.kind as CreditAppSpendKind),
+    )
     .map((r) => ({
-      kind: r.kind as CreditAppSpendKind,
+      kind: r.kind,
       slug: r.slug,
       title: r.title,
       iconId: r.icon_id,

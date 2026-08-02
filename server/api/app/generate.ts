@@ -7,7 +7,7 @@ import { generateAppConfig } from "/utils/ai-apps.server";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
 import { resolveEditAiModel } from "/utils/ai-core.server";
-import { assertHasCredits, debitOpenRouterUsage, sumOpenRouterCosts } from "/utils/credits.server";
+import { assertHasCredits, debitOpenRouterUsage } from "/utils/credits.server";
 import { DEFAULT_EDIT_AI_MODEL, resolveStoredModelRef } from "/utils/ai-models";
 import type { AppDetail } from "/types/app-config-types";
 import type { Language } from "/types/i18n-types";
@@ -109,11 +109,20 @@ export default {
 
       debitOpenRouterUsage({
         userId: user.id,
-        costUsd: sumOpenRouterCosts([generated.costUsd, iconResult?.costUsd]),
+        costUsd: generated.costUsd,
         floorKind: "edit",
         reason: "ai_generate",
         meta: { appId: id, slug },
       });
+      if (iconResult) {
+        debitOpenRouterUsage({
+          userId: user.id,
+          costUsd: iconResult.costUsd,
+          floorKind: "edit",
+          reason: "ai_icon",
+          meta: { appId: id, slug },
+        });
+      }
 
       let assistantReply = t("I built \"$title\" for you. Open the app or tell me what to change.", {
         title: generated.config.title,

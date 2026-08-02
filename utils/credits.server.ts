@@ -162,6 +162,53 @@ export function debitOpenRouterUsage(opts: {
   };
 }
 
+/** Map usage-step tool → ledger reason for spend analytics. */
+export function creditReasonForUsageTool(tool: string | null | undefined): CreditReason {
+  switch (tool) {
+    case "intent":
+      return "ai_intent";
+    case "generate":
+      return "ai_generate";
+    case "regenerateIcon":
+      return "ai_icon";
+    case "updateCode":
+    case "patchCode":
+    case "updateMeta":
+    case "rename":
+    default:
+      return "ai_edit";
+  }
+}
+
+/**
+ * Debit once per purpose (intent / generate / edit / icon) from usage steps.
+ * Skips empty buckets so floors don't invent charges without work.
+ */
+export function debitOpenRouterUsageSteps(opts: {
+  userId: string;
+  steps: Array<{ tool?: string | null; costUsd?: number | null }>;
+  floorKind: CreditFloorKind;
+  meta?: Record<string, unknown>;
+}): void {
+  const buckets = new Map<CreditReason, Array<number | null | undefined>>();
+  for (const step of opts.steps) {
+    const reason = creditReasonForUsageTool(step.tool);
+    const list = buckets.get(reason) ?? [];
+    list.push(step.costUsd);
+    buckets.set(reason, list);
+  }
+  for (const [reason, costs] of buckets) {
+    if (costs.length === 0) continue;
+    debitOpenRouterUsage({
+      userId: opts.userId,
+      costUsd: sumOpenRouterCosts(costs),
+      floorKind: opts.floorKind,
+      reason,
+      meta: opts.meta,
+    });
+  }
+}
+
 export function getCreditsSnapshot(userId: string): {
   balanceUsdMicros: number;
   balanceUsd: number;

@@ -14,7 +14,7 @@ import {
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
 import { getIntentionAiModel, resolveEditAiModel } from "/utils/ai-core.server";
-import { assertHasCredits, debitOpenRouterUsage, sumOpenRouterCosts } from "/utils/credits.server";
+import { assertHasCredits, debitOpenRouterUsageSteps } from "/utils/credits.server";
 import {
   DEFAULT_EDIT_AI_MODEL,
   resolveStoredModelRef,
@@ -500,11 +500,10 @@ async function runEditTurn(opts: {
     usage,
   });
 
-  debitOpenRouterUsage({
+  debitOpenRouterUsageSteps({
     userId,
-    costUsd: sumOpenRouterCosts(usage.map((u) => u.costUsd)),
+    steps: usage,
     floorKind: "edit",
-    reason: "ai_edit",
     meta: { appId: row.id, slug },
   });
 

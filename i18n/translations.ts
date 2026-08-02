@@ -543,6 +543,10 @@ export const translations = {
   "By app": { fi: "Appeittain" },
   "Building": { fi: "Rakentaminen" },
   "Using": { fi: "Käyttäminen" },
+  "Create credit": { fi: "Luonti" },
+  "Edit credit": { fi: "Muokkaus" },
+  "Routing": { fi: "Reititys" },
+  "Icon credit": { fi: "Kuvake" },
   "Unknown app": { fi: "Tuntematon app" },
   "No AI usage yet.": { fi: "Ei vielä AI-kulutusta." },
   "Your AI credit for creating, editing, and running AI in apps.": {
