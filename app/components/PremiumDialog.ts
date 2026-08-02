@@ -12,8 +12,8 @@ import {
 
 export const PREMIUM_DIALOG_ID = "premium-dialog";
 
-/** Locked early-access code (must exist in gift_codes). */
-export const EARLY_ACCESS_GIFT_CODE = "GIFT";
+/** Locked early-access code (must exist in gift_codes as EARLYACCESS after normalize). */
+export const EARLY_ACCESS_GIFT_CODE = "EARLY ACCESS";
 
 export function openPremiumDialog() {
   window.dispatchEvent(new CustomEvent("open-premium-dialog"));
@@ -105,7 +105,7 @@ export default function PremiumDialog({
           <p class="prem-eyebrow">${t("Remiix Premium")}</p>
           <h2 class="prem-title">${t("Activate Premium")}</h2>
           <p class="prem-lede">
-            ${t("Early access — Premium is free for now. Paid billing is coming soon.")}
+            ${t("Early access — Premium is free for now. Paid billing is coming later, and you won’t be moved to a paid plan automatically.")}
           </p>
         </div>
         <button
@@ -117,27 +117,27 @@ export default function PremiumDialog({
         ></button>
       </header>
 
-      <div class="prem-pricing" ui-column="gap-md">
-        <div class="prem-price-row" ui-row="x-between y-center gap-md">
-          <span>${t("List price")}</span>
-          <span class="prem-list-price">${formatUsdAmount(premiumPrice)}/mo</span>
+      <form id="premium-activate-form" class="prem-body" ui-column="gap-md" onSubmit=${activate}>
+        <div class="prem-pricing" ui-column="gap-md">
+          <div class="prem-price-row" ui-row="x-between y-center gap-md">
+            <span>${t("List price")}</span>
+            <span class="prem-list-price">${formatUsdAmount(premiumPrice)}/mo</span>
+          </div>
+          <div class="prem-price-row prem-discount" ui-row="x-between y-center gap-md">
+            <span>${t("Early access discount")}</span>
+            <span>−100%</span>
+          </div>
+          <div class="prem-price-row prem-due" ui-row="x-between y-center gap-md">
+            <strong>${t("Due today")}</strong>
+            <strong>$0</strong>
+          </div>
+          <p class="prem-credit-note">
+            ${t("+$amount added each month. Unused credit stacks — it doesn’t reset.", {
+              amount: formatUsdAmount(premiumGrant),
+            })}
+          </p>
         </div>
-        <div class="prem-price-row prem-discount" ui-row="x-between y-center gap-md">
-          <span>${t("Early access discount")}</span>
-          <span>−100%</span>
-        </div>
-        <div class="prem-price-row prem-due" ui-row="x-between y-center gap-md">
-          <strong>${t("Due today")}</strong>
-          <strong>$0</strong>
-        </div>
-        <p class="prem-credit-note">
-          ${t("Includes $amount AI credit each month", {
-            amount: formatUsdAmount(premiumGrant),
-          })}
-        </p>
-      </div>
 
-      <form class="prem-form" ui-column="gap-md" onSubmit=${activate}>
         <div ui-field>
           <label for="premium-gift-code">${t("Code")}</label>
           <input
@@ -151,20 +151,22 @@ export default function PremiumDialog({
           />
           ${error ? html`<p role="error">${error}</p>` : html`<p></p>`}
         </div>
-        <div ui-row="gap-sm x-end wrap">
-          <button type="button" ui-button onClick=${close} disabled=${busy}>
-            ${t("Close")}
-          </button>
-          <button
-            type="submit"
-            ui-button="primary"
-            aria-busy=${busy ? "true" : undefined}
-            disabled=${busy}
-          >
-            ${busy ? t("Activating…") : t("Activate Premium")}
-          </button>
-        </div>
       </form>
+
+      <footer class="prem-footer" ui-row="gap-sm x-end wrap">
+        <button type="button" ui-button onClick=${close} disabled=${busy}>
+          ${t("Close")}
+        </button>
+        <button
+          type="submit"
+          form="premium-activate-form"
+          ui-button="primary"
+          aria-busy=${busy ? "true" : undefined}
+          disabled=${busy}
+        >
+          ${busy ? t("Activating…") : t("Activate Premium")}
+        </button>
+      </footer>
     </dialog>
   `;
 
@@ -195,8 +197,13 @@ export default function PremiumDialog({
         font-size: 0.95rem;
       }
 
+      /* Faunder: header 24/24/16, body inline 24, footer 16/24/24 — don't re-pad the body shell */
+      .prem-body {
+        margin: 0;
+        box-sizing: border-box;
+      }
+
       .prem-pricing {
-        margin-block: 1.15rem 1.25rem;
         padding: 1rem 1.1rem;
         border-radius: 0.85rem;
         background: var(--neutral-50);
@@ -231,11 +238,7 @@ export default function PremiumDialog({
         color: var(--neutral-600);
       }
 
-      .prem-form {
-        margin: 0;
-      }
-
-      .prem-form input:disabled {
+      .prem-body input:disabled {
         opacity: 1;
         color: var(--neutral-800);
         background: var(--neutral-100);

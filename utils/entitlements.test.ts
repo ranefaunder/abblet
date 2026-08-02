@@ -61,6 +61,7 @@ describe("normalizeGiftCode", () => {
   test("trims, uppercases, strips spaces", () => {
     expect(normalizeGiftCode("  remiix-friends ")).toBe("REMIIX-FRIENDS");
     expect(normalizeGiftCode("abc def")).toBe("ABCDEF");
+    expect(normalizeGiftCode("EARLY ACCESS")).toBe("EARLYACCESS");
     expect(normalizeGiftCode("")).toBe("");
   });
 });

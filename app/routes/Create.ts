@@ -133,7 +133,7 @@ export default function Create(_props: CreateRouteProps) {
   const pageLede = isNew
     ? t("Tell Remiix what you need — it builds a working app in minutes.")
     : creating
-      ? t("Building")
+      ? t("Building…")
       : (app?.tagline?.trim() ||
         app?.description?.trim() ||
         t("Ask the AI to tweak your app — colors, features, wording, anything."));

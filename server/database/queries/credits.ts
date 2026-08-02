@@ -1,4 +1,10 @@
 import { db } from "/server/database/db";
+import type { Database } from "bun:sqlite";
+import {
+  addCalendarMonthsUtc,
+  parseIsoDate,
+  utcDayOfMonth,
+} from "/utils/credit-period";
 
 export type CreditReason =
   | "grant_free"
@@ -11,123 +17,320 @@ export type CreditReason =
 export type CreditBalanceRow = {
   credit_balance_usd_micros: number;
   credit_period_ym: string | null;
+  credit_grant_at: string | null;
+  credit_period_anchor_day: number | null;
 };
 
-export function dbGetCreditBalance(userId: string): CreditBalanceRow | null {
+export function dbGetCreditBalance(
+  userId: string,
+  database: Database = db,
+): CreditBalanceRow | null {
   return (
-    db
+    database
       .query<CreditBalanceRow, [string]>(
-        `SELECT credit_balance_usd_micros, credit_period_ym FROM users WHERE id = ?`,
+        `SELECT credit_balance_usd_micros, credit_period_ym,
+                credit_grant_at, credit_period_anchor_day
+         FROM users WHERE id = ?`,
       )
       .get(userId) ?? null
   );
 }
 
-function insertLedger(data: {
-  id: string;
-  userId: string;
-  deltaUsdMicros: number;
-  balanceAfter: number;
-  reason: CreditReason;
-  openrouterCostUsd?: number | null;
-  markup?: number | null;
-  metaJson?: string | null;
-}): void {
-  db.query(
-    `INSERT INTO credit_ledger
+function insertLedger(
+  data: {
+    id: string;
+    userId: string;
+    deltaUsdMicros: number;
+    balanceAfter: number;
+    reason: CreditReason;
+    openrouterCostUsd?: number | null;
+    markup?: number | null;
+    metaJson?: string | null;
+  },
+  database: Database = db,
+): void {
+  database
+    .query(
+      `INSERT INTO credit_ledger
       (id, user_id, delta_usd_micros, balance_after, reason, openrouter_cost_usd, markup, meta_json)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    data.id,
-    data.userId,
-    data.deltaUsdMicros,
-    data.balanceAfter,
-    data.reason,
-    data.openrouterCostUsd ?? null,
-    data.markup ?? null,
-    data.metaJson ?? null,
-  );
+    )
+    .run(
+      data.id,
+      data.userId,
+      data.deltaUsdMicros,
+      data.balanceAfter,
+      data.reason,
+      data.openrouterCostUsd ?? null,
+      data.markup ?? null,
+      data.metaJson ?? null,
+    );
 }
 
-/**
- * If the user's grant period is stale, top balance up to `grantUsdMicros` (cap).
- * Does not reduce a balance already above the grant.
- */
-export function dbEnsureMonthlyFreeGrant(
+function periodYmFromDate(d: Date): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+function writeGrantPeriod(
+  database: Database,
   userId: string,
-  periodYm: string,
+  balanceUsdMicros: number,
+  grantAt: Date,
+  anchorDay: number,
+): void {
+  database
+    .query(
+      `UPDATE users
+       SET credit_balance_usd_micros = ?,
+           credit_grant_at = ?,
+           credit_period_anchor_day = ?,
+           credit_period_ym = ?
+       WHERE id = ?`,
+    )
+    .run(
+      balanceUsdMicros,
+      grantAt.toISOString(),
+      anchorDay,
+      periodYmFromDate(grantAt),
+      userId,
+    );
+}
+
+/** Free: top up to grant if below. Premium: always add grant (stacks). */
+export type MonthlyGrantMode = "floor" | "add";
+
+/** Pure next-balance for a monthly (or mid-period) grant. */
+export function nextBalanceAfterGrant(
+  prevUsdMicros: number,
+  grantUsdMicros: number,
+  mode: MonthlyGrantMode,
+): { next: number; delta: number } {
+  if (mode === "add") {
+    const next = prevUsdMicros + grantUsdMicros;
+    return { next, delta: grantUsdMicros };
+  }
+  const next = prevUsdMicros < grantUsdMicros ? grantUsdMicros : prevUsdMicros;
+  return { next, delta: next - prevUsdMicros };
+}
+
+const MAX_CATCH_UP_PERIODS = 36;
+
+/**
+ * Apply due anniversary grants (UTC calendar months, anchor day preserved).
+ * - `floor` (Free): top up once after advancing all due periods.
+ * - `add` (Premium): add grant for each due period (stacks / catch-up).
+ */
+export function dbEnsureMonthlyPlanGrant(
+  userId: string,
   grantUsdMicros: number,
   reason: CreditReason = "grant_free",
+  mode: MonthlyGrantMode = "floor",
+  now: Date = new Date(),
+  database: Database = db,
 ): { balanceUsdMicros: number; granted: boolean } {
-  const run = db.transaction(() => {
-    const row = dbGetCreditBalance(userId);
+  const run = database.transaction(() => {
+    const row = dbGetCreditBalance(userId, database);
     if (!row) return { balanceUsdMicros: 0, granted: false };
 
-    if (row.credit_period_ym === periodYm) {
-      return { balanceUsdMicros: row.credit_balance_usd_micros, granted: false };
+    let balance = row.credit_balance_usd_micros;
+    const grantAtParsed = row.credit_grant_at ? parseIsoDate(row.credit_grant_at) : null;
+
+    // First grant ever: apply once and start the anniversary clock.
+    if (!grantAtParsed) {
+      const { next, delta } = nextBalanceAfterGrant(balance, grantUsdMicros, mode);
+      const anchorDay = utcDayOfMonth(now);
+      writeGrantPeriod(database, userId, next, now, anchorDay);
+      if (delta !== 0) {
+        insertLedger(
+          {
+            id: crypto.randomUUID(),
+            userId,
+            deltaUsdMicros: delta,
+            balanceAfter: next,
+            reason,
+            metaJson: JSON.stringify({
+              mode,
+              grantUsdMicros,
+              grantAt: now.toISOString(),
+              anchorDay,
+              init: true,
+            }),
+          },
+          database,
+        );
+      }
+      return { balanceUsdMicros: next, granted: delta > 0 };
     }
 
-    const prev = row.credit_balance_usd_micros;
-    const next = prev < grantUsdMicros ? grantUsdMicros : prev;
-    const delta = next - prev;
+    const anchorDay =
+      typeof row.credit_period_anchor_day === "number" &&
+      row.credit_period_anchor_day >= 1 &&
+      row.credit_period_anchor_day <= 31
+        ? row.credit_period_anchor_day
+        : utcDayOfMonth(grantAtParsed);
 
-    db.query(
-      `UPDATE users SET credit_balance_usd_micros = ?, credit_period_ym = ? WHERE id = ?`,
-    ).run(next, periodYm, userId);
+    let grantAt = grantAtParsed;
+    let duePeriods = 0;
+    let totalDelta = 0;
 
-    if (delta !== 0) {
-      insertLedger({
-        id: crypto.randomUUID(),
-        userId,
-        deltaUsdMicros: delta,
-        balanceAfter: next,
-        reason,
-        metaJson: JSON.stringify({ periodYm, grantUsdMicros }),
-      });
-    } else {
-      // Still advance the period so we don't re-check every call.
-      db.query(`UPDATE users SET credit_period_ym = ? WHERE id = ?`).run(periodYm, userId);
+    while (duePeriods < MAX_CATCH_UP_PERIODS) {
+      const nextDue = addCalendarMonthsUtc(grantAt, 1, anchorDay);
+      if (now.getTime() < nextDue.getTime()) break;
+
+      grantAt = nextDue;
+      duePeriods += 1;
+
+      if (mode === "add") {
+        const { next, delta } = nextBalanceAfterGrant(balance, grantUsdMicros, "add");
+        balance = next;
+        totalDelta += delta;
+      }
     }
 
-    return { balanceUsdMicros: next, granted: delta > 0 };
+    if (duePeriods === 0) {
+      return { balanceUsdMicros: balance, granted: false };
+    }
+
+    if (mode === "floor") {
+      const { next, delta } = nextBalanceAfterGrant(balance, grantUsdMicros, "floor");
+      balance = next;
+      totalDelta = delta;
+    }
+
+    writeGrantPeriod(database, userId, balance, grantAt, anchorDay);
+    if (totalDelta !== 0) {
+      insertLedger(
+        {
+          id: crypto.randomUUID(),
+          userId,
+          deltaUsdMicros: totalDelta,
+          balanceAfter: balance,
+          reason,
+          metaJson: JSON.stringify({
+            mode,
+            grantUsdMicros,
+            grantAt: grantAt.toISOString(),
+            anchorDay,
+            periods: duePeriods,
+          }),
+        },
+        database,
+      );
+    }
+
+    return { balanceUsdMicros: balance, granted: totalDelta > 0 };
   });
 
   return run();
 }
 
+/** @deprecated Use dbEnsureMonthlyPlanGrant. */
+export function dbEnsureMonthlyFreeGrant(
+  userId: string,
+  _periodYm: string,
+  grantUsdMicros: number,
+  reason: CreditReason = "grant_free",
+  database: Database = db,
+): { balanceUsdMicros: number; granted: boolean } {
+  return dbEnsureMonthlyPlanGrant(userId, grantUsdMicros, reason, "floor", new Date(), database);
+}
+
 /**
- * Mid-period bump when upgrading to Premium (or similar). Tops up to grant cap.
- * Does not change credit_period_ym.
+ * Mid-period bump when downgrading / Free floor. Tops up to grant cap.
+ * Does not change anniversary clock.
  */
 export function dbBumpBalanceToGrant(
   userId: string,
   grantUsdMicros: number,
   reason: CreditReason,
   meta?: Record<string, unknown>,
+  database: Database = db,
 ): { balanceUsdMicros: number; granted: boolean } {
-  const run = db.transaction(() => {
-    const row = dbGetCreditBalance(userId);
+  const run = database.transaction(() => {
+    const row = dbGetCreditBalance(userId, database);
     if (!row) return { balanceUsdMicros: 0, granted: false };
 
     const prev = row.credit_balance_usd_micros;
-    if (prev >= grantUsdMicros) {
+    const { next, delta } = nextBalanceAfterGrant(prev, grantUsdMicros, "floor");
+    if (delta === 0) {
       return { balanceUsdMicros: prev, granted: false };
     }
 
-    const next = grantUsdMicros;
-    const delta = next - prev;
-    db.query(`UPDATE users SET credit_balance_usd_micros = ? WHERE id = ?`).run(
-      next,
-      userId,
+    database
+      .query(`UPDATE users SET credit_balance_usd_micros = ? WHERE id = ?`)
+      .run(next, userId);
+    insertLedger(
+      {
+        id: crypto.randomUUID(),
+        userId,
+        deltaUsdMicros: delta,
+        balanceAfter: next,
+        reason,
+        metaJson: meta
+          ? JSON.stringify({ ...meta, mode: "floor" })
+          : JSON.stringify({ grantUsdMicros, mode: "floor" }),
+      },
+      database,
     );
-    insertLedger({
-      id: crypto.randomUUID(),
-      userId,
-      deltaUsdMicros: delta,
-      balanceAfter: next,
-      reason,
-      metaJson: meta ? JSON.stringify(meta) : JSON.stringify({ grantUsdMicros }),
-    });
+    return { balanceUsdMicros: next, granted: true };
+  });
+
+  return run();
+}
+
+/**
+ * Mid-period add (e.g. Premium upgrade). Always adds `grantUsdMicros`.
+ * When `resetPeriodAt` is set, restarts the anniversary clock from that instant.
+ */
+export function dbAddCreditsGrant(
+  userId: string,
+  grantUsdMicros: number,
+  reason: CreditReason,
+  meta?: Record<string, unknown>,
+  database: Database = db,
+  opts?: { resetPeriodAt?: Date },
+): { balanceUsdMicros: number; granted: boolean } {
+  if (grantUsdMicros <= 0) {
+    const row = dbGetCreditBalance(userId, database);
+    return { balanceUsdMicros: row?.credit_balance_usd_micros ?? 0, granted: false };
+  }
+
+  const run = database.transaction(() => {
+    const row = dbGetCreditBalance(userId, database);
+    if (!row) return { balanceUsdMicros: 0, granted: false };
+
+    const prev = row.credit_balance_usd_micros;
+    const { next, delta } = nextBalanceAfterGrant(prev, grantUsdMicros, "add");
+    const resetAt = opts?.resetPeriodAt;
+
+    if (resetAt) {
+      const anchorDay = utcDayOfMonth(resetAt);
+      writeGrantPeriod(database, userId, next, resetAt, anchorDay);
+    } else {
+      database
+        .query(`UPDATE users SET credit_balance_usd_micros = ? WHERE id = ?`)
+        .run(next, userId);
+    }
+
+    insertLedger(
+      {
+        id: crypto.randomUUID(),
+        userId,
+        deltaUsdMicros: delta,
+        balanceAfter: next,
+        reason,
+        metaJson: meta
+          ? JSON.stringify({
+              ...meta,
+              mode: "add",
+              resetPeriod: Boolean(resetAt),
+            })
+          : JSON.stringify({ grantUsdMicros, mode: "add", resetPeriod: Boolean(resetAt) }),
+      },
+      database,
+    );
     return { balanceUsdMicros: next, granted: true };
   });
 

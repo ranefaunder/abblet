@@ -62,7 +62,7 @@ const JOIN_FEATURES = [
   {
     icon: "wallet",
     title: "Monthly AI credit",
-    body: "Every account gets free AI credit each month. Premium unlocks a larger monthly grant.",
+    body: "Free tops up to a small balance each month. Premium adds a larger amount every month — unused credit stacks.",
   },
   {
     icon: "squares-four",
@@ -366,8 +366,20 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                       </div>
                       <p class="credits-balance">$${credits.balanceUsd.toFixed(2)}</p>
                       <p class="credits-grant">
-                        ${t("Monthly grant")} · $${credits.grantUsd.toFixed(2)}
+                        ${credits.plan === "premium"
+                          ? t("+$amount added each month", {
+                              amount: `$${credits.grantUsd.toFixed(2)}`,
+                            })
+                          : t("Tops up to $amount each month", {
+                              amount: `$${credits.grantUsd.toFixed(2)}`,
+                            })}
                       </p>
+                      ${credits.plan === "premium"
+                        ? html`
+                          <p class="credits-grant-note">
+                            ${t("Unused Premium credit stacks — it doesn’t reset to zero.")}
+                          </p>`
+                        : ""}
                     </div>
                     <div ui-row="gap-sm wrap y-start">
                       ${credits.plan !== "premium"
@@ -381,17 +393,6 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                           </button>`
                         : html`
                           <span class="credits-premium-note">${t("You're on Premium")}</span>`}
-                      ${appBreakdown.length > 0
-                        ? html`
-                          <button
-                            type="button"
-                            ui-button="sm"
-                            commandfor="me-credits-by-app"
-                            command="show-modal"
-                          >
-                            ${t("By app")}
-                          </button>`
-                        : ""}
                     </div>
                   </header>
 
@@ -409,6 +410,17 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                           )}
                         </ul>`
                       : html`<p class="credits-empty">${t("No AI usage yet.")}</p>`}
+                    ${appBreakdown.length > 0
+                      ? html`
+                        <button
+                          type="button"
+                          ui-button="sm"
+                          commandfor="me-credits-by-app"
+                          command="show-modal"
+                        >
+                          ${t("By app")}
+                        </button>`
+                      : ""}
                   </div>
 
                   ${appBreakdown.length > 0
@@ -638,6 +650,14 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
         margin: 0;
         font-size: 0.875rem;
         color: var(--neutral-500);
+      }
+
+      .credits-grant-note {
+        margin: 0;
+        font-size: 0.8125rem;
+        line-height: 1.4;
+        color: var(--neutral-500);
+        max-width: 28rem;
       }
 
       .plan-badge {

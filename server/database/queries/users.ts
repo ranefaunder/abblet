@@ -10,6 +10,8 @@ export type UserInDatabase = {
   is_guest?: number;
   credit_balance_usd_micros?: number;
   credit_period_ym?: string | null;
+  credit_grant_at?: string | null;
+  credit_period_anchor_day?: number | null;
   plan?: string;
   plan_source?: string | null;
   plan_updated_at?: string | null;

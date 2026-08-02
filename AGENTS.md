@@ -164,7 +164,19 @@ Only on `<dialog ui-dialog>`.
 | Position | *(omit = center)* \| `left` \| `right` \| `top` \| `bottom` |
 | Extra | `edge` (flush) \| `allow-page-scroll` |
 
-Direct children: optional `header`, content, optional `footer`. Add `ui-row` yourself on header/footer — there is no default flex.
+**Required structure — padding comes from Faunder, not custom CSS:**
+
+Direct children must be exactly this shape:
+
+1. optional `<header>` — padding `24px 24px 16px`
+2. **one** main/body child (anything that is not `header`/`footer`) — inline padding `24px`; also `padding-top: 24px` if no header, `padding-bottom: 24px` if no footer
+3. optional `<footer>` — padding `16px 24px 24px`
+
+Faunder targets `dialog[ui-dialog] > :not(header):not(footer)`. So:
+
+- Put **all** body content in a **single** wrapper (`<div>`, `<form>`, `<main>`, …). Never leave pricing + form as two sibling body children — each would get its own 24px inline (and bottom) padding and look broken.
+- Put action buttons in `<footer>`, not inside the body. Use `form="…"` on submit if the fields live in a `<form>` body.
+- Do **not** re-apply horizontal padding on the body wrapper. Inner cards/blocks may have their own padding; the shell must not.
 
 ```html
 <button commandfor="dlg" command="show-modal" ui-button="primary">Open</button>
@@ -174,13 +186,15 @@ Direct children: optional `header`, content, optional `footer`. Add `ui-row` you
     <h2 ui-heading="lg">Title</h2>
     <button ui-button="inline" ui-icon="x" commandfor="dlg" command="close" aria-label="Close"></button>
   </header>
-  <p>Body copy.</p>
+  <div><!-- one body: all content here --></div>
   <footer ui-row="gap-sm x-end y-center">
     <button ui-button commandfor="dlg" command="close">Cancel</button>
     <button ui-button="primary" commandfor="dlg" command="close">Confirm</button>
   </footer>
 </dialog>
 ```
+
+Add `ui-row` yourself on header/footer — there is no default flex.
 
 Drawer example: `ui-dialog="right sm edge"`.
 
@@ -501,6 +515,7 @@ Faunder is framework-agnostic. In React/Preact/Vue/Svelte:
 3. Am I about to add Tailwind or a one-off class? → stop; check layout/spacing tokens first.
 4. Am I inventing a token name? → check this file; if missing, don’t use it.
 5. Theme/brand color? → override CSS variables, don’t fork the library.
+6. Dialog? → exactly `header` + **one** body child + `footer`. Don’t restyle Faunder’s 24px body padding.
 
 ---
 

@@ -448,7 +448,9 @@ export const translations = {
   "Recommended": { fi: "Suositus" },
   "Included with every account": { fi: "Kuuluu jokaiseen tiliin" },
   "Everything you need to try Remiix.": { fi: "Kaikki mitä tarvitset Remiixin kokeiluun." },
-  "For people who build every week.": { fi: "Niille, jotka rakentavat joka viikko." },
+  "Build at your own pace — credit doesn’t expire.": {
+    fi: "Rakenna omaan tahtiin — saldo ei vanhene.",
+  },
   "AI credit / month": { fi: "AI-saldoa / kk" },
   "$times× more": { fi: "$times× enemmän" },
   "Remix any app in the Store": { fi: "Remixaa mikä tahansa Storen appi" },
@@ -458,17 +460,19 @@ export const translations = {
   "Keep creating when Free runs out": { fi: "Jatka luomista kun Free loppuu" },
   "Bigger builds and more iterations": { fi: "Isommat projektit ja enemmän iteraatioita" },
   "No card needed": { fi: "Ei korttia tarvita" },
-  "Free during early access": { fi: "Ilmainen early access -vaiheessa" },
   "Activate Premium": { fi: "Aktivoi Premium" },
   "Activating…": { fi: "Aktivoidaan…" },
-  "Early access — Premium is free for now. Paid billing is coming soon.": {
-    fi: "Early access — Premium on toistaiseksi ilmainen. Maksettu tilaus tulee pian.",
+  "Early access — Premium is free for now. Paid billing is coming later, and you won’t be moved to a paid plan automatically.": {
+    fi: "Early access — Premium on toistaiseksi ilmainen. Maksettu tilaus tulee myöhemmin, etkä siirry siihen automaattisesti.",
   },
   "List price": { fi: "Listahinta" },
   "Early access discount": { fi: "Early access -alennus" },
   "Due today": { fi: "Maksettavaa tänään" },
   "Includes $amount AI credit each month": {
     fi: "Sisältää $amount AI-saldoa joka kuukausi",
+  },
+  "+$amount added each month. Unused credit stacks — it doesn’t reset.": {
+    fi: "+$amount joka kuukausi. Käyttämätön saldo kerryttää — se ei nollaudu.",
   },
   "Get more AI credit with Premium.": {
     fi: "Hanki lisää AI-saldoa Premiumilla.",
@@ -480,8 +484,32 @@ export const translations = {
   "Creating and remixing apps uses AI credit. Premium gives you $times× more of it every month.": {
     fi: "Appien luominen ja remixaus kuluttaa AI-saldoa. Premiumissa saat sitä $times× enemmän joka kuukausi.",
   },
+  "Remixing and using AI apps uses credit. Free tops up each month; Premium adds more — and unused credit stacks.": {
+    fi: "Remixaus ja AI-appien käyttö kuluttaa AI-saldoa. Free täyttää saldon kuukausittain; Premium lisää enemmän — ja käyttämätön kerryttää.",
+  },
   "Prices in USD. AI credit resets every month.": {
     fi: "Hinnat dollareissa. AI-saldo uusiutuu joka kuukausi.",
+  },
+  "Prices in USD. Free tops up to $free. Premium adds $premium each month (stacks).": {
+    fi: "Hinnat dollareissa. Free täyttää $free:ään. Premium lisää $premium joka kuukausi (kerryttää).",
+  },
+  "Balance tops up to $amount each month — doesn’t stack.": {
+    fi: "Saldo täytetään $amount:ään joka kuukausi — ei kerry.",
+  },
+  "Adds $amount credit every month — unused stacks": {
+    fi: "Lisätään saldoa $amount joka kuukausi — käyttämätön kerryttää",
+  },
+  "Tops up to $amount each month": {
+    fi: "Täyttää $amount:ään joka kuukausi",
+  },
+  "+$amount added each month": {
+    fi: "+$amount joka kuukausi",
+  },
+  "Unused Premium credit stacks — it doesn’t reset to zero.": {
+    fi: "Käyttämätön Premium-saldo kerryttää — se ei nollaudu.",
+  },
+  "Free tops up to a small balance each month. Premium adds a larger amount every month — unused credit stacks.": {
+    fi: "Free täyttää pienen saldon joka kuukausi. Premium lisää isomman summan joka kuukausi — käyttämätön kerryttää.",
   },
   "Monthly AI credit": { fi: "Kuukausittainen AI-saldo" },
   "$5.99/mo": { fi: "$5.99/kk" },
@@ -513,7 +541,7 @@ export const translations = {
   "Building apps": { fi: "Appien tekeminen" },
   "Using apps": { fi: "Appien käyttäminen" },
   "By app": { fi: "Appeittain" },
-  "Building": { fi: "Tekeminen" },
+  "Building": { fi: "Rakentaminen" },
   "Using": { fi: "Käyttäminen" },
   "Unknown app": { fi: "Tuntematon app" },
   "No AI usage yet.": { fi: "Ei vielä AI-kulutusta." },
@@ -611,7 +639,7 @@ export const translations = {
   "Could not generate the app icon. Try again.": {
     fi: "App-kuvakkeen luonti epäonnistui. Yritä uudelleen.",
   },
-  "Building": { fi: "Rakenteilla" },
+  "Building…": { fi: "Rakenteilla" },
   "Describe your app": { fi: "Kuvaile appisi" },
   "Tell Remiix what you need — it builds a working app in minutes.": {
     fi: "Kerro mitä tarvitset — Remiix rakentaa toimivan appin minuuteissa.",

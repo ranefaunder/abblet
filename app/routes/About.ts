@@ -149,6 +149,13 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
     openPremiumDialog();
   }
 
+  function onTierKeyActivate(e: KeyboardEvent, action: () => void) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      action();
+    }
+  }
+
   const view = html`
     <div data-scope="About">
       <section class="hero">
@@ -298,14 +305,21 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
             <p class="pricing-eyebrow">${t("Pricing")}</p>
             <h2 class="pricing-title">${t("Start free. Upgrade when ideas keep coming.")}</h2>
             <p class="pricing-lede">
-              ${t("Creating and remixing apps uses AI credit. Premium gives you $times× more of it every month.", {
-                times: creditMultiplier,
-              })}
+              ${t("Remixing and using AI apps uses credit. Free tops up each month; Premium adds more — and unused credit stacks.")}
             </p>
           </header>
 
           <div class="tiers">
-            <article class=${`tier tier-free${onFree ? " is-current" : ""}`}>
+            <article
+              class=${`tier tier-free${onFree ? " is-current" : ""}${!loggedIn ? " is-actionable" : ""}`}
+              onClick=${!loggedIn ? openRegister : undefined}
+              onKeyDown=${!loggedIn
+                ? (e: KeyboardEvent) => onTierKeyActivate(e, openRegister)
+                : undefined}
+              role=${!loggedIn ? "button" : undefined}
+              tabindex=${!loggedIn ? 0 : undefined}
+              aria-label=${!loggedIn ? t("Register free") : undefined}
+            >
               <div class="tier-head">
                 <div class="tier-title-row">
                   <h3 class="tier-name">${t("Free")}</h3>
@@ -326,24 +340,24 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
               <ul class="tier-perks" ui-off>
                 <li>
                   <i ui-icon="check" aria-hidden="true"></i>
+                  <span>${t("Balance tops up to $amount each month — doesn’t stack.", {
+                    amount: formatUsdAmount(FREE_GRANT_USD),
+                  })}</span>
+                </li>
+                <li>
+                  <i ui-icon="check" aria-hidden="true"></i>
                   <span>${t("Remix any app in the Store")}</span>
                 </li>
                 <li>
                   <i ui-icon="check" aria-hidden="true"></i>
                   <span>${t("Create your own apps with AI")}</span>
                 </li>
-                <li>
-                  <i ui-icon="check" aria-hidden="true"></i>
-                  <span>${t("Install apps to your home screen")}</span>
-                </li>
               </ul>
 
               <div class="tier-cta">
                 ${!loggedIn
                   ? html`
-                    <button type="button" ui-button="block" onClick=${openRegister}>
-                      ${t("Register free")}
-                    </button>
+                    <span class="tier-cta-face" ui-button="block">${t("Register free")}</span>
                     <p class="tier-fine">${t("No card needed")}</p>`
                   : onFree
                     ? html`<p class="tier-state">${t("You're on Free")}</p>`
@@ -351,7 +365,16 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
               </div>
             </article>
 
-            <article class=${`tier tier-premium${onPremium ? " is-current" : ""}`}>
+            <article
+              class=${`tier tier-premium${onPremium ? " is-current" : ""}${!onPremium ? " is-actionable" : ""}`}
+              onClick=${!onPremium ? onGetPremium : undefined}
+              onKeyDown=${!onPremium
+                ? (e: KeyboardEvent) => onTierKeyActivate(e, onGetPremium)
+                : undefined}
+              role=${!onPremium ? "button" : undefined}
+              tabindex=${!onPremium ? 0 : undefined}
+              aria-label=${!onPremium ? t("Get Premium") : undefined}
+            >
               <div class="tier-head">
                 <div class="tier-title-row">
                   <h3 class="tier-name">${t("Premium")}</h3>
@@ -363,7 +386,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
                   <span class="tier-amount">${formatUsdAmount(PREMIUM_PRICE_USD)}</span>
                   <span class="tier-per">/mo</span>
                 </p>
-                <p class="tier-lede">${t("For people who build every week.")}</p>
+                <p class="tier-lede">${t("Build at your own pace — credit doesn’t expire.")}</p>
               </div>
 
               <div class="tier-metric">
@@ -377,15 +400,17 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
               <ul class="tier-perks" ui-off>
                 <li>
                   <i ui-icon="check" aria-hidden="true"></i>
+                  <span>${t("Adds $amount credit every month — unused stacks", {
+                    amount: formatUsdAmount(PREMIUM_GRANT_USD),
+                  })}</span>
+                </li>
+                <li>
+                  <i ui-icon="check" aria-hidden="true"></i>
                   <span>${t("Everything in Free")}</span>
                 </li>
                 <li>
                   <i ui-icon="check" aria-hidden="true"></i>
                   <span>${t("Keep creating when Free runs out")}</span>
-                </li>
-                <li>
-                  <i ui-icon="check" aria-hidden="true"></i>
-                  <span>${t("Bigger builds and more iterations")}</span>
                 </li>
               </ul>
 
@@ -393,15 +418,17 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
                 ${onPremium
                   ? html`<p class="tier-state">${t("You're on Premium")}</p>`
                   : html`
-                    <button type="button" ui-button="primary block" onClick=${onGetPremium}>
-                      ${t("Get Premium")}
-                    </button>
-                    <p class="tier-fine">${t("Free during early access")}</p>`}
+                    <span class="tier-cta-face" ui-button="primary block">${t("Get Premium")}</span>`}
               </div>
             </article>
           </div>
 
-          <p class="pricing-foot">${t("Prices in USD. AI credit resets every month.")}</p>
+          <p class="pricing-foot">
+            ${t("Prices in USD. Free tops up to $free. Premium adds $premium each month (stacks).", {
+              free: formatUsdAmount(FREE_GRANT_USD),
+              premium: formatUsdAmount(PREMIUM_GRANT_USD),
+            })}
+          </p>
         </div>
       </section>
 
@@ -1044,6 +1071,15 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
         transform: translateY(-3px);
       }
 
+      .tier.is-actionable {
+        cursor: pointer;
+      }
+
+      .tier.is-actionable:focus-visible {
+        outline: 2px solid var(--primary-500);
+        outline-offset: 3px;
+      }
+
       .tier-free {
         box-shadow: 0 1px 2px rgba(15, 20, 25, 0.04);
       }
@@ -1247,6 +1283,15 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
 
       .tier-cta [ui-button] {
         width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+      }
+
+      .tier-cta-face {
+        pointer-events: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .tier-premium .tier-cta [ui-button] {
@@ -1259,6 +1304,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
           0 10px 24px -10px rgba(0, 0, 0, 0.55);
       }
 
+      .tier-premium.is-actionable:hover .tier-cta [ui-button],
       .tier-premium .tier-cta [ui-button]:hover {
         background: linear-gradient(to bottom, var(--white), var(--white));
       }

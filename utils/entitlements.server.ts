@@ -5,7 +5,11 @@ import {
   type PlanSource,
   type UserPlan,
 } from "/server/database/queries/entitlements";
-import { dbBumpBalanceToGrant } from "/server/database/queries/credits";
+import {
+  dbAddCreditsGrant,
+  dbBumpBalanceToGrant,
+} from "/server/database/queries/credits";
+import { db } from "/server/database/db";
 import {
   currentPeriodYm,
   getPlanGrantUsd,
@@ -49,18 +53,29 @@ export function setUserPlan(
   });
 }
 
-/** After upgrading to Premium, top wallet up to the Premium monthly grant. */
+/**
+ * After changing plan, adjust wallet and restart anniversary clock for Premium:
+ * - Premium: always add the Premium monthly grant (stacks) + reset period to now.
+ * - Free: floor up to the Free grant if below (clock unchanged).
+ */
 export function applyPlanGrant(userId: string, plan: UserPlan): {
   balanceUsdMicros: number;
   granted: boolean;
 } {
   const grantUsdMicros = planGrantUsdMicros(plan);
   const reason = plan === "premium" ? "grant_premium" : "grant_free";
-  return dbBumpBalanceToGrant(userId, grantUsdMicros, reason, {
+  const now = new Date();
+  const meta = {
     plan,
-    periodYm: currentPeriodYm(),
+    periodYm: currentPeriodYm(now),
     grantUsdMicros,
-  });
+  };
+  if (plan === "premium") {
+    return dbAddCreditsGrant(userId, grantUsdMicros, reason, meta, db, {
+      resetPeriodAt: now,
+    });
+  }
+  return dbBumpBalanceToGrant(userId, grantUsdMicros, reason, meta);
 }
 
 export function redeemGiftForPremium(userId: string, code: string):

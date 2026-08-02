@@ -1,6 +1,6 @@
 import {
   dbDebitCredits,
-  dbEnsureMonthlyFreeGrant,
+  dbEnsureMonthlyPlanGrant,
   dbGetCreditBalance,
   type CreditReason,
 } from "/server/database/queries/credits";
@@ -95,15 +95,20 @@ export function sumOpenRouterCosts(costs: Array<number | null | undefined>): num
   return any ? sum : null;
 }
 
-/** Monthly grant for the user's current plan (Free or Premium). */
-export function ensureMonthlyPlanGrant(userId: string): number {
+/**
+ * Anniversary grant for the user's current plan (UTC +1 calendar month, anchor day).
+ * Free: floor balance up to grant if below. Premium: always add grant (stacks).
+ */
+export function ensureMonthlyPlanGrant(userId: string, now = new Date()): number {
   const plan = userPlan(userId);
   const reason: CreditReason = plan === "premium" ? "grant_premium" : "grant_free";
-  const { balanceUsdMicros } = dbEnsureMonthlyFreeGrant(
+  const mode = plan === "premium" ? "add" : "floor";
+  const { balanceUsdMicros } = dbEnsureMonthlyPlanGrant(
     userId,
-    currentPeriodYm(),
     planGrantUsdMicros(plan),
     reason,
+    mode,
+    now,
   );
   return balanceUsdMicros;
 }
