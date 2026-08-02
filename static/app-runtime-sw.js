@@ -8,7 +8,7 @@
  * - CHECK_UPDATE / APPLY_UPDATE still available for in-session refresh
  * - Never treats `/install` as the app shell
  */
-const CACHE = "remiix-app-runtime-v6";
+const CACHE = "remiix-app-runtime-v7";
 const CORE = ["/", "/module.js", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

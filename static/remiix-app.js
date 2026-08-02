@@ -434,8 +434,22 @@ const platformSession = await loadPlatformSession();
 void recordOpenIfLoggedIn();
 
 const mount = document.getElementById("mount");
-await import(moduleUrl);
-mount.appendChild(document.createElement(tagName));
+const boot = document.getElementById("boot");
+try {
+  await import(moduleUrl);
+  boot?.remove();
+  if (mount) {
+    mount.replaceChildren();
+    mount.appendChild(document.createElement(tagName));
+  }
+} catch (err) {
+  console.error("[Remiix] Failed to load app module:", err);
+  if (boot) {
+    boot.textContent = lang === "fi" ? "Lataus epäonnistui — napauta uudelleen" : "Failed to load — tap to retry";
+    boot.style.cursor = "pointer";
+    boot.addEventListener("click", () => location.reload(), { once: true });
+  }
+}
 
 mountRemiixPatch(platformSession);
 
@@ -1145,20 +1159,19 @@ function mountRemiixPatch(session) {
     closeMenu();
   }
 
-  async function applyUpdateAndReload() {
+  /**
+   * Refresh offline cache when module.js changed. Do NOT reload here —
+   * network-first already serves fresh code when online; a cold-start reload
+   * races with SW claim and leaves installed PWAs on a blank white screen.
+   */
+  async function applyUpdateQuietly() {
     if (autoUpdating || navigator.onLine === false) return;
-    if (!("serviceWorker" in navigator)) {
-      location.reload();
-      return;
-    }
+    if (!("serviceWorker" in navigator)) return;
     autoUpdating = true;
     try {
       const reg = await navigator.serviceWorker.ready;
       const worker = reg.active || navigator.serviceWorker.controller;
-      if (!worker) {
-        location.reload();
-        return;
-      }
+      if (!worker) return;
       const done = new Promise((resolve) => {
         const onMsg = (event) => {
           if (event.data && event.data.type === "UPDATE_APPLIED") {
@@ -1171,8 +1184,9 @@ function mountRemiixPatch(session) {
       });
       worker.postMessage({ type: "APPLY_UPDATE", urls: PRECACHE_URLS });
       await done;
-      location.reload();
     } catch {
+      // ignore
+    } finally {
       autoUpdating = false;
     }
   }
@@ -1236,10 +1250,13 @@ function mountRemiixPatch(session) {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (event.data && event.data.type === "UPDATE_STATUS" && event.data.available === true) {
-        void applyUpdateAndReload();
+        void applyUpdateQuietly();
       }
     });
-    window.setTimeout(requestUpdateCheck, 1200);
-    window.addEventListener("online", requestUpdateCheck);
+    // Delay past cold-start SW registration / precache races.
+    window.setTimeout(requestUpdateCheck, 20_000);
+    window.addEventListener("online", () => {
+      window.setTimeout(requestUpdateCheck, 5_000);
+    });
   }
 }
