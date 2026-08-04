@@ -938,6 +938,12 @@ export const translations = {
   "Make Remiix yours": {
     fi: "Tee Remiixistä omasi",
   },
+  "Your Remiix": {
+    fi: "Sinun Remiix",
+  },
+  "Start free — no card needed.": {
+    fi: "Aloita ilmaiseksi — ei korttia tarvita.",
+  },
   "Create a free account to remix apps, build your own with AI, and keep everything in one place.": {
     fi: "Luo ilmainen tili, niin voit remixata appeja, rakentaa omia tekoälyllä ja pitää kaiken yhdessä paikassa.",
   },

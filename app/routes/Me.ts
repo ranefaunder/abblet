@@ -367,52 +367,54 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
       <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
         <header class="page-head" ui-column="gap-sm">
           <h1 class="page-title">${t("Me")}</h1>
-          <p class="page-lede">
-            ${loggedIn
-              ? t("Your apps, settings, and account.")
-              : t("Create a free account to remix apps, build your own with AI, and keep everything in one place.")}
-          </p>
+          ${loggedIn
+            ? html`<p class="page-lede">${t("Your apps, settings, and account.")}</p>`
+            : ""}
         </header>
 
         ${!loggedIn
           ? html`
             <section class="join" ui-column="gap-xl">
-              <div ui-column="gap-sm">
+              <header class="join-head" ui-column="gap-sm">
+                <p class="join-eyebrow">${t("Your Remiix")}</p>
                 <h2 class="join-title">${t("Make Remiix yours")}</h2>
-              </div>
+                <p class="join-lede">
+                  ${t("Create a free account to remix apps, build your own with AI, and keep everything in one place.")}
+                </p>
+              </header>
 
-              <ul class="benefits" ui-off>
+              <div class="join-cards">
                 ${JOIN_FEATURES.map(
                   (feature) => html`
-                    <li class="benefit" ui-row="gap-md y-start">
-                      <span class="benefit-icon" aria-hidden="true">
+                    <article class="join-card" ui-column="gap-md">
+                      <span class="join-card-icon" aria-hidden="true">
                         <i ui-icon=${`${feature.icon} lg`}></i>
                       </span>
-                      <span ui-column="gap-xs">
-                        <strong class="benefit-title">${t(feature.title)}</strong>
-                        <span class="benefit-body">${t(feature.body)}</span>
-                      </span>
-                    </li>
+                      <div ui-column="gap-xs">
+                        <h3 class="join-card-title">${t(feature.title)}</h3>
+                        <p class="join-card-body">${t(feature.body)}</p>
+                      </div>
+                    </article>
                   `,
                 )}
-              </ul>
+              </div>
 
-              <div class="join-cta" ui-column="gap-sm">
+              <div class="join-cta" ui-row="gap-sm y-center x-center wrap">
                 <button
                   type="button"
-                  ui-button="primary lg block"
+                  ui-button="primary lg"
+                  commandfor="register-dialog"
+                  command="show-modal"
+                >
+                  ${t("Register free")}
+                </button>
+                <button
+                  type="button"
+                  ui-button="lg"
                   commandfor="login-dialog"
                   command="show-modal"
                 >
                   ${t("Sign in")}
-                </button>
-                <button
-                  type="button"
-                  ui-button="tertiary lg block"
-                  commandfor="register-dialog"
-                  command="show-modal"
-                >
-                  ${t("Register")}
                 </button>
               </div>
             </section>`
@@ -752,42 +754,86 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
         color: var(--neutral-950);
       }
 
-      .join-title {
+      .join-eyebrow {
         margin: 0;
-        font-size: clamp(1.45rem, 4.5vw, 1.85rem);
-        font-weight: 800;
-        letter-spacing: -0.04em;
-        line-height: 1.15;
-        color: var(--neutral-950);
-      }
-
-      .benefits {
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 1.15rem;
-      }
-
-      .benefit-icon {
-        flex: none;
-        display: grid;
-        place-items: center;
-        width: 2.75rem;
-        height: 2.75rem;
-        border-radius: 0.85rem;
-        background: color-mix(in oklab, var(--primary-100) 75%, var(--white));
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
         color: var(--primary-700);
       }
 
-      .benefit-title {
-        font-size: 1rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
+      .join-title {
+        margin: 0;
+        font-size: clamp(1.65rem, 5vw, 2.15rem);
+        font-weight: 800;
+        letter-spacing: -0.045em;
+        line-height: 1.1;
+        color: var(--neutral-950);
+        text-wrap: balance;
+      }
+
+      .join-lede {
+        margin: 0;
+        max-width: 34rem;
+        font-size: clamp(1.05rem, 2.2vw, 1.15rem);
+        line-height: 1.5;
+        color: var(--neutral-600);
+        text-wrap: pretty;
+      }
+
+      .join-cards {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+      }
+
+      @media (min-width: 36rem) {
+        .join-cards {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .join-cards > :last-child:nth-child(odd) {
+          grid-column: 1 / -1;
+        }
+      }
+
+      .join-card {
+        position: relative;
+        padding: 1.25rem 1.2rem 1.2rem;
+        border-radius: 1.35rem;
+        border: 1px solid var(--neutral-200);
+        background: var(--white);
+        box-shadow: 0 1px 2px rgba(15, 20, 25, 0.04);
+        transition: transform 220ms ease, box-shadow 220ms ease;
+      }
+
+      .join-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 14px 32px -18px rgba(15, 20, 25, 0.22);
+      }
+
+      .join-card-icon {
+        display: grid;
+        place-items: center;
+        width: 2.85rem;
+        height: 2.85rem;
+        border-radius: 0.95rem;
+        background: color-mix(in oklab, var(--primary-100) 80%, var(--white));
+        color: var(--primary-700);
+        box-shadow: 0 1px 0 color-mix(in oklab, var(--white) 70%, transparent) inset;
+      }
+
+      .join-card-title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 750;
+        letter-spacing: -0.025em;
         color: var(--neutral-950);
       }
 
-      .benefit-body {
+      .join-card-body {
+        margin: 0;
         font-size: 0.9375rem;
         line-height: 1.45;
         color: var(--neutral-600);
@@ -795,7 +841,12 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
 
       .join-cta {
         width: 100%;
-        max-width: 18rem;
+      }
+
+      .join-cta > [ui-button] {
+        flex: 1 1 10rem;
+        max-width: 16rem;
+        justify-content: center;
       }
 
       .panel {
