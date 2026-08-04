@@ -41,6 +41,20 @@ export default async function (req: BunRequest<"/:lang/"> | BunRequest<"/:lang/*
     <html lang="${escapeHtmlAttribute(req.params.lang)}">
       <head>
         ${metaHead}
+        <script>
+          (function () {
+            try {
+              var parts = location.pathname.split("/").filter(Boolean);
+              if (parts.length !== 1) return;
+              var last = localStorage.getItem("remiix.lastPath");
+              if (!last || last.charAt(0) !== "/") return;
+              var bare = last.split("?")[0].split("#")[0];
+              if (bare.length > 1 && bare.charAt(bare.length - 1) === "/") bare = bare.slice(0, -1);
+              if (!/^\\/[a-z]{2}\\/(apps|games|me|about|create)(\\/[^/]+)?$/.test(bare)) return;
+              location.replace(last);
+            } catch (e) {}
+          })();
+        </script>
         <link rel="preload" href="${escapeHtmlAttribute(fontGeist)}" as="font" type="font/woff2" crossorigin />
         <link rel="preload" href="${escapeHtmlAttribute(fontNotoSerif)}" as="font" type="font/woff2" crossorigin />
         <style>

@@ -1,5 +1,5 @@
 import { html, css } from "/utils/markup";
-import type { RoutePropsForPath } from "preact-iso";
+import { useLocation, type RoutePropsForPath } from "preact-iso";
 import { useEffect } from "preact/hooks";
 import { t } from "/utils/i18n";
 import { appsAppUrl, appsUrl } from "/utils/app-url";
@@ -7,6 +7,7 @@ import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import type { StoreAppCard } from "/types/app-types";
 import { storeApps, loadStore } from "/app/stores/storeListingStore";
+import { readLastPath } from "/utils/last-path.client";
 
 export const SplashPath = "/:lang" as const;
 
@@ -71,12 +72,22 @@ function IconRiver({ apps, lang }: { apps: StoreAppCard[]; lang: string }) {
 
 export default function Splash({ params }: RoutePropsForPath<typeof SplashPath>) {
   const { lang } = params;
+  const { route } = useLocation();
   const riverApps = pickApps(storeApps.value, Math.max(storeApps.value.length, 12), 0);
 
   useEffect(() => {
+    const last = readLastPath();
+    if (last) {
+      route(last, true);
+      return;
+    }
     void loadStore({ q: "", category: null, excludeCategory: null });
   }, []);
 
+  // Returning visitors redirect away — avoid painting splash for a frame.
+  if (typeof window !== "undefined" && readLastPath()) {
+    return null;
+  }
   const view = html`
     <div data-scope="Splash">
       <div class="ambiance" aria-hidden="true">

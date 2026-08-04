@@ -25,6 +25,7 @@ import Splash, { SplashPath } from "./routes/Splash";
 import Games, { GamesPath } from "./routes/Games";
 import NotFound from "./routes/NotFound";
 import { spaRouterScope } from "/utils/app-url";
+import LastPathTracker from "./components/headless/LastPathTracker";
 
 function initStores() {
   initConfigStore();
@@ -75,6 +76,7 @@ export default function App() {
         </div>
         <${VisualViewportHeight} />
         <${MetaUpdater} />
+        <${LastPathTracker} />
         <${DevStores} />
       <//>
     <//>

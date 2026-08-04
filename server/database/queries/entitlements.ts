@@ -78,14 +78,28 @@ export function dbUserHasGiftRedemption(userId: string): boolean {
   );
 }
 
+export function dbUserRedeemedGiftCode(userId: string, giftCodeId: string): boolean {
+  return (
+    db
+      .query<{ n: number }, [string, string]>(
+        `SELECT 1 as n FROM gift_redemptions
+         WHERE user_id = ? AND gift_code_id = ?
+         LIMIT 1`,
+      )
+      .get(userId, giftCodeId) != null
+  );
+}
+
 /**
  * Redeem a gift code for Premium. Returns error code or success payload.
+ * Re-activating after cancel (same code already redeemed) is allowed without a new redemption
+ * and without another grant (`reactivated: true`).
  */
 export function dbRedeemGiftCode(
   userId: string,
   rawCode: string,
 ):
-  | { ok: true; giftCodeId: string }
+  | { ok: true; giftCodeId: string; reactivated: boolean }
   | {
       ok: false;
       reason:
@@ -105,13 +119,29 @@ export function dbRedeemGiftCode(
     if (user.plan === "premium") {
       return { ok: false as const, reason: "already_premium" as const };
     }
-    if (dbUserHasGiftRedemption(userId)) {
-      return { ok: false as const, reason: "already_redeemed" as const };
-    }
 
     const gift = dbGetGiftCodeByCode(code);
     if (!gift) return { ok: false as const, reason: "invalid_code" as const };
     if (gift.disabled_at) return { ok: false as const, reason: "disabled" as const };
+
+    const now = new Date().toISOString();
+
+    // Cancelled Premium but still holds this gift redemption → re-entitle only.
+    if (dbUserRedeemedGiftCode(userId, gift.id)) {
+      dbSetUserPlan({
+        userId,
+        plan: "premium",
+        planSource: "gift",
+        giftCodeId: gift.id,
+        updatedAt: now,
+      });
+      return { ok: true as const, giftCodeId: gift.id, reactivated: true };
+    }
+
+    if (dbUserHasGiftRedemption(userId)) {
+      return { ok: false as const, reason: "already_redeemed" as const };
+    }
+
     if (
       gift.max_redemptions != null &&
       gift.redemption_count >= gift.max_redemptions
@@ -119,7 +149,6 @@ export function dbRedeemGiftCode(
       return { ok: false as const, reason: "exhausted" as const };
     }
 
-    const now = new Date().toISOString();
     db.query(
       `INSERT INTO gift_redemptions (id, gift_code_id, user_id, created_at) VALUES (?, ?, ?, ?)`,
     ).run(crypto.randomUUID(), gift.id, userId, now);
@@ -136,7 +165,7 @@ export function dbRedeemGiftCode(
       updatedAt: now,
     });
 
-    return { ok: true as const, giftCodeId: gift.id };
+    return { ok: true as const, giftCodeId: gift.id, reactivated: false };
   });
 
   return run();

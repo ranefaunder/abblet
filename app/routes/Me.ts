@@ -8,6 +8,7 @@ import {
   logout,
   updateMarketingOptIn,
   isLoggedIn,
+  refreshSessionUser,
 } from "/app/stores/userStore";
 import { apps as libraryApps, loadApps } from "/app/stores/appStore";
 import { createUrl, splashUrl } from "/utils/app-url";
@@ -18,6 +19,12 @@ import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import AppGrid from "/app/components/AppGrid";
 import { openPremiumDialog } from "/app/components/PremiumDialog";
+import {
+  FREE_GRANT_USD,
+  PREMIUM_GRANT_USD,
+  PREMIUM_PRICE_USD,
+  formatUsdAmount,
+} from "/utils/billing-plans";
 
 export const MePath = "/:lang/me" as const;
 
@@ -35,11 +42,8 @@ type CreditAppBreakdown = {
   slug: string;
   title: string;
   iconId: string | null;
-  createUsd: number;
-  editUsd: number;
-  intentUsd: number;
-  iconUsd: number;
-  runtimeUsd: number;
+  creatingUsd: number;
+  usingUsd: number;
   totalUsd: number;
 };
 type CreditsSnapshot = {
@@ -47,7 +51,11 @@ type CreditsSnapshot = {
   freeGrantUsd: number;
   grantUsd: number;
   plan: "free" | "premium";
+  planSource: "gift" | "polar" | null;
   periodYm: string;
+  nextGrantAt: string | null;
+  nextGrantUsd: number;
+  nextGrantMode: "add" | "floor";
   dailySpend: CreditDailySpend[];
   byApp: CreditAppSpend[];
 };
@@ -85,6 +93,7 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
   const { lang } = params;
   const [marketingBusy, setMarketingBusy] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
   const [credits, setCredits] = useState<CreditsSnapshot | null>(null);
   const loggedIn = isLoggedIn();
   const account = user.value;
@@ -111,7 +120,11 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
         freeGrantUsd: number;
         grantUsd?: number;
         plan?: "free" | "premium";
+        planSource?: "gift" | "polar" | null;
         periodYm: string;
+        nextGrantAt?: string | null;
+        nextGrantUsd?: number;
+        nextGrantMode?: "add" | "floor";
         dailySpend?: CreditDailySpend[];
         byApp?: CreditAppSpend[];
       }>(`/api/${lang}/credits`);
@@ -124,7 +137,11 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
         freeGrantUsd: result.data.freeGrantUsd,
         grantUsd: result.data.grantUsd ?? result.data.freeGrantUsd,
         plan: result.data.plan ?? "free",
+        planSource: result.data.planSource ?? null,
         periodYm: result.data.periodYm,
+        nextGrantAt: result.data.nextGrantAt ?? null,
+        nextGrantUsd: result.data.nextGrantUsd ?? result.data.grantUsd ?? result.data.freeGrantUsd,
+        nextGrantMode: result.data.nextGrantMode ?? (result.data.plan === "premium" ? "add" : "floor"),
         dailySpend: result.data.dailySpend ?? [],
         byApp: result.data.byApp ?? [],
       });
@@ -153,6 +170,21 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
     }
   }
 
+  function formatGrantWhen(iso: string | null): string {
+    if (!iso) return t("Soon");
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return t("Soon");
+    try {
+      return new Intl.DateTimeFormat(lang === "fi" ? "fi-FI" : "en-GB", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }).format(d);
+    } catch {
+      return iso.slice(0, 10);
+    }
+  }
+
   function formatSpendUsd(amount: number): string {
     if (amount < 0.01) return `$${amount.toFixed(4)}`;
     return `$${amount.toFixed(2)}`;
@@ -168,22 +200,15 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
         slug: slug || key,
         title: row.title?.trim() || slug || t("Unknown app"),
         iconId: row.iconId,
-        createUsd: 0,
-        editUsd: 0,
-        intentUsd: 0,
-        iconUsd: 0,
-        runtimeUsd: 0,
+        creatingUsd: 0,
+        usingUsd: 0,
         totalUsd: 0,
       };
       if (row.title?.trim()) cur.title = row.title.trim();
       if (row.iconId) cur.iconId = row.iconId;
-      if (row.kind === "create") cur.createUsd += row.spentUsd;
-      else if (row.kind === "edit") cur.editUsd += row.spentUsd;
-      else if (row.kind === "intent") cur.intentUsd += row.spentUsd;
-      else if (row.kind === "icon") cur.iconUsd += row.spentUsd;
-      else cur.runtimeUsd += row.spentUsd;
-      cur.totalUsd =
-        cur.createUsd + cur.editUsd + cur.intentUsd + cur.iconUsd + cur.runtimeUsd;
+      if (row.kind === "runtime") cur.usingUsd += row.spentUsd;
+      else cur.creatingUsd += row.spentUsd;
+      cur.totalUsd = cur.creatingUsd + cur.usingUsd;
       map.set(key, cur);
     }
     return [...map.values()].sort((a, b) => b.totalUsd - a.totalUsd);
@@ -199,6 +224,64 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
       route(splashUrl(lang), true);
     } finally {
       setLogoutBusy(false);
+    }
+  }
+
+  async function handleCancelPremium() {
+    if (cancelBusy || !credits || credits.plan !== "premium") return;
+    setCancelBusy(true);
+    try {
+      const result = await apiFetch<{ plan: string; balanceUsd: number; grantUsd: number }>(
+        `/api/${lang}/billing/cancel-premium`,
+        { method: "POST", body: "{}" },
+      );
+      if (!result.success) return;
+      await refreshSessionUser();
+      setCredits((prev) =>
+        prev
+          ? {
+              ...prev,
+              plan: "free",
+              planSource: null,
+              grantUsd: result.data.grantUsd,
+              balanceUsd: result.data.balanceUsd,
+              nextGrantUsd: result.data.grantUsd,
+              nextGrantMode: "floor",
+            }
+          : prev,
+      );
+      // Reload full snapshot (next grant date, etc.)
+      const snap = await apiFetch<{
+        balanceUsd: number;
+        freeGrantUsd: number;
+        grantUsd?: number;
+        plan?: "free" | "premium";
+        planSource?: "gift" | "polar" | null;
+        periodYm: string;
+        nextGrantAt?: string | null;
+        nextGrantUsd?: number;
+        nextGrantMode?: "add" | "floor";
+        dailySpend?: CreditDailySpend[];
+        byApp?: CreditAppSpend[];
+      }>(`/api/${lang}/credits`);
+      if (snap.success) {
+        setCredits({
+          balanceUsd: snap.data.balanceUsd,
+          freeGrantUsd: snap.data.freeGrantUsd,
+          grantUsd: snap.data.grantUsd ?? snap.data.freeGrantUsd,
+          plan: snap.data.plan ?? "free",
+          planSource: snap.data.planSource ?? null,
+          periodYm: snap.data.periodYm,
+          nextGrantAt: snap.data.nextGrantAt ?? null,
+          nextGrantUsd: snap.data.nextGrantUsd ?? snap.data.grantUsd ?? snap.data.freeGrantUsd,
+          nextGrantMode: snap.data.nextGrantMode ?? "floor",
+          dailySpend: snap.data.dailySpend ?? [],
+          byApp: snap.data.byApp ?? [],
+        });
+      }
+      (document.getElementById("me-cancel-premium") as HTMLDialogElement | null)?.close();
+    } finally {
+      setCancelBusy(false);
     }
   }
 
@@ -366,33 +449,75 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
 
             ${credits
               ? html`
-                <section class="panel credits" ui-column="gap-lg">
-                  <header class="credits-head" ui-row="x-between y-start gap-md">
-                    <div ui-column="gap-sm">
-                      <div ui-row="gap-sm y-center wrap">
-                        <h2 class="panel-title">${t("AI credit")}</h2>
-                        <span class=${`plan-badge${credits.plan === "premium" ? " is-premium" : ""}`}>
-                          ${credits.plan === "premium" ? t("Premium") : t("Free")}
-                        </span>
+                <section class="panel plan" ui-column="gap-lg">
+                  <header ui-column="gap-xs">
+                    <h2 class="panel-title">${t("Plan")}</h2>
+                    <p class="panel-lede">${t("Choose Free or Premium. You can change this anytime.")}</p>
+                  </header>
+
+                  <div class="plan-grid">
+                    <article class=${`plan-card${credits.plan === "free" ? " is-current" : ""}`}>
+                      <div ui-column="gap-sm">
+                        <div ui-row="gap-sm y-center x-between">
+                          <h3 class="plan-card-title">${t("Free")}</h3>
+                          ${credits.plan === "free"
+                            ? html`<span class="plan-badge">${t("Current")}</span>`
+                            : ""}
+                        </div>
+                        <p class="plan-card-price">${formatUsdAmount(0)}<span>/mo</span></p>
+                        <p class="plan-card-copy">
+                          ${t("Tops up to $amount / mo", {
+                            amount: formatUsdAmount(FREE_GRANT_USD),
+                          })}
+                        </p>
                       </div>
-                      <p class="credits-balance">$${credits.balanceUsd.toFixed(2)}</p>
-                      <p class="credits-grant">
-                        ${credits.plan === "premium"
-                          ? t("+$amount added each month", {
-                              amount: `$${credits.grantUsd.toFixed(2)}`,
-                            })
-                          : t("Tops up to $amount each month", {
-                              amount: `$${credits.grantUsd.toFixed(2)}`,
-                            })}
-                      </p>
                       ${credits.plan === "premium"
                         ? html`
-                          <p class="credits-grant-note">
-                            ${t("Unused Premium credit stacks — it doesn’t reset to zero.")}
-                          </p>`
-                        : ""}
-                    </div>
-                    <div ui-row="gap-sm wrap y-start">
+                          <button
+                            type="button"
+                            ui-button="sm"
+                            commandfor="me-cancel-premium"
+                            command="show-modal"
+                          >
+                            ${t("Switch to Free")}
+                          </button>`
+                        : html`<p class="plan-card-status">${t("Your current plan")}</p>`}
+                    </article>
+
+                    <article class=${`plan-card plan-card-premium${credits.plan === "premium" ? " is-current" : ""}`}>
+                      <div ui-column="gap-sm">
+                        <div ui-row="gap-sm y-center x-between">
+                          <h3 class="plan-card-title" ui-row="gap-sm y-center">
+                            <i ui-icon="crown-simple" aria-hidden="true"></i>
+                            ${t("Premium")}
+                          </h3>
+                          ${credits.plan === "premium"
+                            ? html`<span class="plan-badge is-premium">${t("Current")}</span>`
+                            : ""}
+                        </div>
+                        <p class="plan-card-price">
+                          ${formatUsdAmount(PREMIUM_PRICE_USD)}<span>/mo</span>
+                        </p>
+                        <p class="plan-card-copy">
+                          ${t("+$amount AI credit / mo · stacks", {
+                            amount: formatUsdAmount(PREMIUM_GRANT_USD),
+                          })}
+                        </p>
+                        ${credits.plan === "premium"
+                          ? html`
+                            <p class="plan-card-billing-line">
+                              ${t("Next bill on $date", {
+                                date: formatGrantWhen(credits.nextGrantAt),
+                              })}
+                            </p>
+                            ${credits.planSource !== "polar"
+                              ? html`
+                                <p class="plan-card-billing-note">
+                                  ${t("Early access — Premium isn’t charged yet.")}
+                                </p>`
+                              : ""}`
+                          : ""}
+                      </div>
                       ${credits.plan !== "premium"
                         ? html`
                           <button
@@ -403,12 +528,68 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                             ${t("Get Premium")}
                           </button>`
                         : html`
-                          <span class="credits-premium-note">${t("You're on Premium")}</span>`}
-                    </div>
+                          <button
+                            type="button"
+                            ui-button="sm"
+                            commandfor="me-cancel-premium"
+                            command="show-modal"
+                          >
+                            ${t("Cancel Premium")}
+                          </button>`}
+                    </article>
+                  </div>
+
+                  <dialog id="me-cancel-premium" ui-dialog="xs" closedby="any">
+                    <header ui-row="x-between y-center gap-md">
+                      <h2 ui-heading="sm">${t("Cancel Premium?")}</h2>
+                      <button
+                        type="button"
+                        ui-button="inline"
+                        ui-icon="x"
+                        commandfor="me-cancel-premium"
+                        command="close"
+                        aria-label=${t("Close")}
+                      ></button>
+                    </header>
+                    <p>
+                      ${t("You’ll move to Free. Remaining AI credit stays. Monthly top-up changes to the Free amount.")}
+                    </p>
+                    <footer ui-row="gap-sm x-end wrap">
+                      <button type="button" commandfor="me-cancel-premium" command="close">
+                        ${t("Keep Premium")}
+                      </button>
+                      <button
+                        type="button"
+                        ui-button="primary"
+                        aria-busy=${cancelBusy ? "true" : undefined}
+                        disabled=${cancelBusy}
+                        onClick=${() => void handleCancelPremium()}
+                      >
+                        ${t("Switch to Free")}
+                      </button>
+                    </footer>
+                  </dialog>
+                </section>
+
+                <section class="panel credits" ui-column="gap-lg">
+                  <header class="credits-head" ui-column="gap-sm">
+                    <h2 class="panel-title">${t("AI credit")}</h2>
+                    <p class="credits-balance">$${credits.balanceUsd.toFixed(2)}</p>
+                    <p class="credits-next">
+                      ${credits.nextGrantMode === "add"
+                        ? t("Next: +$amount on $date", {
+                            amount: formatUsdAmount(credits.nextGrantUsd),
+                            date: formatGrantWhen(credits.nextGrantAt),
+                          })
+                        : t("Next: tops up to $amount on $date", {
+                            amount: formatUsdAmount(credits.nextGrantUsd),
+                            date: formatGrantWhen(credits.nextGrantAt),
+                          })}
+                    </p>
                   </header>
 
                   <div class="credits-usage" ui-column="gap-md">
-                    <h3 class="credits-usage-title">${t("Daily usage")}</h3>
+                    <h3 class="credits-usage-title">${t("Usage history")}</h3>
                     ${credits.dailySpend.length > 0
                       ? html`
                         <ul class="credits-days" ui-off>
@@ -465,39 +646,18 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                                 <div class="credits-app-body">
                                   <strong class="credits-app-name">${app.title}</strong>
                                   <dl class="credits-app-meta">
-                                    ${app.createUsd > 0
+                                    ${app.creatingUsd > 0
                                       ? html`
                                         <div>
-                                          <dt>${t("Create credit")}</dt>
-                                          <dd>${formatSpendUsd(app.createUsd)}</dd>
+                                          <dt>${t("Creating")}</dt>
+                                          <dd>${formatSpendUsd(app.creatingUsd)}</dd>
                                         </div>`
                                       : ""}
-                                    ${app.editUsd > 0
-                                      ? html`
-                                        <div>
-                                          <dt>${t("Edit credit")}</dt>
-                                          <dd>${formatSpendUsd(app.editUsd)}</dd>
-                                        </div>`
-                                      : ""}
-                                    ${app.intentUsd > 0
-                                      ? html`
-                                        <div>
-                                          <dt>${t("Routing")}</dt>
-                                          <dd>${formatSpendUsd(app.intentUsd)}</dd>
-                                        </div>`
-                                      : ""}
-                                    ${app.iconUsd > 0
-                                      ? html`
-                                        <div>
-                                          <dt>${t("Icon credit")}</dt>
-                                          <dd>${formatSpendUsd(app.iconUsd)}</dd>
-                                        </div>`
-                                      : ""}
-                                    ${app.runtimeUsd > 0
+                                    ${app.usingUsd > 0
                                       ? html`
                                         <div>
                                           <dt>${t("Using")}</dt>
-                                          <dd>${formatSpendUsd(app.runtimeUsd)}</dd>
+                                          <dd>${formatSpendUsd(app.usingUsd)}</dd>
                                         </div>`
                                       : ""}
                                   </dl>
@@ -661,6 +821,104 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
 
       .credits-head {
         align-items: flex-start;
+      }
+
+      .credits-next {
+        margin: 0;
+        font-size: 0.9375rem;
+        line-height: 1.4;
+        color: var(--neutral-600);
+      }
+
+      .plan-grid {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: 1fr;
+      }
+
+      @media (min-width: 560px) {
+        .plan-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .plan-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 1rem;
+        min-width: 0;
+        padding: 1.1rem 1.05rem 1.15rem;
+        border-radius: 0.95rem;
+        border: 1px solid var(--neutral-200);
+        background: var(--neutral-50);
+      }
+
+      .plan-card.is-current {
+        border-color: color-mix(in oklab, var(--primary-400) 55%, var(--neutral-200));
+        background: color-mix(in oklab, var(--primary-50) 70%, var(--white));
+      }
+
+      .plan-card-premium.is-current {
+        border-color: color-mix(in oklab, var(--primary-500) 45%, var(--neutral-200));
+      }
+
+      .plan-card-title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 750;
+        letter-spacing: -0.02em;
+        color: var(--neutral-950);
+      }
+
+      .plan-card-title [ui-icon] {
+        color: var(--primary-700);
+      }
+
+      .plan-card-price {
+        margin: 0;
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        font-variant-numeric: tabular-nums;
+        color: var(--neutral-950);
+      }
+
+      .plan-card-price span {
+        margin-left: 0.15rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        color: var(--neutral-500);
+      }
+
+      .plan-card-copy,
+      .plan-card-note,
+      .plan-card-status {
+        margin: 0;
+        font-size: 0.875rem;
+        line-height: 1.4;
+        color: var(--neutral-600);
+      }
+
+      .plan-card-note {
+        font-size: 0.8125rem;
+        color: var(--neutral-500);
+      }
+
+      .plan-card-billing-line {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 650;
+        line-height: 1.35;
+        color: var(--neutral-800);
+      }
+
+      .plan-card-billing-note {
+        margin: 0;
+        font-size: 0.75rem;
+        line-height: 1.35;
+        color: var(--neutral-500);
       }
 
       .credits-head > [ui-button] {

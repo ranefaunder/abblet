@@ -6,6 +6,11 @@ import {
 } from "/server/database/queries/credits";
 import { dbGetUserPlan } from "/server/database/queries/entitlements";
 import { AiRequestError } from "/utils/ai-core.server";
+import {
+  addCalendarMonthsUtc,
+  parseIsoDate,
+  utcDayOfMonth,
+} from "/utils/credit-period";
 
 const USD_MICROS = 1_000_000;
 
@@ -216,16 +221,43 @@ export function getCreditsSnapshot(userId: string): {
   freeGrantUsd: number;
   grantUsd: number;
   plan: UserPlan;
+  planSource: "gift" | "polar" | null;
+  /** ISO timestamp of the next anniversary grant (after ensuring due grants). */
+  nextGrantAt: string | null;
+  nextGrantUsd: number;
+  nextGrantMode: "add" | "floor";
 } {
   const plan = userPlan(userId);
   const balanceUsdMicros = ensureMonthlyPlanGrant(userId);
   const grantUsd = getPlanGrantUsd(plan);
+  const planRow = dbGetUserPlan(userId);
+  const planSource =
+    planRow?.plan_source === "gift" || planRow?.plan_source === "polar"
+      ? planRow.plan_source
+      : null;
+  const row = dbGetCreditBalance(userId);
+  const grantAt = row?.credit_grant_at ? parseIsoDate(row.credit_grant_at) : null;
+  const anchorDay =
+    typeof row?.credit_period_anchor_day === "number" &&
+    row.credit_period_anchor_day >= 1 &&
+    row.credit_period_anchor_day <= 31
+      ? row.credit_period_anchor_day
+      : grantAt
+        ? utcDayOfMonth(grantAt)
+        : utcDayOfMonth(new Date());
+  const nextGrantAt = grantAt
+    ? addCalendarMonthsUtc(grantAt, 1, anchorDay).toISOString()
+    : null;
   return {
     balanceUsdMicros,
     balanceUsd: usdMicrosToUsd(balanceUsdMicros),
     periodYm: currentPeriodYm(),
-    freeGrantUsd: grantUsd,
+    freeGrantUsd: getFreeGrantUsd(),
     grantUsd,
     plan,
+    planSource,
+    nextGrantAt,
+    nextGrantUsd: grantUsd,
+    nextGrantMode: plan === "premium" ? "add" : "floor",
   };
 }

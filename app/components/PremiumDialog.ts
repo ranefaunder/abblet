@@ -149,8 +149,11 @@ export default function PremiumDialog({
             disabled
             readonly
             autocomplete="off"
+            aria-invalid=${error ? "true" : undefined}
+            aria-errormessage="premium-gift-error"
           />
-          ${error ? html`<p role="error">${error}</p>` : html`<p></p>`}
+          <p></p>
+          <p id="premium-gift-error" role="error">${error ?? ""}</p>
         </div>
       </form>
 

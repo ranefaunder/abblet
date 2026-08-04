@@ -8,6 +8,7 @@ import {
 import {
   dbAddCreditsGrant,
   dbBumpBalanceToGrant,
+  dbGetCreditBalance,
 } from "/server/database/queries/credits";
 import { db } from "/server/database/db";
 import {
@@ -51,6 +52,17 @@ export function setUserPlan(
     giftCodeId: opts.giftCodeId,
     updatedAt: new Date().toISOString(),
   });
+}
+
+/** Downgrade Premium → Free (gift early-access cancel; Polar later uses portal). */
+export function cancelPremiumPlan(userId: string):
+  | { ok: true; plan: "free" }
+  | { ok: false; code: "NOT_PREMIUM" } {
+  if (getUserPlan(userId) !== "premium") {
+    return { ok: false, code: "NOT_PREMIUM" };
+  }
+  setUserPlan(userId, "free", { source: null });
+  return { ok: true, plan: "free" };
 }
 
 /**
@@ -108,7 +120,14 @@ export function redeemGiftForPremium(userId: string, code: string):
     return { ok: false, code: map[result.reason] };
   }
 
-  const { balanceUsdMicros } = applyPlanGrant(userId, "premium");
+  // First redeem: grant Premium credit + reset anniversary.
+  // Re-activate after cancel: keep wallet & clock (no Free↔Premium grant pump).
+  const { balanceUsdMicros } = result.reactivated
+    ? {
+        balanceUsdMicros:
+          dbGetCreditBalance(userId)?.credit_balance_usd_micros ?? 0,
+      }
+    : applyPlanGrant(userId, "premium");
   return {
     ok: true,
     plan: "premium",
