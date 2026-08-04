@@ -418,7 +418,7 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
             </section>`
           : html`
             <section ui-column="gap-md">
-              <h2 class="section-title">${t("My Apps")}</h2>
+              <h2 class="section-title">${t("Edit my apps")}</h2>
               ${ownedNonGames.length === 0
                 ? html`
                   <div class="panel empty" ui-column="gap-sm">
@@ -428,12 +428,12 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                 : html`
                   <${AppGrid}
                     items=${ownedAppGridItems}
-                    label=${t("My Apps")}
+                    label=${t("Edit my apps")}
                   />`}
             </section>
 
             <section ui-column="gap-md">
-              <h2 class="section-title">${t("My Games")}</h2>
+              <h2 class="section-title">${t("Edit my games")}</h2>
               ${ownedGames.length === 0
                 ? html`
                   <div class="panel empty" ui-column="gap-sm">
@@ -443,7 +443,7 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                 : html`
                   <${AppGrid}
                     items=${ownedGameGridItems}
-                    label=${t("My Games")}
+                    label=${t("Edit my games")}
                   />`}
             </section>
 

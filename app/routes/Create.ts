@@ -335,33 +335,36 @@ export default function Create(_props: CreateRouteProps) {
 
   const view = html`
     <div data-scope="Create">
-      ${toolbar}
-      <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
+      <div class="content" ui-column="gap-md" ui-padding="inline-md">
         <header class="page-head" ui-column="gap-sm">
           <h1 class="page-title">${pageTitle}</h1>
           <p class="page-lede">${pageLede}</p>
         </header>
 
-        ${isNew
-          ? html`<${CreateWorkspace} slug="" creating=${true} lang=${lang} />`
-          : loading && !app
-            ? html`
-              <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
-                <i ui-icon="spinner lg"></i>
-                <p>${t("Loading…")}</p>
-              </div>`
-            : !app
+        <div class="create-body" ui-column="gap-2xl">
+          ${toolbar}
+
+          ${isNew
+            ? html`<${CreateWorkspace} slug="" creating=${true} lang=${lang} />`
+            : loading && !app
               ? html`
                 <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
-                  <p>${editError.value ?? t("App not found")}</p>
+                  <i ui-icon="spinner lg"></i>
+                  <p>${t("Loading…")}</p>
                 </div>`
-              : !app.canEdit
+              : !app
                 ? html`
                   <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
-                    <p ui-heading="sm">${t("You can only edit your own apps.")}</p>
-                    <a href=${openAppUrl(lang, slug, { app })} ui-button>${t("Open app")}</a>
+                    <p>${editError.value ?? t("App not found")}</p>
                   </div>`
-                : html`<${CreateWorkspace} slug=${slug} creating=${creating} lang=${lang} />`}
+                : !app.canEdit
+                  ? html`
+                    <div class="state" ui-column="gap-md x-center y-center" ui-padding="xl">
+                      <p ui-heading="sm">${t("You can only edit your own apps.")}</p>
+                      <a href=${openAppUrl(lang, slug, { app })} ui-button>${t("Open app")}</a>
+                    </div>`
+                  : html`<${CreateWorkspace} slug=${slug} creating=${creating} lang=${lang} />`}
+        </div>
       </div>
 
       ${showReadyTools && app && !isDraftConfig(app.config)
@@ -899,7 +902,7 @@ function style() {
       }
 
       .content {
-        padding-top: 1.35rem;
+        padding-top: 1rem;
         max-width: 48rem;
         margin-inline: auto;
         width: 100%;
@@ -908,19 +911,29 @@ function style() {
 
       .toolbar {
         position: sticky;
-        top: env(safe-area-inset-top, 0px);
+        top: 0.4rem;
         z-index: 40;
-        background: #0b0b0c;
-        color: #fff;
+        box-sizing: border-box;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        pointer-events: none;
       }
 
       .toolbar-inner {
+        pointer-events: auto;
         display: flex;
         align-items: center;
-        gap: 0.625rem;
-        max-width: 48rem;
-        margin-inline: auto;
-        padding: 0.75rem 1rem;
+        gap: 0.5rem;
+        margin: 0;
+        padding: 0.4rem 0.45rem 0.4rem 0.55rem;
+        border-radius: 1.05rem;
+        background: #0b0b0c;
+        color: #fff;
+        box-shadow:
+          0 0 0 1px color-mix(in oklab, var(--neutral-950) 8%, transparent),
+          0 10px 28px color-mix(in oklab, var(--neutral-950) 18%, transparent);
         box-sizing: border-box;
       }
 
@@ -932,7 +945,7 @@ function style() {
         display: flex;
         align-items: center;
         justify-content: flex-start;
-        gap: 0.15rem;
+        gap: 0.1rem;
         flex: 1 1 auto;
         min-width: 0;
       }
@@ -944,11 +957,11 @@ function style() {
         justify-content: flex-start;
         gap: 0.45rem;
         flex: none;
-        min-height: 2.75rem;
+        min-height: 2.5rem;
         margin: 0;
         border: 0;
-        border-radius: 0.75rem;
-        padding: 0.5rem 0.7rem;
+        border-radius: 0.7rem;
+        padding: 0.45rem 0.65rem;
         background: transparent;
         color: rgba(255, 255, 255, 0.88);
         font: inherit;
@@ -1044,8 +1057,8 @@ function style() {
         appearance: none;
         anchor-name: --create-tb-more;
         flex: none;
-        width: 2.75rem;
-        height: 2.75rem;
+        width: 2.5rem;
+        height: 2.5rem;
         margin: 0;
         padding: 0;
         border: 0;

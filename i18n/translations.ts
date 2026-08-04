@@ -30,6 +30,12 @@ export const translations = {
   "My Games": {
     fi: "Omat pelit",
   },
+  "Edit my apps": {
+    fi: "Muokkaa appejani",
+  },
+  "Edit my games": {
+    fi: "Muokkaa pelejäni",
+  },
   "Mine": {
     fi: "Omat",
   },
