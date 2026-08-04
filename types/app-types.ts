@@ -61,9 +61,11 @@ export interface StoreAppCard {
   updatedAt: string;
 }
 
-/** Full Store detail payload for /apps/:slug. */
+/** Full Store detail payload for /apps/:slug (or /apps/:uuid for owner drafts). */
 export interface StoreAppDetail extends StoreAppCard {
   ownerId: string;
-  /** Published Web Component source (public; same as /module.js). */
+  /** Published Web Component source (public; same as /module.js). Owner drafts use latest. */
   code: string;
+  visibility: AppVisibility;
+  publishedVersionId: string | null;
 }

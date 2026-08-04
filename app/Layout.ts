@@ -3,6 +3,7 @@ import { h } from "preact";
 import { html, css } from "/utils/markup";
 import Dialogs from "/app/components/Dialogs";
 import TabBar from "/app/components/TabBar";
+import AppHeader from "/app/components/AppHeader";
 
 /** Soft page wash — Games-style dual radial, tinted per route. */
 export type Atmosphere =
@@ -33,6 +34,7 @@ export default function Layout({
       data-scope="Layout"
       class=${`${tabBar ? "with-tabs" : "no-tabs"} atm-${atmosphere}`}
     >
+      ${tabBar ? html`<${AppHeader} />` : null}
       <main class="shell">${children}</main>
       ${tabBar ? html`<${TabBar} />` : null}
       <${Dialogs} />
@@ -53,7 +55,10 @@ export default function Layout({
         display: flex;
         flex-direction: column;
         min-width: 0;
-        /* iPhone PWA / notch — status bar must not cover page titles */
+      }
+
+      &.no-tabs .shell {
+        /* Splash / login — status bar must not cover content */
         padding-top: env(safe-area-inset-top, 0px);
       }
 

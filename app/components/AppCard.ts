@@ -26,7 +26,7 @@ export default function AppCard({
       style=${`--card-gradient: ${previewGradient(app.slug)}; --card-accent: ${draftAccentColor(app.slug)}`}
     >
       <span class="card-glow" aria-hidden="true"></span>
-      <span class="card-body" ui-column="gap-md">
+      <span class="card-body" ui-column="gap-sm">
         <small>${eyebrow}</small>
         <strong>${app.title}</strong>
         <p>${app.tagline || app.description}</p>
@@ -51,10 +51,10 @@ export default function AppCard({
         display: grid;
         grid-template-columns: 1fr auto;
         align-items: end;
-        gap: 1rem;
-        min-height: 14rem;
-        padding: 1.35rem 1.25rem 1.25rem;
-        border-radius: 1.75rem;
+        gap: 0.85rem;
+        min-height: 11.5rem;
+        padding: 1.1rem 1.15rem 1.05rem;
+        border-radius: 1.5rem;
         text-decoration: none;
         color: var(--white);
         overflow: hidden;
@@ -86,7 +86,7 @@ export default function AppCard({
       }
 
       .card-body > strong {
-        font-size: clamp(1.6rem, 5vw, 2.1rem);
+        font-size: clamp(1.45rem, 4.5vw, 1.9rem);
         letter-spacing: -0.035em;
         line-height: 1.05;
         display: -webkit-box;
@@ -123,13 +123,13 @@ export default function AppCard({
         z-index: 1;
         display: grid;
         place-items: center;
-        width: 7.5rem;
-        height: 7.5rem;
-        border-radius: 1.85rem;
+        width: 6.5rem;
+        height: 6.5rem;
+        border-radius: 1.55rem;
         overflow: hidden;
         color: var(--white);
         font-weight: 800;
-        font-size: 2.35rem;
+        font-size: 2rem;
         box-shadow: 0 10px 24px color-mix(in oklab, var(--neutral-950) 12%, transparent);
         animation: app-card-float 3.2s ease-in-out infinite;
       }

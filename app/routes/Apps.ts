@@ -6,7 +6,7 @@ import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import { type AppCategory, isAppCategory } from "/utils/app-categories";
 import { appsAppUrl, createUrl } from "/utils/app-url";
-import type { StoreAppCard } from "/types/app-types";
+import type { AppSummary, StoreAppCard } from "/types/app-types";
 import {
   storeApps,
   storeCategory,
@@ -16,10 +16,13 @@ import {
   openHistory,
   loadStore,
   loadOpenHistory,
+  ensureStoreBrowseScope,
 } from "/app/stores/storeListingStore";
 import AppSlider from "/app/components/AppSlider";
 import AppList from "/app/components/AppList";
 import AppCard from "/app/components/AppCard";
+import { apps as libraryApps, loadApps } from "/app/stores/appStore";
+import { isLoggedIn } from "/app/stores/userStore";
 
 export const AppsPath = "/:lang/apps" as const;
 
@@ -44,6 +47,12 @@ function toSliderItems(list: StoreAppCard[], lang: string) {
     iconId: app.iconId,
     href: appsAppUrl(lang, app.slug),
   }));
+}
+
+/** Store detail: published → slug URL; unpublished → UUID capability URL. */
+function ownedAppHref(app: AppSummary, lang: string): string {
+  if (app.visibility === "public") return appsAppUrl(lang, app.slug);
+  return appsAppUrl(lang, app.id);
 }
 
 function byPopularity(a: StoreAppCard, b: StoreAppCard): number {
@@ -76,14 +85,16 @@ function groupByCategory(apps: StoreAppCard[]): { category: AppCategory; apps: S
 /**
  * Browse hierarchy (default):
  * 1. AppCard — one featured highlight
- * 2. AppSlider — recently used (personal, if any)
- * 3. AppList — popular charts (ranked)
- * 4. AppSlider — new apps
- * 5. AppSlider × categories — browse by topic
+ * 2. AppSlider — My Apps (owned, if any)
+ * 3. AppSlider — recently used (personal, if any)
+ * 4. AppList — popular charts (ranked)
+ * 5. AppSlider — new apps
+ * 6. AppSlider × categories — browse by topic
  *
  * Filtered / search: single AppList.
  */
 export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
+  ensureStoreBrowseScope("apps");
   const { path } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
   const apps = storeApps.value;
@@ -91,34 +102,30 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
   const category = storeCategory.value;
   const history = openHistory.value;
   const isDefaultBrowse = !storeQuery.value.trim() && !category;
+  const myApps = libraryApps.value.filter(
+    (app) => app.owned && app.category !== "Games",
+  );
 
   const ranked = [...apps].sort(byPopularity);
   const featured = isDefaultBrowse ? (ranked[0] ?? null) : null;
-  const featuredSlug = featured?.slug ?? null;
-  const withoutFeatured = featuredSlug
-    ? apps.filter((a) => a.slug !== featuredSlug)
-    : apps;
 
-  const popular = [...withoutFeatured].sort(byPopularity).slice(0, 10);
-  const newest = [...withoutFeatured].sort(byNewest).slice(0, 12);
+  const popular = [...apps].sort(byPopularity).slice(0, 10);
+  const newest = [...apps].sort(byNewest).slice(0, 12);
   const categoryGroups = isDefaultBrowse
-    ? groupByCategory(withoutFeatured.filter((a) => a.category !== "Games")).slice(0, 4)
+    ? groupByCategory(apps.filter((a) => a.category !== "Games")).slice(0, 4)
     : [];
   const filteredList = !isDefaultBrowse ? [...apps].sort(byPopularity) : [];
 
   useEffect(() => {
     void loadStore({ category: null, excludeCategory: "Games" });
     void loadOpenHistory({ excludeCategory: "Games" });
+    if (isLoggedIn()) void loadApps();
   }, []);
-
-  function selectCategory(next: AppCategory | null) {
-    void loadStore({ category: next, excludeCategory: next ? null : "Games" });
-  }
 
   const view = html`
     <div data-scope="Apps">
-      <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
-        <header class="page-head" ui-column="gap-sm">
+      <div class="content" ui-column="gap-xl" ui-padding="inline-md">
+        <header class="page-head" ui-column="gap-xs">
           <h1 class="page-title">${t("Apps")}</h1>
           <p class="page-lede">${t("Discover apps made by others")}</p>
         </header>
@@ -154,9 +161,25 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
                       </section>`
                     : ""}
 
+                  ${myApps.length > 0
+                    ? html`
+                      <section ui-column="gap-xs">
+                        <h2 ui-heading="sm">${t("My Apps")}</h2>
+                        <${AppSlider}
+                          label=${t("My Apps")}
+                          items=${myApps.map((app) => ({
+                            slug: app.slug,
+                            title: app.title,
+                            iconId: app.iconId,
+                            href: ownedAppHref(app, lang),
+                          }))}
+                        />
+                      </section>`
+                    : ""}
+
                   ${history.length > 0
                     ? html`
-                      <section ui-column="gap-sm">
+                      <section ui-column="gap-xs">
                         <h2 ui-heading="sm">${t("Recently used")}</h2>
                         <${AppSlider}
                           label=${t("Recently used")}
@@ -172,7 +195,7 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
 
                   ${popular.length > 0
                     ? html`
-                      <section ui-column="gap-sm">
+                      <section ui-column="gap-xs">
                         <h2 ui-heading="sm">${t("Popular apps")}</h2>
                         <${AppList}
                           ranked
@@ -184,7 +207,7 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
 
                   ${newest.length > 0
                     ? html`
-                      <section ui-column="gap-sm">
+                      <section ui-column="gap-xs">
                         <h2 ui-heading="sm">${t("New & Noteworthy")}</h2>
                         <${AppSlider}
                           label=${t("New & Noteworthy")}
@@ -195,17 +218,8 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
 
                   ${categoryGroups.map(
                     (group) => html`
-                      <section ui-column="gap-sm">
-                        <div ui-row="x-between y-center gap-md">
-                          <h2 ui-heading="sm">${categoryLabel(group.category)}</h2>
-                          <button
-                            type="button"
-                            ui-button="inline sm"
-                            onClick=${() => selectCategory(group.category)}
-                          >
-                            ${t("See all")}
-                          </button>
-                        </div>
+                      <section ui-column="gap-xs">
+                        <h2 ui-heading="sm">${categoryLabel(group.category)}</h2>
                         <${AppSlider}
                           label=${categoryLabel(group.category)}
                           items=${toSliderItems(group.apps, lang)}
@@ -213,7 +227,7 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
                       </section>`,
                   )}`
                 : html`
-                  <section ui-column="gap-sm">
+                  <section ui-column="gap-xs">
                     <h2 ui-heading="sm">
                       ${category
                         ? categoryLabel(category)
@@ -242,7 +256,8 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
       }
 
       .content {
-        padding-top: 1.35rem;
+        padding-top: 1rem;
+        padding-bottom: 0.5rem;
         max-width: 48rem;
         margin-inline: auto;
         width: 100%;
@@ -251,7 +266,7 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
 
       .page-title {
         margin: 0;
-        font-size: clamp(2.1rem, 6vw, 2.75rem);
+        font-size: clamp(1.85rem, 5.5vw, 2.4rem);
         font-weight: 800;
         letter-spacing: -0.05em;
         line-height: 1;
@@ -260,8 +275,8 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
 
       .page-lede {
         margin: 0;
-        font-size: 1.05rem;
-        line-height: 1.4;
+        font-size: 0.975rem;
+        line-height: 1.35;
         color: var(--neutral-600);
       }
     }

@@ -10,6 +10,7 @@ import {
   gamesUrl,
   meUrl,
 } from "/utils/app-url";
+import { translations } from "/app/stores/i18nStore";
 
 type TabId = "create" | "apps" | "games" | "me" | "about";
 
@@ -40,6 +41,7 @@ export default function TabBar() {
   const lang = (getLang(path ?? "") ?? "en") as Language;
   const current = path ?? `/${lang}/`;
   const active = activeTab(current, lang);
+  void translations.value;
 
   const tabs: { id: TabId; label: string; href: string }[] = [
     { id: "apps", label: t("Apps"), href: appsUrl(lang) },

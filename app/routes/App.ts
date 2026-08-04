@@ -21,6 +21,8 @@ import {
 } from "/app/stores/storeListingStore";
 import AppSlider from "/app/components/AppSlider";
 import CodeViewDialog from "/app/components/CodeViewDialog";
+import PublishDialog, { openPublishDialog } from "/app/components/PublishDialog";
+import { editPublishing, setAppPublished } from "/app/stores/editStore";
 
 export const AppPath = "/:lang/apps/:slug" as const;
 export const GamePath = "/:lang/games/:slug" as const;
@@ -57,6 +59,8 @@ export default function App(_props: AppRouteProps) {
   const app = storeApp.value;
   const loading = storeAppLoading.value;
   const busy = storeBusy.value;
+  const publishing = editPublishing.value;
+  const isPrivateOwner = Boolean(app?.isOwner && app.visibility !== "public");
   const [shareLabel, setShareLabel] = useState(t("Share"));
   const [copiedFlash, setCopiedFlash] = useState(false);
 
@@ -87,7 +91,8 @@ export default function App(_props: AppRouteProps) {
 
   async function onShare() {
     if (!app) return;
-    const url = `${window.location.origin}${detailUrl(app.slug)}`;
+    const pathKey = app.visibility === "public" ? app.slug : app.id;
+    const url = `${window.location.origin}${detailUrl(pathKey)}`;
     const shareData = { title: app.title, text: app.tagline || app.title, url };
     try {
       if (typeof navigator.share === "function") {
@@ -108,6 +113,15 @@ export default function App(_props: AppRouteProps) {
     } catch {
       /* ignore */
     }
+  }
+
+  async function confirmPublish(): Promise<boolean> {
+    if (!app || publishing || app.visibility === "public") return false;
+    const ok = await setAppPublished(app.slug, true);
+    if (!ok) return false;
+    await loadStoreApp(app.slug);
+    route(detailUrl(app.slug));
+    return true;
   }
 
   const iconSrc = appIconSrc(app?.iconId);
@@ -158,7 +172,14 @@ export default function App(_props: AppRouteProps) {
                   <div class="actions" ui-column="gap-sm">
                     <div class="cta-row" ui-row="gap-sm wrap">
                       <a
-                        href=${openAppUrl(lang, app.slug)}
+                        href=${openAppUrl(lang, app.slug, {
+                          app: {
+                            id: app.id,
+                            slug: app.slug,
+                            visibility: app.visibility,
+                            publishedVersionId: app.publishedVersionId,
+                          },
+                        })}
                         ui-button="primary"
                         onClick=${() => recordAppOpen(app.slug)}
                       >${t("Open")}</a>
@@ -179,6 +200,34 @@ export default function App(_props: AppRouteProps) {
                 </div>
               </section>
 
+              ${isPrivateOwner
+                ? html`
+                  <section class="private-notice" ui-column="gap-md">
+                    <div class="private-head" ui-row="gap-sm y-center">
+                      <i ui-icon="lock-simple" aria-hidden="true"></i>
+                      <strong>${t("Private")}</strong>
+                    </div>
+                    <div class="private-copy" ui-column="gap-xs">
+                      <p>${t("This app is private — not published to the Store.")}</p>
+                      <p>
+                        ${t(
+                          "It only opens with the long UUID link, if someone knows it. It does not appear in Store listings.",
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      ui-button="primary"
+                      disabled=${publishing}
+                      aria-busy=${publishing}
+                      onClick=${() => openPublishDialog()}
+                    >
+                      ${t("Publish to Store")}
+                    </button>
+                  </section>
+                  <${PublishDialog} publishing=${publishing} onConfirm=${confirmPublish} />`
+                : ""}
+
               ${storeAppError.value
                 ? html`<p class="error" role="alert">${storeAppError.value}</p>`
                 : ""}
@@ -198,49 +247,56 @@ export default function App(_props: AppRouteProps) {
                   </p>`
                 : ""}
 
-              <section class="open-source">
-                <div class="open-source-bg" aria-hidden="true"></div>
-                <div class="open-source-mark" aria-hidden="true">
-                  <i ui-icon="copyleft 2xl"></i>
-                </div>
-                <div class="open-source-inner" ui-column="gap-md">
-                  <header class="open-source-head" ui-column="gap-sm">
-                    <p class="open-source-eyebrow">${t("Open source")}</p>
-                    <h2>${t("Proudly open source")}</h2>
-                    <p class="open-source-lede">
-                      ${t("Every app in the Store ships with its source. Read it, learn from it, remix it — under the Mozilla Public License 2.0.")}
-                    </p>
-                  </header>
-                  <div class="open-source-actions" ui-row="gap-sm y-center wrap">
+              ${app.visibility === "public"
+                ? html`
+                  <section class="open-source">
+                    <div class="open-source-bg" aria-hidden="true"></div>
+                    <div class="open-source-mark" aria-hidden="true">
+                      <i ui-icon="copyleft 2xl"></i>
+                    </div>
+                    <div class="open-source-inner" ui-column="gap-md">
+                      <header class="open-source-head" ui-column="gap-sm">
+                        <p class="open-source-eyebrow">${t("Open source")}</p>
+                        <h2>${t("Proudly open source")}</h2>
+                        <p class="open-source-lede">
+                          ${t("Every app in the Store ships with its source. Read it, learn from it, remix it — under the Mozilla Public License 2.0.")}
+                        </p>
+                      </header>
+                      <div class="open-source-actions" ui-row="gap-sm y-center wrap">
+                        ${app.code
+                          ? html`
+                            <button
+                              type="button"
+                              ui-button="sm"
+                              ui-icon="code"
+                              commandfor="store-code-dialog"
+                              command="show-modal"
+                            >
+                              ${t("View source")}
+                            </button>`
+                          : ""}
+                        <a
+                          href="https://www.mozilla.org/MPL/2.0/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          ui-button="tertiary sm"
+                        >${t("Mozilla Public License 2.0")}</a>
+                      </div>
+                    </div>
                     ${app.code
-                      ? html`
-                        <button
-                          type="button"
-                          ui-button="sm"
-                          ui-icon="code"
-                          commandfor="store-code-dialog"
-                          command="show-modal"
-                        >
-                          ${t("View source")}
-                        </button>`
+                      ? html`<${CodeViewDialog} id="store-code-dialog" code=${app.code} />`
                       : ""}
-                    <a
-                      href="https://www.mozilla.org/MPL/2.0/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      ui-button="tertiary sm"
-                    >${t("Mozilla Public License 2.0")}</a>
-                  </div>
-                </div>
-                ${app.code
-                  ? html`<${CodeViewDialog} id="store-code-dialog" code=${app.code} />`
-                  : ""}
-              </section>
+                  </section>`
+                : ""}
 
               <section class="share-row" ui-row="gap-sm y-center x-between wrap">
                 <div ui-column="gap-xs">
                   <strong>${t("Share this app")}</strong>
-                  <small>${t("Send the Store link to a friend.")}</small>
+                  <small>
+                    ${isPrivateOwner
+                      ? t("Anyone with this private link can open the app.")
+                      : t("Send the Store link to a friend.")}
+                  </small>
                 </div>
                 <button
                   type="button"
@@ -251,7 +307,7 @@ export default function App(_props: AppRouteProps) {
                 </button>
               </section>
 
-              ${!app.isOwner
+              ${!app.isOwner && app.visibility === "public"
                 ? html`
                   <section class="remix-pitch">
                     <div class="remix-pitch-bg" aria-hidden="true"></div>
@@ -277,7 +333,7 @@ export default function App(_props: AppRouteProps) {
                   </section>`
                 : ""}
 
-              ${related.length > 0
+              ${related.length > 0 && app.visibility === "public"
                 ? html`
                   <section ui-column="gap-sm">
                     <h2 ui-heading="sm">${t("More like this")}</h2>
@@ -416,6 +472,37 @@ export default function App(_props: AppRouteProps) {
         margin: 0;
         font-size: 0.8125rem;
         color: var(--neutral-500);
+      }
+
+      .private-notice {
+        padding: 1.1rem 1.15rem;
+        border-radius: 1.1rem;
+        border: 1px solid var(--neutral-200);
+        background: color-mix(in oklab, var(--neutral-100) 65%, var(--white));
+      }
+
+      .private-head {
+        color: var(--neutral-800);
+      }
+
+      .private-head strong {
+        font-size: 0.95rem;
+        letter-spacing: -0.01em;
+      }
+
+      .private-head [ui-icon] {
+        color: var(--neutral-600);
+      }
+
+      .private-copy p {
+        margin: 0;
+        color: var(--neutral-650, var(--neutral-600));
+        font-size: 0.9375rem;
+        line-height: 1.45;
+      }
+
+      .private-notice > [ui-button] {
+        width: fit-content;
       }
 
       .open-source {

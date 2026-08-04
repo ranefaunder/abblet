@@ -4,6 +4,7 @@ import {
   connectUrl as platformConnectUrl,
   type AppRuntimeRow,
 } from "/utils/app-host";
+import { AVAILABLE_LANGUAGES } from "/i18n/languages";
 
 /** Runtime URL for an app row (UUID host if unpublished, slug host if published). */
 export function appRuntimePageUrl(row: AppRuntimeRow): string {
@@ -148,11 +149,10 @@ export function storeAppUrl(lang: string, slug: string): string {
 }
 
 /**
- * SPA router scope. Site pages under /{lang}/ are handled client-side, plus the
- * app create views (/{lang}/create and /{lang}/create/{slug}). The bare app run page
- * (/{lang}/app/{slug} or /{slug}) is excluded so it does a full page load to the
- * standalone server-rendered runtime.
+ * SPA router scope for all site languages. Excludes /{lang}/app/:slug so that
+ * path does a full load to the standalone runtime (or legacy redirect).
  */
-export function spaRouterScope(lang: string): RegExp {
-  return new RegExp(`^/${lang}/(?!app/[^/]+$)`);
+export function spaRouterScope(_lang?: string): RegExp {
+  const langs = Object.keys(AVAILABLE_LANGUAGES).join("|");
+  return new RegExp(`^/(?:${langs})/(?!app/[^/]+$)`);
 }

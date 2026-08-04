@@ -386,6 +386,12 @@ export type CreditDailySpendRow = {
   spentUsdMicros: number;
 };
 
+export type CreditDailySpendSplitRow = {
+  day: string;
+  creatingUsdMicros: number;
+  usingUsdMicros: number;
+};
+
 /** Daily AI credit spend (debits only), newest first. */
 export function dbListDailyCreditSpend(
   userId: string,
@@ -412,6 +418,51 @@ export function dbListDailyCreditSpend(
     }));
 }
 
+/** Daily Creating vs Using spend (AI reasons only), newest first. */
+export function dbListDailyCreditSpendSplit(
+  userId: string,
+  limit = 730,
+): CreditDailySpendSplitRow[] {
+  return db
+    .query<
+      {
+        day: string;
+        creating_usd_micros: number;
+        using_usd_micros: number;
+      },
+      [string, number]
+    >(
+      `SELECT substr(created_at, 1, 10) as day,
+              SUM(
+                CASE
+                  WHEN reason IN ('ai_generate', 'ai_edit', 'ai_intent', 'ai_icon')
+                    THEN -delta_usd_micros
+                  ELSE 0
+                END
+              ) as creating_usd_micros,
+              SUM(
+                CASE
+                  WHEN reason = 'ai_runtime' THEN -delta_usd_micros
+                  ELSE 0
+                END
+              ) as using_usd_micros
+       FROM credit_ledger
+       WHERE user_id = ?
+         AND delta_usd_micros < 0
+         AND reason IN ('ai_generate', 'ai_edit', 'ai_intent', 'ai_icon', 'ai_runtime')
+       GROUP BY day
+       HAVING creating_usd_micros > 0 OR using_usd_micros > 0
+       ORDER BY day DESC
+       LIMIT ?`,
+    )
+    .all(userId, limit)
+    .map((r) => ({
+      day: r.day,
+      creatingUsdMicros: r.creating_usd_micros,
+      usingUsdMicros: r.using_usd_micros,
+    }));
+}
+
 export type CreditAppSpendKind = "create" | "edit" | "intent" | "icon" | "runtime";
 
 export type CreditAppSpendRow = {
@@ -420,6 +471,15 @@ export type CreditAppSpendRow = {
   title: string | null;
   iconId: string | null;
   spentUsdMicros: number;
+};
+
+export type CreditAppMonthSpendRow = {
+  ym: string;
+  slug: string | null;
+  title: string | null;
+  iconId: string | null;
+  creatingUsdMicros: number;
+  usingUsdMicros: number;
 };
 
 const CREDIT_APP_SPEND_KINDS = new Set<CreditAppSpendKind>([
@@ -488,5 +548,67 @@ export function dbListCreditSpendByApp(userId: string): CreditAppSpendRow[] {
       title: r.title,
       iconId: r.icon_id,
       spentUsdMicros: r.spent_usd_micros,
+    }));
+}
+
+/** Per-month spend by app (Creating vs Using). */
+export function dbListCreditSpendByAppMonth(userId: string): CreditAppMonthSpendRow[] {
+  return db
+    .query<
+      {
+        ym: string;
+        slug: string | null;
+        title: string | null;
+        icon_id: string | null;
+        creating_usd_micros: number;
+        using_usd_micros: number;
+      },
+      [string]
+    >(
+      `SELECT
+         substr(l.created_at, 1, 7) as ym,
+         NULLIF(
+           COALESCE(
+             json_extract(l.meta_json, '$.slug'),
+             json_extract(l.meta_json, '$.appSlug')
+           ),
+           ''
+         ) as slug,
+         a.title as title,
+         a.icon_id as icon_id,
+         SUM(
+           CASE
+             WHEN l.reason IN ('ai_generate', 'ai_edit', 'ai_intent', 'ai_icon')
+               THEN -l.delta_usd_micros
+             ELSE 0
+           END
+         ) as creating_usd_micros,
+         SUM(
+           CASE
+             WHEN l.reason = 'ai_runtime' THEN -l.delta_usd_micros
+             ELSE 0
+           END
+         ) as using_usd_micros
+       FROM credit_ledger l
+       LEFT JOIN apps a
+         ON a.slug = COALESCE(
+           json_extract(l.meta_json, '$.slug'),
+           json_extract(l.meta_json, '$.appSlug')
+         )
+       WHERE l.user_id = ?
+         AND l.delta_usd_micros < 0
+         AND l.reason IN ('ai_generate', 'ai_edit', 'ai_intent', 'ai_icon', 'ai_runtime')
+       GROUP BY ym, slug
+       HAVING creating_usd_micros > 0 OR using_usd_micros > 0
+       ORDER BY ym DESC, (creating_usd_micros + using_usd_micros) DESC`,
+    )
+    .all(userId)
+    .map((r) => ({
+      ym: r.ym,
+      slug: r.slug,
+      title: r.title,
+      iconId: r.icon_id,
+      creatingUsdMicros: r.creating_usd_micros,
+      usingUsdMicros: r.using_usd_micros,
     }));
 }

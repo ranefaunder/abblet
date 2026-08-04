@@ -4,6 +4,7 @@ import type { AppConfig } from "/types/app-config-types";
 import type { AppSummary, AppVisibility, StoreAppCard, StoreAppDetail } from "/types/app-types";
 import { appConfigToVersionFields } from "/utils/app-config.server";
 import { isAppCategory } from "/utils/app-categories";
+import { isAppIdUuid } from "/utils/app-host";
 
 export type AppRow = {
   id: string;
@@ -208,32 +209,62 @@ export function dbListStoreCategories(opts?: {
 }
 
 export function dbGetStoreAppBySlug(slug: string, userId: string | null): StoreAppDetail | null {
-  const row =
-    db
-      .query<AppRow, [string | null, string | null, string | null, string | null, string]>(`
-        SELECT a.*, u.nickname as owner_nickname,
-          (SELECT COUNT(*) FROM apps r WHERE r.source_app_id = a.id) as remix_count,
-          (SELECT COUNT(*) FROM app_installs i WHERE i.app_id = a.id) as install_count,
-          (SELECT COUNT(*) FROM app_open_events o WHERE o.app_id = a.id) as open_count,
-          CASE WHEN ? IS NOT NULL AND EXISTS (
-            SELECT 1 FROM app_installs ai WHERE ai.app_id = a.id AND ai.user_id = ?
-          ) THEN 1 ELSE 0 END as installed,
-          CASE WHEN ? IS NOT NULL AND a.owner_id = ? THEN 1 ELSE 0 END as is_owner
-        FROM apps a
-        LEFT JOIN users u ON u.id = a.owner_id
-        WHERE a.slug = ? AND a.visibility = 'public' AND a.is_draft = 0
-        LIMIT 1
-      `)
-      .get(userId, userId, userId, userId, slug) ?? null;
+  return dbGetStoreApp(slug, userId);
+}
+
+/**
+ * Store detail by numeric slug (public) or app UUID (public, or owner draft/private).
+ */
+export function dbGetStoreApp(key: string, userId: string | null): StoreAppDetail | null {
+  const byId = isAppIdUuid(key);
+  const row = byId
+    ? db
+        .query<AppRow, [string | null, string | null, string | null, string | null, string]>(`
+          SELECT a.*, u.nickname as owner_nickname,
+            (SELECT COUNT(*) FROM apps r WHERE r.source_app_id = a.id) as remix_count,
+            (SELECT COUNT(*) FROM app_installs i WHERE i.app_id = a.id) as install_count,
+            (SELECT COUNT(*) FROM app_open_events o WHERE o.app_id = a.id) as open_count,
+            CASE WHEN ? IS NOT NULL AND EXISTS (
+              SELECT 1 FROM app_installs ai WHERE ai.app_id = a.id AND ai.user_id = ?
+            ) THEN 1 ELSE 0 END as installed,
+            CASE WHEN ? IS NOT NULL AND a.owner_id = ? THEN 1 ELSE 0 END as is_owner
+          FROM apps a
+          LEFT JOIN users u ON u.id = a.owner_id
+          WHERE a.id = ?
+          LIMIT 1
+        `)
+        .get(userId, userId, userId, userId, key) ?? null
+    : db
+        .query<AppRow, [string | null, string | null, string | null, string | null, string]>(`
+          SELECT a.*, u.nickname as owner_nickname,
+            (SELECT COUNT(*) FROM apps r WHERE r.source_app_id = a.id) as remix_count,
+            (SELECT COUNT(*) FROM app_installs i WHERE i.app_id = a.id) as install_count,
+            (SELECT COUNT(*) FROM app_open_events o WHERE o.app_id = a.id) as open_count,
+            CASE WHEN ? IS NOT NULL AND EXISTS (
+              SELECT 1 FROM app_installs ai WHERE ai.app_id = a.id AND ai.user_id = ?
+            ) THEN 1 ELSE 0 END as installed,
+            CASE WHEN ? IS NOT NULL AND a.owner_id = ? THEN 1 ELSE 0 END as is_owner
+          FROM apps a
+          LEFT JOIN users u ON u.id = a.owner_id
+          WHERE a.slug = ? AND a.visibility = 'public' AND a.is_draft = 0
+          LIMIT 1
+        `)
+        .get(userId, userId, userId, userId, key) ?? null;
 
   if (!row) return null;
-  const published = row.published_version_id
-    ? dbGetAppVersion(row.published_version_id)
-    : null;
+
+  const isOwner = row.is_owner === 1;
+  const isPublic = row.visibility === "public" && row.is_draft === 0;
+  if (!isPublic && !isOwner) return null;
+
+  const versionId = row.published_version_id ?? (isOwner ? row.latest_version_id : null);
+  const version = versionId ? dbGetAppVersion(versionId) : null;
   return {
     ...toStoreCard(row),
     ownerId: row.owner_id,
-    code: published?.code ?? "",
+    code: version?.code ?? "",
+    visibility: row.visibility,
+    publishedVersionId: row.published_version_id ?? null,
   };
 }
 

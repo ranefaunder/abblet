@@ -3,12 +3,15 @@ import { withAuth } from "/utils/auth.server";
 import { apiSuccess } from "/utils/api.server";
 import { getCreditsSnapshot, usdMicrosToUsd } from "/utils/credits.server";
 import {
-  dbListCreditSpendByApp,
-  dbListDailyCreditSpend,
+  dbListCreditSpendByAppMonth,
+  dbListDailyCreditSpendSplit,
 } from "/server/database/queries/credits";
 
-function roundSpendUsd(micros: number): number {
-  return Math.round(usdMicrosToUsd(micros) * 10000) / 10000;
+function roundCents(micros: number): number {
+  const usd = usdMicrosToUsd(micros);
+  if (!(usd > 0)) return 0;
+  // Sub-cent spend must not become 0 — UI shows at least $0.01.
+  return Math.max(0.01, Math.round(usd * 100) / 100);
 }
 
 /** GET /api/:lang/credits — wallet snapshot + spend history. */
@@ -16,16 +19,18 @@ export default {
   async GET(req: BunRequest) {
     return withAuth(req, async (user) => {
       const snap = getCreditsSnapshot(user.id);
-      const dailySpend = dbListDailyCreditSpend(user.id, 31).map((row) => ({
+      const dailySpend = dbListDailyCreditSpendSplit(user.id, 730).map((row) => ({
         day: row.day,
-        spentUsd: roundSpendUsd(row.spentUsdMicros),
+        creatingUsd: roundCents(row.creatingUsdMicros),
+        usingUsd: roundCents(row.usingUsdMicros),
       }));
-      const byApp = dbListCreditSpendByApp(user.id).map((row) => ({
-        kind: row.kind,
+      const byAppMonth = dbListCreditSpendByAppMonth(user.id).map((row) => ({
+        ym: row.ym,
         slug: row.slug,
         title: row.title,
         iconId: row.iconId,
-        spentUsd: roundSpendUsd(row.spentUsdMicros),
+        creatingUsd: roundCents(row.creatingUsdMicros),
+        usingUsd: roundCents(row.usingUsdMicros),
       }));
       return apiSuccess({
         data: {
@@ -40,7 +45,7 @@ export default {
           nextGrantUsd: snap.nextGrantUsd,
           nextGrantMode: snap.nextGrantMode,
           dailySpend,
-          byApp,
+          byAppMonth,
         },
       });
     });

@@ -12,8 +12,6 @@ import {
 } from "/app/stores/userStore";
 import { apps as libraryApps, loadApps } from "/app/stores/appStore";
 import { createUrl, splashUrl } from "/utils/app-url";
-import { AVAILABLE_LANGUAGES, type Language } from "/i18n/languages";
-import { pathWithLang } from "/utils/lang";
 import { apiFetch } from "/utils/api.client";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
@@ -25,26 +23,33 @@ import {
   PREMIUM_PRICE_USD,
   formatUsdAmount,
 } from "/utils/billing-plans";
+import { translations } from "/app/stores/i18nStore";
 
 export const MePath = "/:lang/me" as const;
 
-type CreditDailySpend = { day: string; spentUsd: number };
-type CreditAppSpendKind = "create" | "edit" | "intent" | "icon" | "runtime";
-type CreditAppSpend = {
-  kind: CreditAppSpendKind;
+type CreditDailySpend = { day: string; creatingUsd: number; usingUsd: number };
+type CreditAppMonthSpend = {
+  ym: string;
   slug: string | null;
   title: string | null;
   iconId: string | null;
-  spentUsd: number;
+  creatingUsd: number;
+  usingUsd: number;
 };
-type CreditAppBreakdown = {
+type CreditAppMonthRow = {
   key: string;
   slug: string;
   title: string;
   iconId: string | null;
   creatingUsd: number;
   usingUsd: number;
-  totalUsd: number;
+};
+type CreditMonthSpend = {
+  ym: string;
+  creatingUsd: number;
+  usingUsd: number;
+  days: CreditDailySpend[];
+  apps: CreditAppMonthRow[];
 };
 type CreditsSnapshot = {
   balanceUsd: number;
@@ -57,7 +62,7 @@ type CreditsSnapshot = {
   nextGrantUsd: number;
   nextGrantMode: "add" | "floor";
   dailySpend: CreditDailySpend[];
-  byApp: CreditAppSpend[];
+  byAppMonth: CreditAppMonthSpend[];
 };
 
 const JOIN_FEATURES = [
@@ -89,8 +94,9 @@ const JOIN_FEATURES = [
 ] as const;
 
 export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
-  const { path, route } = useLocation();
+  const { route } = useLocation();
   const { lang } = params;
+  void translations.value;
   const [marketingBusy, setMarketingBusy] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
@@ -98,14 +104,21 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
   const loggedIn = isLoggedIn();
   const account = user.value;
   const ownedApps = libraryApps.value.filter((app) => app.owned);
-  const ownedGridItems = ownedApps.map((app) => ({
-    slug: app.slug,
-    title: app.title,
-    iconId: app.iconId,
-    href: createUrl(lang, app.slug),
-    subtitle: app.isDraft ? t("Draft") : app.tagline || app.category || t("App"),
-  }));
-  const currentPath = path ?? `/${lang}/me`;
+  const ownedNonGames = ownedApps.filter((app) => app.category !== "Games");
+  const ownedGames = ownedApps.filter((app) => app.category === "Games");
+
+  function toOwnedGridItem(app: (typeof ownedApps)[number]) {
+    return {
+      slug: app.slug,
+      title: app.title,
+      iconId: app.iconId,
+      href: createUrl(lang, app.slug),
+      subtitle: app.isDraft ? t("Draft") : app.tagline || app.category || t("App"),
+    };
+  }
+
+  const ownedAppGridItems = ownedNonGames.map(toOwnedGridItem);
+  const ownedGameGridItems = ownedGames.map(toOwnedGridItem);
 
   useEffect(() => {
     if (!loggedIn) {
@@ -126,7 +139,7 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
         nextGrantUsd?: number;
         nextGrantMode?: "add" | "floor";
         dailySpend?: CreditDailySpend[];
-        byApp?: CreditAppSpend[];
+        byAppMonth?: CreditAppMonthSpend[];
       }>(`/api/${lang}/credits`);
       if (!result.success) {
         setCredits(null);
@@ -143,7 +156,7 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
         nextGrantUsd: result.data.nextGrantUsd ?? result.data.grantUsd ?? result.data.freeGrantUsd,
         nextGrantMode: result.data.nextGrantMode ?? (result.data.plan === "premium" ? "add" : "floor"),
         dailySpend: result.data.dailySpend ?? [],
-        byApp: result.data.byApp ?? [],
+        byAppMonth: result.data.byAppMonth ?? [],
       });
     }
 
@@ -161,12 +174,24 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
     if (Number.isNaN(d.getTime())) return isoDay;
     try {
       return new Intl.DateTimeFormat(lang === "fi" ? "fi-FI" : "en-GB", {
-        year: "numeric",
         month: "short",
         day: "numeric",
       }).format(d);
     } catch {
       return isoDay;
+    }
+  }
+
+  function formatCreditMonth(ym: string): string {
+    const d = new Date(`${ym}-01T12:00:00Z`);
+    if (Number.isNaN(d.getTime())) return ym;
+    try {
+      return new Intl.DateTimeFormat(lang === "fi" ? "fi-FI" : "en-GB", {
+        year: "numeric",
+        month: "long",
+      }).format(d);
+    } catch {
+      return ym;
     }
   }
 
@@ -186,36 +211,75 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
   }
 
   function formatSpendUsd(amount: number): string {
-    if (amount < 0.01) return `$${amount.toFixed(4)}`;
-    return `$${amount.toFixed(2)}`;
+    if (!(amount > 0)) return "–";
+    const cents = Math.max(0.01, Math.round(amount * 100) / 100);
+    return `$${cents.toFixed(2)}`;
   }
 
-  function mergeAppSpend(rows: CreditAppSpend[]): CreditAppBreakdown[] {
-    const map = new Map<string, CreditAppBreakdown>();
-    for (const row of rows) {
+  function spendAmtClass(amount: number): string {
+    return amount > 0 ? "credits-row-amt" : "credits-row-amt is-zero";
+  }
+
+  function groupSpendByMonth(
+    days: CreditDailySpend[],
+    apps: CreditAppMonthSpend[],
+  ): CreditMonthSpend[] {
+    const map = new Map<string, CreditMonthSpend>();
+
+    for (const row of days) {
+      const ym = row.day.slice(0, 7);
+      if (!/^\d{4}-\d{2}$/.test(ym)) continue;
+      const cur = map.get(ym) ?? {
+        ym,
+        creatingUsd: 0,
+        usingUsd: 0,
+        days: [],
+        apps: [],
+      };
+      cur.creatingUsd += row.creatingUsd;
+      cur.usingUsd += row.usingUsd;
+      cur.days.push(row);
+      map.set(ym, cur);
+    }
+
+    for (const row of apps) {
+      if (!/^\d{4}-\d{2}$/.test(row.ym)) continue;
+      const cur = map.get(row.ym) ?? {
+        ym: row.ym,
+        creatingUsd: 0,
+        usingUsd: 0,
+        days: [],
+        apps: [],
+      };
       const slug = row.slug?.trim() || "";
       const key = slug || row.title?.trim() || "unknown";
-      const cur = map.get(key) ?? {
+      cur.apps.push({
         key,
         slug: slug || key,
         title: row.title?.trim() || slug || t("Unknown app"),
         iconId: row.iconId,
-        creatingUsd: 0,
-        usingUsd: 0,
-        totalUsd: 0,
-      };
-      if (row.title?.trim()) cur.title = row.title.trim();
-      if (row.iconId) cur.iconId = row.iconId;
-      if (row.kind === "runtime") cur.usingUsd += row.spentUsd;
-      else cur.creatingUsd += row.spentUsd;
-      cur.totalUsd = cur.creatingUsd + cur.usingUsd;
-      map.set(key, cur);
+        creatingUsd: row.creatingUsd,
+        usingUsd: row.usingUsd,
+      });
+      map.set(row.ym, cur);
     }
-    return [...map.values()].sort((a, b) => b.totalUsd - a.totalUsd);
+
+    return [...map.values()]
+      .map((m) => ({
+        ...m,
+        creatingUsd: Math.round(m.creatingUsd * 100) / 100,
+        usingUsd: Math.round(m.usingUsd * 100) / 100,
+        apps: m.apps.sort(
+          (a, b) => b.creatingUsd + b.usingUsd - (a.creatingUsd + a.usingUsd),
+        ),
+      }))
+      .sort((a, b) => (a.ym < b.ym ? 1 : -1));
   }
 
-  const appBreakdown = mergeAppSpend(credits?.byApp ?? []);
-
+  const monthlySpend = groupSpendByMonth(
+    credits?.dailySpend ?? [],
+    credits?.byAppMonth ?? [],
+  );
   async function handleLogout() {
     if (logoutBusy) return;
     setLogoutBusy(true);
@@ -262,7 +326,7 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
         nextGrantUsd?: number;
         nextGrantMode?: "add" | "floor";
         dailySpend?: CreditDailySpend[];
-        byApp?: CreditAppSpend[];
+        byAppMonth?: CreditAppMonthSpend[];
       }>(`/api/${lang}/credits`);
       if (snap.success) {
         setCredits({
@@ -276,7 +340,7 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
           nextGrantUsd: snap.data.nextGrantUsd ?? snap.data.grantUsd ?? snap.data.freeGrantUsd,
           nextGrantMode: snap.data.nextGrantMode ?? "floor",
           dailySpend: snap.data.dailySpend ?? [],
-          byApp: snap.data.byApp ?? [],
+          byAppMonth: snap.data.byAppMonth ?? [],
         });
       }
       (document.getElementById("me-cancel-premium") as HTMLDialogElement | null)?.close();
@@ -298,45 +362,16 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
     setMarketingBusy(false);
   }
 
-  const langPicker = html`
-    <div class="lang-picker" ui-row="gap-sm y-center">
-      <i ui-icon="globe" aria-hidden="true"></i>
-      <select
-        id="me-lang"
-        class="lang-select"
-        value=${lang}
-        aria-label=${t("Language")}
-        ui-input="sm"
-        onChange=${(e: Event) => {
-          const next = (e.currentTarget as HTMLSelectElement).value as Language;
-          if (!next || next === lang) return;
-          route(pathWithLang(currentPath, next), true);
-        }}
-      >
-        ${(Object.keys(AVAILABLE_LANGUAGES) as Language[]).map(
-          (code) => html`
-            <option value=${code} lang=${code} selected=${code === lang}>
-              ${AVAILABLE_LANGUAGES[code].nativeName}
-            </option>
-          `,
-        )}
-      </select>
-    </div>
-  `;
-
   const view = html`
     <div data-scope="Me">
       <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
-        <header class="page-head" ui-row="x-between y-start gap-md">
-          <div ui-column="gap-sm">
-            <h1 class="page-title">${t("Me")}</h1>
-            <p class="page-lede">
-              ${loggedIn
-                ? t("Your apps, settings, and account.")
-                : t("Create a free account to remix apps, build your own with AI, and keep everything in one place.")}
-            </p>
-          </div>
-          ${langPicker}
+        <header class="page-head" ui-column="gap-sm">
+          <h1 class="page-title">${t("Me")}</h1>
+          <p class="page-lede">
+            ${loggedIn
+              ? t("Your apps, settings, and account.")
+              : t("Create a free account to remix apps, build your own with AI, and keep everything in one place.")}
+          </p>
         </header>
 
         ${!loggedIn
@@ -384,7 +419,7 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
           : html`
             <section ui-column="gap-md">
               <h2 class="section-title">${t("My Apps")}</h2>
-              ${ownedApps.length === 0
+              ${ownedNonGames.length === 0
                 ? html`
                   <div class="panel empty" ui-column="gap-sm">
                     <p ui-heading="sm">${t("No apps of your own yet")}</p>
@@ -392,8 +427,23 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                   </div>`
                 : html`
                   <${AppGrid}
-                    items=${ownedGridItems}
+                    items=${ownedAppGridItems}
                     label=${t("My Apps")}
+                  />`}
+            </section>
+
+            <section ui-column="gap-md">
+              <h2 class="section-title">${t("My Games")}</h2>
+              ${ownedGames.length === 0
+                ? html`
+                  <div class="panel empty" ui-column="gap-sm">
+                    <p ui-heading="sm">${t("No games of your own yet")}</p>
+                    <p>${t("Create a game to see it here.")}</p>
+                  </div>`
+                : html`
+                  <${AppGrid}
+                    items=${ownedGameGridItems}
+                    label=${t("My Games")}
                   />`}
             </section>
 
@@ -590,83 +640,63 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
 
                   <div class="credits-usage" ui-column="gap-md">
                     <h3 class="credits-usage-title">${t("Usage history")}</h3>
-                    ${credits.dailySpend.length > 0
+                    ${monthlySpend.length > 0
                       ? html`
-                        <ul class="credits-days" ui-off>
-                          ${credits.dailySpend.map(
-                            (row) => html`
-                              <li class="credits-day">
-                                <span class="credits-day-date">${formatCreditDay(row.day)}</span>
-                                <span class="credits-day-amount">${formatSpendUsd(row.spentUsd)}</span>
-                              </li>`,
-                          )}
-                        </ul>`
+                        <div class="credits-table" ui-column="gap-0">
+                          <div class="credits-table-head" aria-hidden="true">
+                            <span></span>
+                            <span>${t("Creating")}</span>
+                            <span>${t("Using")}</span>
+                            <span></span>
+                          </div>
+                          <section class="credits-months">
+                            ${monthlySpend.map(
+                              (month) => html`
+                                <details class="credits-month">
+                                  <summary class="credits-row credits-row-month">
+                                    <span class="credits-row-label">${formatCreditMonth(month.ym)}</span>
+                                    <span class=${spendAmtClass(month.creatingUsd)}>${formatSpendUsd(month.creatingUsd)}</span>
+                                    <span class=${spendAmtClass(month.usingUsd)}>${formatSpendUsd(month.usingUsd)}</span>
+                                    <i class="credits-row-caret" ui-icon="caret-down sm" aria-hidden="true"></i>
+                                  </summary>
+                                  <div class="credits-month-body" ui-column="gap-0">
+                                    ${month.days.map(
+                                      (row) => html`
+                                        <div class="credits-row credits-row-detail">
+                                          <span class="credits-row-label">${formatCreditDay(row.day)}</span>
+                                          <span class=${spendAmtClass(row.creatingUsd)}>${formatSpendUsd(row.creatingUsd)}</span>
+                                          <span class=${spendAmtClass(row.usingUsd)}>${formatSpendUsd(row.usingUsd)}</span>
+                                          <span class="credits-row-spacer"></span>
+                                        </div>`,
+                                    )}
+                                    ${month.apps.map((app) => {
+                                      const iconSrc = appIconSrc(app.iconId);
+                                      return html`
+                                        <div class="credits-row credits-row-detail">
+                                          <span class="credits-row-label credits-row-app-label">
+                                            <span
+                                              class="credits-row-app-icon"
+                                              style=${`background: ${previewGradient(app.slug)}`}
+                                              aria-hidden="true"
+                                            >
+                                              ${iconSrc
+                                                ? html`<img src=${iconSrc} alt="" width="20" height="20" decoding="async" />`
+                                                : html`<span>${draftLetter(app.title)}</span>`}
+                                            </span>
+                                            <span>${app.title}</span>
+                                          </span>
+                                          <span class=${spendAmtClass(app.creatingUsd)}>${formatSpendUsd(app.creatingUsd)}</span>
+                                          <span class=${spendAmtClass(app.usingUsd)}>${formatSpendUsd(app.usingUsd)}</span>
+                                          <span class="credits-row-spacer"></span>
+                                        </div>`;
+                                    })}
+                                  </div>
+                                </details>`,
+                            )}
+                          </section>
+                        </div>`
                       : html`<p class="credits-empty">${t("No AI usage yet.")}</p>`}
-                    ${appBreakdown.length > 0
-                      ? html`
-                        <button
-                          type="button"
-                          ui-button="sm"
-                          commandfor="me-credits-by-app"
-                          command="show-modal"
-                        >
-                          ${t("By app")}
-                        </button>`
-                      : ""}
                   </div>
-
-                  ${appBreakdown.length > 0
-                    ? html`
-                      <dialog id="me-credits-by-app" class="credits-dialog" ui-dialog="sm" closedby="any">
-                        <header ui-row="x-between y-center gap-md">
-                          <h2 ui-heading="sm">${t("By app")}</h2>
-                          <button
-                            type="button"
-                            ui-button="inline"
-                            ui-icon="x"
-                            commandfor="me-credits-by-app"
-                            command="close"
-                            aria-label=${t("Close")}
-                          ></button>
-                        </header>
-                        <ul class="credits-apps" ui-off>
-                          ${appBreakdown.map((app) => {
-                            const iconSrc = appIconSrc(app.iconId);
-                            return html`
-                              <li class="credits-app">
-                                <span
-                                  class="credits-app-icon"
-                                  style=${`background: ${previewGradient(app.slug)}`}
-                                  aria-hidden="true"
-                                >
-                                  ${iconSrc
-                                    ? html`<img src=${iconSrc} alt="" width="40" height="40" decoding="async" />`
-                                    : html`<span>${draftLetter(app.title)}</span>`}
-                                </span>
-                                <div class="credits-app-body">
-                                  <strong class="credits-app-name">${app.title}</strong>
-                                  <dl class="credits-app-meta">
-                                    ${app.creatingUsd > 0
-                                      ? html`
-                                        <div>
-                                          <dt>${t("Creating")}</dt>
-                                          <dd>${formatSpendUsd(app.creatingUsd)}</dd>
-                                        </div>`
-                                      : ""}
-                                    ${app.usingUsd > 0
-                                      ? html`
-                                        <div>
-                                          <dt>${t("Using")}</dt>
-                                          <dd>${formatSpendUsd(app.usingUsd)}</dd>
-                                        </div>`
-                                      : ""}
-                                  </dl>
-                                </div>
-                              </li>`;
-                          })}
-                        </ul>
-                      </dialog>`
-                    : ""}
                 </section>`
               : ""}`}
       </div>
@@ -690,18 +720,6 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
 
       .page-head {
         align-items: flex-start;
-      }
-
-      .page-head .lang-picker {
-        flex: none;
-        margin-top: 0.2rem;
-        color: var(--neutral-600);
-      }
-
-      .page-head .lang-select {
-        flex: none;
-        width: auto;
-        max-width: 11rem;
       }
 
       .page-title {
@@ -997,125 +1015,137 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
         color: var(--neutral-500);
       }
 
-      .credits-days {
+      .credits-table-head,
+      .credits-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 4.5rem 4.5rem 1.25rem;
+        align-items: center;
+        gap: 0.5rem;
+        min-width: 0;
+      }
+
+      .credits-table-head {
+        padding: 0 0 0.45rem;
+        font-size: 0.7rem;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--neutral-500);
+        text-align: right;
+      }
+
+      .credits-table-head > :first-child {
+        text-align: left;
+      }
+
+      .credits-months {
         margin: 0;
         padding: 0;
         display: flex;
         flex-direction: column;
       }
 
-      .credits-day {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: 0.7rem 0;
+      .credits-month {
         border-top: 1px solid var(--neutral-100);
       }
 
-      .credits-day:first-child {
+      .credits-month:first-child {
         border-top: none;
-        padding-top: 0;
       }
 
-      .credits-day-date {
-        font-size: 0.9375rem;
-        color: var(--neutral-600);
+      .credits-row-month {
+        padding: 0.75rem 0;
+        cursor: pointer;
+        list-style: none;
       }
 
-      .credits-day-amount {
+      .credits-row-month::-webkit-details-marker {
+        display: none;
+      }
+
+      .credits-row-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         font-size: 0.9375rem;
         font-weight: 650;
+        color: var(--neutral-900);
+        text-align: left;
+      }
+
+      .credits-row-amt {
+        font-size: 0.875rem;
+        font-weight: 650;
         font-variant-numeric: tabular-nums;
-        color: var(--neutral-950);
+        text-align: right;
+        color: var(--neutral-900);
       }
 
-      .credits-apps {
-        margin: 0;
-        display: flex;
-        flex-direction: column;
+      .credits-row-amt.is-zero {
+        font-weight: 500;
+        color: var(--neutral-300);
       }
 
-      .credits-app {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.85rem;
-        padding: 1rem 0;
+      .credits-row-caret {
+        justify-self: end;
+        color: var(--neutral-500);
+        transition: transform 0.15s ease;
+      }
+
+      .credits-month[open] .credits-row-caret {
+        transform: rotate(180deg);
+      }
+
+      .credits-month-body {
+        padding: 0 0 0.65rem;
+      }
+
+      .credits-row-detail {
+        padding: 0.45rem 0;
         border-top: 1px solid var(--neutral-100);
       }
 
-      .credits-app:first-child {
-        border-top: none;
-        padding-top: 0.25rem;
+      .credits-row-detail .credits-row-label {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: var(--neutral-700);
       }
 
-      .credits-app:last-child {
-        padding-bottom: 0.15rem;
+      .credits-row-detail .credits-row-amt {
+        font-weight: 600;
+        color: var(--neutral-800);
       }
 
-      .credits-app-icon {
+      .credits-row-detail .credits-row-amt.is-zero {
+        font-weight: 500;
+        color: var(--neutral-300);
+      }
+
+      .credits-row-app-icon {
         flex: none;
-        width: 2.5rem;
-        height: 2.5rem;
-        border-radius: 0.65rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 0.35rem;
         overflow: hidden;
         display: grid;
         place-items: center;
         color: var(--white);
-        font-size: 0.95rem;
+        font-size: 0.55rem;
         font-weight: 750;
       }
 
-      .credits-app-icon img {
+      .credits-row-app-icon img {
         width: 100%;
         height: 100%;
         object-fit: cover;
       }
 
-      .credits-app-body {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-      }
-
-      .credits-app-name {
-        margin: 0;
-        font-size: 0.9375rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        line-height: 1.25;
-        color: var(--neutral-950);
-        overflow-wrap: anywhere;
-      }
-
-      .credits-app-meta {
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
-      }
-
-      .credits-app-meta > div {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 1rem;
-      }
-
-      .credits-app-meta dt {
-        margin: 0;
-        font-size: 0.8125rem;
-        color: var(--neutral-500);
-      }
-
-      .credits-app-meta dd {
-        margin: 0;
-        font-size: 0.8125rem;
-        font-weight: 650;
-        font-variant-numeric: tabular-nums;
-        color: var(--neutral-900);
+      .credits-row-spacer {
+        display: block;
       }
     }
   `;

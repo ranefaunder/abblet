@@ -27,6 +27,9 @@ export const translations = {
   "My Apps": {
     fi: "Omat appit",
   },
+  "My Games": {
+    fi: "Omat pelit",
+  },
   "Mine": {
     fi: "Omat",
   },
@@ -35,6 +38,12 @@ export const translations = {
   },
   "Create an app to see it here.": {
     fi: "Luo app, niin se näkyy täällä.",
+  },
+  "No games of your own yet": {
+    fi: "Sinulla ei ole vielä omia pelejä",
+  },
+  "Create a game to see it here.": {
+    fi: "Luo peli, niin se näkyy täällä.",
   },
   "Apps": {
     fi: "Appit",
@@ -977,6 +986,16 @@ export const translations = {
   "Send the Store link to a friend.": { fi: "Lähetä Store-linkki kaverille." },
   "More like this": { fi: "Lisää samankaltaisia" },
   "Published": { fi: "Julkaistu" },
+  "Private": { fi: "Yksityinen" },
+  "This app is private — not published to the Store.": {
+    fi: "Tämä app on yksityinen — sitä ei ole julkaistu Storeen.",
+  },
+  "It only opens with the long UUID link, if someone knows it. It does not appear in Store listings.": {
+    fi: "Se avautuu vain pitkällä UUID-linkillä, jos joku tietää sen. Se ei näy Storen listauksissa.",
+  },
+  "Anyone with this private link can open the app.": {
+    fi: "Kuka tahansa jolla on tämä yksityinen linkki voi avata appin.",
+  },
   "Back to Store": { fi: "Takaisin Storeen" },
   "Back to Games": { fi: "Takaisin peleihin" },
   "Back to Apps": { fi: "Takaisin appeihin" },

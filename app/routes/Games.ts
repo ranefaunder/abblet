@@ -5,7 +5,7 @@ import { useLocation } from "preact-iso";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import { gamesAppUrl, createUrl } from "/utils/app-url";
-import type { StoreAppCard } from "/types/app-types";
+import type { AppSummary, StoreAppCard } from "/types/app-types";
 import {
   storeApps,
   storeError,
@@ -13,10 +13,13 @@ import {
   openHistory,
   loadStore,
   loadOpenHistory,
+  ensureStoreBrowseScope,
 } from "/app/stores/storeListingStore";
 import AppSlider from "/app/components/AppSlider";
 import AppList from "/app/components/AppList";
 import AppCard from "/app/components/AppCard";
+import { apps as libraryApps, loadApps } from "/app/stores/appStore";
+import { isLoggedIn } from "/app/stores/userStore";
 
 export const GamesPath = "/:lang/games" as const;
 
@@ -49,39 +52,47 @@ function byNewest(a: StoreAppCard, b: StoreAppCard): number {
   return tb - ta || byPopularity(a, b);
 }
 
+/** Store detail: published → slug URL; unpublished → UUID capability URL. */
+function ownedGameHref(app: AppSummary, lang: string): string {
+  if (app.visibility === "public") return gamesAppUrl(lang, app.slug);
+  return gamesAppUrl(lang, app.id);
+}
+
 /**
  * Same browse hierarchy as Apps (no category chips — all items are Games):
  * 1. AppCard — featured
- * 2. AppSlider — recently used
- * 3. AppList — popular (ranked)
- * 4. AppSlider — new drops
+ * 2. AppSlider — My Games (owned, if any)
+ * 3. AppSlider — recently used
+ * 4. AppList — popular (ranked)
+ * 5. AppSlider — new drops
  */
 export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
+  ensureStoreBrowseScope("games");
   const { path } = useLocation();
   const lang = getLang(path ?? "") ?? "en";
   const apps = storeApps.value;
   const loading = storeLoading.value;
   const history = openHistory.value;
+  const myGames = libraryApps.value.filter(
+    (app) => app.owned && app.category === "Games",
+  );
 
   const ranked = [...apps].sort(byPopularity);
   const featured = ranked[0] ?? null;
-  const featuredSlug = featured?.slug ?? null;
-  const withoutFeatured = featuredSlug
-    ? apps.filter((a) => a.slug !== featuredSlug)
-    : apps;
 
-  const popular = [...withoutFeatured].sort(byPopularity).slice(0, 10);
-  const newest = [...withoutFeatured].sort(byNewest).slice(0, 12);
+  const popular = [...apps].sort(byPopularity).slice(0, 10);
+  const newest = [...apps].sort(byNewest).slice(0, 12);
 
   useEffect(() => {
     void loadStore({ category: "Games", excludeCategory: null });
     void loadOpenHistory({ category: "Games" });
+    if (isLoggedIn()) void loadApps();
   }, []);
 
   const view = html`
     <div data-scope="Games">
-      <div class="content" ui-column="gap-2xl" ui-padding="inline-md">
-        <header class="page-head" ui-column="gap-sm">
+      <div class="content" ui-column="gap-xl" ui-padding="inline-md">
+        <header class="page-head" ui-column="gap-xs">
           <h1 class="page-title">${t("Games")}</h1>
           <p class="page-lede">${t("Discover games made by others")}</p>
         </header>
@@ -116,9 +127,25 @@ export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
                     </section>`
                   : ""}
 
+                ${myGames.length > 0
+                  ? html`
+                    <section ui-column="gap-xs">
+                      <h2 ui-heading="sm">${t("My Games")}</h2>
+                      <${AppSlider}
+                        label=${t("My Games")}
+                        items=${myGames.map((app) => ({
+                          slug: app.slug,
+                          title: app.title,
+                          iconId: app.iconId,
+                          href: ownedGameHref(app, lang),
+                        }))}
+                      />
+                    </section>`
+                  : ""}
+
                 ${history.length > 0
                   ? html`
-                    <section ui-column="gap-sm">
+                    <section ui-column="gap-xs">
                       <h2 ui-heading="sm">${t("Recently used")}</h2>
                       <${AppSlider}
                         label=${t("Recently used")}
@@ -134,7 +161,7 @@ export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
 
                 ${popular.length > 0
                   ? html`
-                    <section ui-column="gap-sm">
+                    <section ui-column="gap-xs">
                       <h2 ui-heading="sm">${t("Popular")}</h2>
                       <${AppList}
                         ranked
@@ -146,7 +173,7 @@ export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
 
                 ${newest.length > 0
                   ? html`
-                    <section ui-column="gap-sm">
+                    <section ui-column="gap-xs">
                       <h2 ui-heading="sm">${t("New drops")}</h2>
                       <${AppSlider}
                         label=${t("New drops")}
@@ -166,7 +193,8 @@ export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
       }
 
       .content {
-        padding-top: 1.35rem;
+        padding-top: 1rem;
+        padding-bottom: 0.5rem;
         max-width: 48rem;
         margin-inline: auto;
         width: 100%;
@@ -175,7 +203,7 @@ export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
 
       .page-title {
         margin: 0;
-        font-size: clamp(2.1rem, 6vw, 2.75rem);
+        font-size: clamp(1.85rem, 5.5vw, 2.4rem);
         font-weight: 800;
         letter-spacing: -0.05em;
         line-height: 1;
@@ -184,8 +212,8 @@ export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
 
       .page-lede {
         margin: 0;
-        font-size: 1.05rem;
-        line-height: 1.4;
+        font-size: 0.975rem;
+        line-height: 1.35;
         color: var(--neutral-600);
       }
 

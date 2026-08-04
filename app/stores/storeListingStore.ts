@@ -33,6 +33,9 @@ export const storeQuery = signal("");
 export const storeCategory = signal<AppCategory | null>(null);
 export const storeExcludeCategory = signal<AppCategory | null>(null);
 export const storeError = signal<string | null>(null);
+/** Which browse page last claimed the shared listing (avoids Apps↔Games flash). */
+export type StoreBrowseScope = "apps" | "games";
+export const storeBrowseScope = signal<StoreBrowseScope | null>(null);
 
 export const storeApp = signal<StoreAppDetail | null>(null);
 export const storeAppLoading = signal(false);
@@ -44,6 +47,22 @@ export const openHistory = signal<OpenHistoryItem[]>([]);
 
 function lang(): string {
   return getLang(window.location.pathname) ?? "en";
+}
+
+/**
+ * Call at the top of Apps/Games render so a shared `storeApps` from the other
+ * page is cleared before paint (useEffect alone is one frame too late).
+ */
+export function ensureStoreBrowseScope(scope: StoreBrowseScope): void {
+  if (storeBrowseScope.value === scope) return;
+  storeBrowseScope.value = scope;
+  storeApps.value = [];
+  openHistory.value = [];
+  storeQuery.value = "";
+  storeCategory.value = scope === "games" ? "Games" : null;
+  storeExcludeCategory.value = scope === "games" ? null : "Games";
+  storeError.value = null;
+  storeLoading.value = true;
 }
 
 export async function loadStore(opts?: {
