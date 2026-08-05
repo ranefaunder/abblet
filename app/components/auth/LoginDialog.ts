@@ -11,8 +11,6 @@ function requestErrorMessage(code?: string, message?: string): string {
   switch (code) {
     case "RATE_LIMIT_EXCEEDED":
       return t("Too many requests. Wait a moment before retrying.");
-    case "USER_NOT_FOUND":
-      return t("User not found. Register first.");
     case "INVALID_EMAIL":
       return message || t("Invalid email address");
     case "NETWORK_ERROR":

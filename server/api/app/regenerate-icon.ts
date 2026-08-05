@@ -6,7 +6,7 @@ import { resolveAppConfig } from "/server/database/queries/app-versions";
 import { dbAddAppMessage, dbListAppMessages } from "/server/database/queries/app-messages";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
-import { assertHasCredits, debitOpenRouterUsage } from "/utils/credits.server";
+import { assertHasCredits, debitOpenRouterUsage, releaseCreditReservation } from "/utils/credits.server";
 import { isDraftConfig, type AppDetail } from "/types/app-config-types";
 import type { Language } from "/types/i18n-types";
 import { getLang } from "/utils/lang";
@@ -40,8 +40,9 @@ export default {
         return apiError({ code: "APP_NOT_READY", status: 409 });
       }
 
+      let reservation;
       try {
-        assertHasCredits(user.id);
+        reservation = assertHasCredits(user.id, "edit");
       } catch (err) {
         const aiError = apiErrorFromAi(err, language);
         if (aiError) return aiError;
@@ -54,6 +55,7 @@ export default {
         clientIP: getClientIP(req),
       });
       if (!iconResult) {
+        releaseCreditReservation(reservation);
         return apiError({
           code: "ICON_GENERATION_FAILED",
           message: t("Could not generate the app icon. Try again.", language),
@@ -67,6 +69,7 @@ export default {
         floorKind: "edit",
         reason: "ai_icon",
         meta: { appId: row.id, slug },
+        reservation,
       });
 
       dbUpdateApp(row.id, { iconId: iconResult.iconId });

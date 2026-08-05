@@ -146,11 +146,8 @@ function ensureConnected() {
   if (wasConnectTried()) return false;
 
   markConnectTried();
-  const returnUrl = new URL(location.href);
-  returnUrl.searchParams.delete("code");
   const dest = new URL(connectHref);
   dest.searchParams.set("optional", "1");
-  dest.searchParams.set("return", returnUrl.toString());
   location.replace(dest.toString());
   return true;
 }

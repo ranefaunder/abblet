@@ -5,6 +5,12 @@ import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import type { Language } from "/types/i18n-types";
 import { escapeHtmlAttribute, metaPlainForHtmlAttribute, metaPlainForTitleElement } from "/utils/sanitize.server";
+import {
+  getAppRuntimeHosts,
+  getPlatformOrigin,
+  parseAppRuntimeLabel,
+  stripHostPort,
+} from "/utils/app-host";
 
 function ogLocale(lang: Language): string {
   const map: Record<Language, string> = {
@@ -37,9 +43,32 @@ function metaCopy(lang: Language, pathname: string): { title: string; descriptio
   };
 }
 
+/** Canonical public origin for meta tags (ignore spoofed Host). */
+function canonicalOrigin(req: BunRequest): string {
+  try {
+    const host = stripHostPort(req.headers.get("host") ?? "");
+    if (parseAppRuntimeLabel(host)) {
+      const platform = getPlatformOrigin();
+      const proto = platform.startsWith("https") ? "https" : "http";
+      return `${proto}://${host}`;
+    }
+    const platform = getPlatformOrigin();
+    const platformHost = stripHostPort(new URL(platform).host);
+    const allowed = new Set([platformHost, ...getAppRuntimeHosts()]);
+    if (host && allowed.has(host)) {
+      const proto = platform.startsWith("https") ? "https" : "http";
+      return `${proto}://${host}`;
+    }
+    return platform;
+  } catch {
+    return "https://remiix.app";
+  }
+}
+
 export async function getMeta(req: BunRequest): Promise<string> {
   const lang = getLang(req.url) ?? DEFAULT_LANGUAGE;
-  const { origin, pathname } = new URL(req.url);
+  const { pathname } = new URL(req.url);
+  const origin = canonicalOrigin(req);
   const staticRoot = resolveStaticRootFromUrl(req.url);
   const { title, description } = metaCopy(lang, pathname);
   const ogImage = `${staticRoot}/favicons/android-chrome-512x512.png`;

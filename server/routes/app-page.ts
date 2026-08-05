@@ -8,7 +8,7 @@ import {
 } from "/server/database/queries/connect";
 import { getAuthenticatedUser } from "/utils/auth.server";
 import { canViewApp } from "/utils/app-access.server";
-import { escapeHtmlAttribute, escapeHtmlTextContent } from "/utils/sanitize.server";
+import { escapeHtmlAttribute, escapeHtmlTextContent, serializeJsonForHtmlScript } from "/utils/sanitize.server";
 import { isDraftConfig } from "/types/app-config-types";
 import { resolveAppConfig } from "/server/database/queries/app-versions";
 import {
@@ -21,6 +21,7 @@ import {
 import { resolveAppFromRequestHost } from "/utils/app-runtime.server";
 import { appRuntimeModulePath } from "/utils/app-url";
 import { appIconMimeType, appIconPngSrc, appIconSrc } from "/utils/app-icon";
+import { applySecurityHeaders } from "/utils/security-headers.server";
 
 type LangAppRequest = BunRequest<"/:lang/app/:slug">;
 type ShortAppRequest = BunRequest<"/:appId">;
@@ -1004,9 +1005,23 @@ function renderAppPage(
           });
           const data = await res.json();
           if (data.success) location.reload();
-          else document.querySelector(".state").innerHTML = "<p>" + (data.error?.message || "Error") + "</p>";
+          else {
+            var el = document.querySelector(".state");
+            if (el) {
+              el.replaceChildren();
+              var p = document.createElement("p");
+              p.textContent = (data.error && data.error.message) || "Error";
+              el.appendChild(p);
+            }
+          }
         } catch (e) {
-          document.querySelector(".state").innerHTML = "<p>Error</p>";
+          var el2 = document.querySelector(".state");
+          if (el2) {
+            el2.replaceChildren();
+            var p2 = document.createElement("p");
+            p2.textContent = "Error";
+            el2.appendChild(p2);
+          }
         }
       })();
     </script>
@@ -1095,7 +1110,7 @@ function renderAppPage(
       })();
     </script>
     <script>
-      window.__REMIIX__ = ${JSON.stringify(remiixConfig)};
+      window.__REMIIX__ = ${serializeJsonForHtmlScript(remiixConfig)};
     </script>
     <script type="module" src="/static/remiix-app.js"></script>
   </body>
@@ -1105,12 +1120,15 @@ function renderAppPage(
 }
 
 function htmlResponse(html: string): Response {
-  return new Response(html, {
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
+  return applySecurityHeaders(
+    new Response(html, {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    }),
+    "app-runtime",
+  );
 }
 
 function withSearch(origin: string, search = ""): string {

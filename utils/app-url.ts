@@ -79,7 +79,8 @@ export function connectUrl(slug: string): string {
 
 /**
  * URL to open a runnable app on its runtime host.
- * Connect/token is handled by remiix-app.js (`ensureConnected`) on load.
+ * Prefer `openFromStore` on Store detail pages (connects signed-in users via /connect).
+ * Direct links / guest open use this; remiix-app.js `ensureConnected` handles token.
  */
 export function openAppUrl(
   lang: string,

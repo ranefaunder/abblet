@@ -43,3 +43,15 @@ export function metaPlainForHtmlAttribute(text: string): string {
 export function metaPlainForTitleElement(text: string): string {
   return escapeHtmlTextContent(decodeBasicHtmlEntities(text));
 }
+
+/**
+ * JSON for embedding inside a HTML `<script>` block.
+ * Escapes `<` (and line/paragraph separators) so `</script>` in string data
+ * cannot break out of the script element.
+ */
+export function serializeJsonForHtmlScript(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}

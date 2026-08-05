@@ -61,7 +61,11 @@ export async function sendEmailSafe(
   text: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (process.env.APPSTUDO_E2E_SKIP_EMAIL === "1") {
-    return { ok: true };
+    if (process.env.NODE_ENV === "production") {
+      console.error("[email] APPSTUDO_E2E_SKIP_EMAIL ignored in production");
+    } else {
+      return { ok: true };
+    }
   }
 
   const trimmedTo = to.trim();

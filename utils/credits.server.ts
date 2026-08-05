@@ -2,6 +2,8 @@ import {
   dbDebitCredits,
   dbEnsureMonthlyPlanGrant,
   dbGetCreditBalance,
+  dbReleaseCreditsReserve,
+  dbReserveCredits,
   type CreditReason,
 } from "/server/database/queries/credits";
 import { dbGetUserPlan } from "/server/database/queries/entitlements";
@@ -16,6 +18,11 @@ const USD_MICROS = 1_000_000;
 
 export type CreditFloorKind = "runtime" | "edit";
 export type UserPlan = "free" | "premium";
+
+export type CreditReservation = {
+  userId: string;
+  reservedUsdMicros: number;
+};
 
 function envNumber(name: string, fallback: number): number {
   const raw = process.env[name]?.trim();
@@ -123,13 +130,23 @@ export function ensureMonthlyFreeGrant(userId: string): number {
   return ensureMonthlyPlanGrant(userId);
 }
 
-/** Throw before calling OpenRouter when the wallet is empty. */
-export function assertHasCredits(userId: string): number {
-  const balance = ensureMonthlyPlanGrant(userId);
-  if (balance <= 0) {
+/** Throw before calling OpenRouter when the wallet is empty; atomically reserve the floor. */
+export function assertHasCredits(
+  userId: string,
+  floorKind: CreditFloorKind = "edit",
+): CreditReservation {
+  ensureMonthlyPlanGrant(userId);
+  const reservedUsdMicros = Math.max(1, usdToUsdMicros(getFloorUsd(floorKind)));
+  const result = dbReserveCredits(userId, reservedUsdMicros);
+  if (!result.ok) {
     throw new AiRequestError("INSUFFICIENT_CREDITS", "INSUFFICIENT_CREDITS");
   }
-  return balance;
+  return { userId, reservedUsdMicros };
+}
+
+export function releaseCreditReservation(reservation: CreditReservation | null | undefined): void {
+  if (!reservation || reservation.reservedUsdMicros <= 0) return;
+  dbReleaseCreditsReserve(reservation.userId, reservation.reservedUsdMicros);
 }
 
 export function debitOpenRouterUsage(opts: {
@@ -138,7 +155,12 @@ export function debitOpenRouterUsage(opts: {
   floorKind: CreditFloorKind;
   reason: CreditReason;
   meta?: Record<string, unknown>;
+  /** Release this hold before debiting the real charge. */
+  reservation?: CreditReservation | null;
 }): { balanceUsdMicros: number; billedUsdMicros: number; billedUsd: number } {
+  if (opts.reservation) {
+    releaseCreditReservation(opts.reservation);
+  }
   const { openrouterCostUsd, billedUsdMicros, markup } = chargeMicrosFromOpenRouterCost(
     opts.costUsd,
     opts.floorKind,
@@ -194,7 +216,11 @@ export function debitOpenRouterUsageSteps(opts: {
   steps: Array<{ tool?: string | null; costUsd?: number | null }>;
   floorKind: CreditFloorKind;
   meta?: Record<string, unknown>;
+  reservation?: CreditReservation | null;
 }): void {
+  if (opts.reservation) {
+    releaseCreditReservation(opts.reservation);
+  }
   const buckets = new Map<CreditReason, Array<number | null | undefined>>();
   for (const step of opts.steps) {
     const reason = creditReasonForUsageTool(step.tool);
@@ -236,6 +262,8 @@ export function getCreditsSnapshot(userId: string): {
       ? planRow.plan_source
       : null;
   const row = dbGetCreditBalance(userId);
+  const reserved = row?.credit_reserved_usd_micros ?? 0;
+  const availableUsdMicros = Math.max(0, balanceUsdMicros - reserved);
   const grantAt = row?.credit_grant_at ? parseIsoDate(row.credit_grant_at) : null;
   const anchorDay =
     typeof row?.credit_period_anchor_day === "number" &&
@@ -249,8 +277,8 @@ export function getCreditsSnapshot(userId: string): {
     ? addCalendarMonthsUtc(grantAt, 1, anchorDay).toISOString()
     : null;
   return {
-    balanceUsdMicros,
-    balanceUsd: usdMicrosToUsd(balanceUsdMicros),
+    balanceUsdMicros: availableUsdMicros,
+    balanceUsd: usdMicrosToUsd(availableUsdMicros),
     periodYm: currentPeriodYm(),
     freeGrantUsd: getFreeGrantUsd(),
     grantUsd,

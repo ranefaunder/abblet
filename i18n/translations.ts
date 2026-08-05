@@ -611,6 +611,19 @@ export const translations = {
   "Delete": { fi: "Poista" },
   "Deleting…": { fi: "Poistetaan…" },
   "App not found": { fi: "Appia ei löydy" },
+  "wants to connect to your Remiix account": {
+    fi: "haluaa yhdistää Remiix-tiliisi",
+  },
+  "This allows the app to": { fi: "Appi saa luvan" },
+  "Use your AI credit for its AI features": {
+    fi: "Käyttää AI-saldoasi appin AI-toimintoihin",
+  },
+  "Create remixes into your library": { fi: "Luoda remixejä kirjastoosi" },
+  "You'll only be asked once for this app.": {
+    fi: "Tämä kysytään vain kerran tälle appille.",
+  },
+  "Connect": { fi: "Yhdistä" },
+  "Not now": { fi: "Ei nyt" },
   "Could not save entry. Try again.": { fi: "Merkinnän tallennus epäonnistui. Yritä uudelleen." },
   "Open app": { fi: "Avaa app" },
   "Open": { fi: "Avaa" },

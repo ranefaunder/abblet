@@ -4,9 +4,10 @@ import { getMeta } from "/utils/meta.server";
 import { serverSideRender } from "/utils/ssr.server";
 import { createSsrContext } from "/server/ssr";
 import { AVAILABLE_LANGUAGES } from "/i18n/languages";
-import { escapeHtmlAttribute } from "/utils/sanitize.server";
+import { escapeHtmlAttribute, serializeJsonForHtmlScript } from "/utils/sanitize.server";
 import { getRequestHost, parseAppRuntimeLabel } from "/utils/app-host";
 import App from "/app/App";
+import { applySecurityHeaders } from "/utils/security-headers.server";
 
 const LANGUAGE_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 
@@ -103,18 +104,21 @@ export default async function (req: BunRequest<"/:lang/"> | BunRequest<"/:lang/*
       <body>
         <div id="app">${ssrHtml}</div>
         <script>
-          window.__SSR_CONTEXT__ = ${JSON.stringify(ssrContext)};
+          window.__SSR_CONTEXT__ = ${serializeJsonForHtmlScript(ssrContext)};
         </script>
         <script type="module" src="/app.js"></script>
       </body>
     </html>
   `;
 
-  return new Response(html, {
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      // Avoid bfcache restoring a zoomed/scrolled web-document state.
-      "Cache-Control": "no-store",
-    },
-  });
+  return applySecurityHeaders(
+    new Response(html, {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        // Avoid bfcache restoring a zoomed/scrolled web-document state.
+        "Cache-Control": "no-store",
+      },
+    }),
+    "platform-html",
+  );
 }

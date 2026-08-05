@@ -18,7 +18,7 @@ export type AppRuntimeTokenRow = {
 };
 
 export const CONNECT_CODE_TTL_SEC = 60;
-export const RUNTIME_TOKEN_TTL_SEC = 60 * 60;
+export const RUNTIME_TOKEN_TTL_SEC = 30 * 60;
 
 export function dbCreateConnectCode(data: {
   code: string;
@@ -65,6 +65,32 @@ export function dbGetRuntimeToken(id: string): AppRuntimeTokenRow | null {
          FROM app_runtime_tokens WHERE id = ?`,
       )
       .get(id) ?? null
+  );
+}
+
+/** Has this user already granted this app access (consent screen shown + confirmed before)? */
+export function dbHasConnectGrant(userId: string, appSlug: string): boolean {
+  return (
+    db
+      .query<{ user_id: string }, [string, string]>(
+        `SELECT user_id FROM app_connect_grants WHERE user_id = ? AND app_slug = ?`,
+      )
+      .get(userId, appSlug) !== null
+  );
+}
+
+/** Remember that the user granted this app access — skips the consent screen next time. */
+export function dbCreateConnectGrant(userId: string, appSlug: string): void {
+  db.query(
+    `INSERT OR IGNORE INTO app_connect_grants (user_id, app_slug) VALUES (?, ?)`,
+  ).run(userId, appSlug);
+}
+
+/** Revoke a previously granted app connection (forces consent screen again next time). */
+export function dbRevokeConnectGrant(userId: string, appSlug: string): void {
+  db.query(`DELETE FROM app_connect_grants WHERE user_id = ? AND app_slug = ?`).run(
+    userId,
+    appSlug,
   );
 }
 

@@ -3,35 +3,32 @@ import { dbGetAppBySlug, isNumericAppSlug } from "/server/database/queries/apps"
 import {
   CONNECT_CODE_TTL_SEC,
   dbCreateConnectCode,
+  dbCreateConnectGrant,
+  dbHasConnectGrant,
 } from "/server/database/queries/connect";
 import { getAuthenticatedUser } from "/utils/auth.server";
-import { appRuntimeOrigin, isOriginForApp } from "/utils/app-host";
+import { appRuntimeOrigin } from "/utils/app-host";
+import { consumeConnectNonce } from "/utils/connect-nonce.server";
 
 type ConnectRequest = BunRequest<"/connect/:appId">;
 
-/** Only allow return URLs on this app's runtime host (slug or UUID). */
-function resolveConnectReturn(
-  row: { id: string; slug: string },
-  returnParam: string | null,
-): URL {
-  const fallback = new URL(`${appRuntimeOrigin(row)}/`);
-  if (!returnParam) return fallback;
-  try {
-    const u = new URL(returnParam);
-    if (!isOriginForApp(u.origin, row)) return fallback;
-    u.searchParams.delete("code");
-    return u;
-  } catch {
-    return fallback;
-  }
+function canConnectToApp(
+  row: { owner_id: string; visibility: string; is_draft: number },
+  userId: string,
+): boolean {
+  if (row.owner_id === userId) return true;
+  return row.visibility === "public" && row.is_draft === 0;
 }
 
 /**
- * GET /connect/:appId — issue a one-time code and redirect to the app runtime host.
+ * GET /connect/:appId — issue a one-time code and redirect to the app runtime host root.
  *
  * Query:
  * - `optional=1` — if not signed in, bounce back to the app (no login forced)
- * - `return` — app URL to return to (must be this app's runtime origin)
+ * - `confirm=<nonce>` — one-time token (from the SPA consent page or Store Open via
+ *   prepare-open). Required for first-time connect unless already granted. Without it,
+ *   the user is redirected to the SPA consent page (`/:lang/connect/:appId`), where the
+ *   Connect click mints a nonce via prepare-open and returns here.
  */
 export default function connectRoute(req: ConnectRequest): Response {
   const appId = req.params.appId?.trim() ?? "";
@@ -46,7 +43,8 @@ export default function connectRoute(req: ConnectRequest): Response {
 
   const url = new URL(req.url);
   const optional = url.searchParams.get("optional") === "1";
-  const returnTo = resolveConnectReturn(row, url.searchParams.get("return"));
+  const confirmNonce = url.searchParams.get("confirm");
+  const returnTo = new URL(`${appRuntimeOrigin(row)}/`);
 
   const user = getAuthenticatedUser(req);
   if (!user) {
@@ -54,9 +52,25 @@ export default function connectRoute(req: ConnectRequest): Response {
       return Response.redirect(returnTo.toString(), 302);
     }
     const lang = req.cookies?.get("appstudo-language") || "en";
-    const next = new URL(`/connect/${encodeURIComponent(appId)}`, url.origin);
-    next.searchParams.set("return", returnTo.toString());
-    return Response.redirect(`/${lang}/login?next=${encodeURIComponent(next.pathname + next.search)}`, 302);
+    const next = `/connect/${encodeURIComponent(appId)}`;
+    return Response.redirect(`/${lang}/login?next=${encodeURIComponent(next)}`, 302);
+  }
+
+  if (!canConnectToApp(row, user.id)) {
+    return new Response("Not Found", { status: 404 });
+  }
+
+  const alreadyGranted = dbHasConnectGrant(user.id, appId);
+  const confirmed = alreadyGranted || consumeConnectNonce(confirmNonce, user.id, appId);
+  if (!confirmed) {
+    const lang = req.cookies?.get("appstudo-language") || "en";
+    return Response.redirect(
+      `/${encodeURIComponent(lang)}/connect/${encodeURIComponent(appId)}`,
+      302,
+    );
+  }
+  if (!alreadyGranted) {
+    dbCreateConnectGrant(user.id, appId);
   }
 
   const code = crypto.randomUUID().replace(/-/g, "");

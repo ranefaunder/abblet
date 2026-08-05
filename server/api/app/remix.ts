@@ -10,12 +10,15 @@ import {
 import { resolveSourceConfigForRemix } from "/server/database/queries/app-versions";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { generateAppName } from "/utils/ai-apps.server";
+import { apiErrorFromAi } from "/utils/ai-api.server";
+import { assertHasCredits, debitOpenRouterUsage, releaseCreditReservation } from "/utils/credits.server";
 import { isDraftConfig, type AppDetail } from "/types/app-config-types";
 import { getClientIP } from "/utils/request.server";
 import { remixFallbackTitle } from "/utils/remix-title";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import type { Language } from "/types/i18n-types";
+import { checkRateLimit } from "/utils/rate-limit.server";
 
 /**
  * Remix = clone into a new owned app project with a fresh name + icon.
@@ -38,6 +41,14 @@ export default {
           : "";
       if (!slug) return apiError({ code: "SLUG_REQUIRED" });
 
+      if (!checkRateLimit(user.id, "app_remix", 20, 60)) {
+        return apiError({
+          code: "RATE_LIMIT_EXCEEDED",
+          message: t("Too many requests. Wait a moment before retrying.", language),
+          status: 429,
+        });
+      }
+
       const source = dbGetAppBySlug(slug);
       if (!source || source.visibility !== "public" || source.is_draft === 1) {
         return apiError({ code: "NOT_FOUND", status: 404 });
@@ -52,6 +63,15 @@ export default {
         });
       }
 
+      let reservation;
+      try {
+        reservation = assertHasCredits(user.id, "edit");
+      } catch (err) {
+        const aiError = apiErrorFromAi(err, language);
+        if (aiError) return aiError;
+        throw err;
+      }
+
       const suffix = Math.random().toString(36).slice(2, 6);
       const tagName = `${config.tagName}-${suffix}`.replace(/[^a-z0-9-]/g, "");
       let code = config.code.split(config.tagName).join(tagName);
@@ -60,6 +80,8 @@ export default {
       let description = config.description;
       let tagline = config.tagline ?? source.tagline ?? null;
       let category = config.category ?? source.category ?? null;
+      let renameCostUsd: number | null | undefined;
+      let renamedOk = false;
 
       try {
         const renamed = await generateAppName({
@@ -73,6 +95,8 @@ export default {
           description = renamed.description;
           tagline = renamed.tagline || tagline;
           category = renamed.category || category;
+          renameCostUsd = renamed.costUsd;
+          renamedOk = true;
         }
       } catch {
         // Keep fallback title/description.
@@ -114,6 +138,30 @@ export default {
       if (iconResult) {
         dbUpdateApp(id, { iconId: iconResult.iconId });
       }
+
+      if (renamedOk) {
+        debitOpenRouterUsage({
+          userId: user.id,
+          costUsd: renameCostUsd ?? null,
+          floorKind: "edit",
+          reason: "ai_edit",
+          meta: { appId: id, slug: newSlug, tool: "remix_rename" },
+          reservation,
+        });
+        reservation = null as typeof reservation;
+      }
+      if (iconResult) {
+        debitOpenRouterUsage({
+          userId: user.id,
+          costUsd: iconResult.costUsd,
+          floorKind: "edit",
+          reason: "ai_icon",
+          meta: { appId: id, slug: newSlug },
+          reservation,
+        });
+        reservation = null as typeof reservation;
+      }
+      releaseCreditReservation(reservation);
 
       const row = dbGetAppBySlug(newSlug)!;
       const detail: AppDetail = {

@@ -31,8 +31,9 @@ export default {
     }
 
     const clientIP = getClientIP(req);
-    const isAllowed = checkRateLimit(clientIP, "login_attempt", 5, 10);
-    if (!isAllowed) {
+    const ipOk = checkRateLimit(clientIP, "login_attempt", 5, 10);
+    const emailOk = checkRateLimit(`email:${email}`, "login_attempt", 5, 10);
+    if (!ipOk || !emailOk) {
       return apiError({
         code: "RATE_LIMIT_EXCEEDED",
         message: t("Too many attempts. Wait a moment and try again.", language),

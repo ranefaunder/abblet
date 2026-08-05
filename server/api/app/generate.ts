@@ -7,7 +7,7 @@ import { generateAppConfig } from "/utils/ai-apps.server";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
 import { resolveEditAiModel } from "/utils/ai-core.server";
-import { assertHasCredits, debitOpenRouterUsage } from "/utils/credits.server";
+import { assertHasCredits, debitOpenRouterUsage, releaseCreditReservation } from "/utils/credits.server";
 import { DEFAULT_EDIT_AI_MODEL, resolveStoredModelRef } from "/utils/ai-models";
 import type { AppDetail } from "/types/app-config-types";
 import type { Language } from "/types/i18n-types";
@@ -43,7 +43,7 @@ export default {
 
     return withAuth(req, async (user) => {
       const clientIP = getClientIP(req);
-      if (!checkRateLimit(clientIP, "app_generate", 20, 60)) {
+      if (!checkRateLimit(user.id, "app_generate", 20, 60)) {
         return apiError({
           code: "RATE_LIMIT_EXCEEDED",
           message: t("Too many requests. Wait a moment before retrying.", language),
@@ -51,8 +51,9 @@ export default {
         });
       }
 
+      let reservation;
       try {
-        assertHasCredits(user.id);
+        reservation = assertHasCredits(user.id, "edit");
       } catch (err) {
         const aiError = apiErrorFromAi(err, language);
         if (aiError) return aiError;
@@ -65,11 +66,13 @@ export default {
       try {
         generated = await generateAppConfig(message, language, model);
       } catch (err) {
+        releaseCreditReservation(reservation);
         const aiError = apiErrorFromAi(err, language);
         if (aiError) return aiError;
         throw err;
       }
       if (!generated) {
+        releaseCreditReservation(reservation);
         return apiError({
           code: "GENERATION_FAILED",
           message: t("Could not create app. Try again.", language),
@@ -113,6 +116,7 @@ export default {
         floorKind: "edit",
         reason: "ai_generate",
         meta: { appId: id, slug },
+        reservation,
       });
       if (iconResult) {
         debitOpenRouterUsage({

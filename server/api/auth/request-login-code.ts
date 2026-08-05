@@ -1,12 +1,10 @@
-import { randomInt } from "crypto";
 import type { Language, TranslationKey } from "/types/i18n-types";
 import { t } from "/utils/i18n";
-import { createLoginCodeEmail, sendEmailSafe } from "/utils/email.server";
 import { checkRateLimit } from "/utils/rate-limit.server";
 import { getClientIP } from "/utils/request.server";
-import { dbDeleteExpiredLoginCodes, dbCreateLoginCode } from "/server/database/queries/login-codes";
 import { dbGetUserByEmail } from "/server/database/queries/users";
 import { apiError, apiSuccess } from "/utils/api.server";
+import { issueAndSendLoginCode } from "/utils/login-code.server";
 import type { BunRequest } from "bun";
 
 function validateEmail(email: string): TranslationKey | null {
@@ -17,7 +15,7 @@ function validateEmail(email: string): TranslationKey | null {
   return null;
 }
 
-/** POST – Lähetä kirjautumiskoodi olemassa olevalle käyttäjälle. */
+/** POST – Lähetä kirjautumiskoodi (anti-enumeration: always success-shaped if email valid). */
 export default {
   async POST(req: BunRequest) {
     let body: unknown;
@@ -48,46 +46,27 @@ export default {
     }
 
     const existingUser = dbGetUserByEmail(email);
-    if (!existingUser) {
-      return apiError({
-        code: "USER_NOT_FOUND",
-        message: t("User not found. Register first.", language),
-        status: 404,
+    // Anti-enumeration: do not reveal whether the account exists.
+    if (!existingUser || (existingUser.is_guest ?? 0) === 1) {
+      return apiSuccess({
+        data: {
+          debugCode: undefined as string | undefined,
+        },
       });
     }
 
-    dbDeleteExpiredLoginCodes();
-
-    let code = "";
-    for (let i = 0; i < 6; i++) {
-      code += randomInt(0, 10);
-    }
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    dbCreateLoginCode({ email, code, expiresAt });
-
-    const emailContent = createLoginCodeEmail(code, language);
-    const sent = await sendEmailSafe(email, emailContent.subject, emailContent.text);
+    const sent = await issueAndSendLoginCode(email, language);
     if (!sent.ok) {
-      const msg = sent.error ?? "";
-      const errorKey: TranslationKey = msg.includes("Too many") || msg.includes("rate limit")
-        ? "Too many requests. Wait a moment before retrying."
-        : msg.includes("Email service")
-          ? "Email service unavailable. Try again later."
-          : "Error sending code. Try again.";
       return apiError({
         code: "EMAIL_SEND_FAILED",
-        message: t(errorKey, language),
+        message: t(sent.errorKey, language),
         status: 500,
       });
     }
 
-    if (process.env.NODE_ENV === "development") {
-      console.info(`🔑 DEVELOPMENT: Login code for ${email}: ${code}`);
-    }
-
     return apiSuccess({
       data: {
-        debugCode: process.env.NODE_ENV === "development" ? code : undefined,
+        debugCode: process.env.NODE_ENV === "development" ? sent.code : undefined,
       },
     });
   },

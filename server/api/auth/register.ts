@@ -1,12 +1,11 @@
 import type { Language, TranslationKey } from "/types/i18n-types";
 import { t } from "/utils/i18n";
-import { createWelcomeEmail, sendEmailSafe } from "/utils/email.server";
-import { generateNickname } from "/utils/nickname.server";
 import { checkRateLimit } from "/utils/rate-limit.server";
 import { getClientIP } from "/utils/request.server";
-import { dbGetUserByEmail, dbCreateUser, dbUpdateUserLastLogin, dbExistsUserNickname } from "/server/database/queries/users";
-import { createAuthSession } from "/utils/auth.server";
+import { generateNickname } from "/utils/nickname.server";
+import { dbGetUserByEmail, dbCreateUser, dbExistsUserNickname } from "/server/database/queries/users";
 import { apiError, apiSuccess } from "/utils/api.server";
+import { issueAndSendLoginCode, isE2eSkipEmail } from "/utils/login-code.server";
 import type { BunRequest } from "bun";
 
 function validateEmail(email: string): TranslationKey | null {
@@ -17,6 +16,9 @@ function validateEmail(email: string): TranslationKey | null {
   return null;
 }
 
+/**
+ * Register: create account (if new) and send login code — no session until verify.
+ */
 export default {
   async POST(req: BunRequest) {
     let body: unknown;
@@ -47,7 +49,7 @@ export default {
     }
 
     const clientIP = getClientIP(req);
-    const skipRateLimit = process.env.APPSTUDO_E2E_SKIP_EMAIL === "1";
+    const skipRateLimit = isE2eSkipEmail();
     const isAllowed = skipRateLimit || checkRateLimit(clientIP, "register", 5, 60);
     if (!isAllowed) {
       return apiError({
@@ -58,44 +60,29 @@ export default {
     }
 
     const existingUser = dbGetUserByEmail(email);
-    if (existingUser) {
-      return apiSuccess({ data: { existingUser: true } });
+    let isNewRegistration = false;
+    if (!existingUser) {
+      const userId = crypto.randomUUID();
+      const nickname = generateNickname((n) => dbExistsUserNickname(n));
+      dbCreateUser({ id: userId, email, nickname, marketingOptIn });
+      isNewRegistration = true;
     }
 
-    const userId = crypto.randomUUID();
-    const nickname = generateNickname((n) => dbExistsUserNickname(n));
-    dbCreateUser({ id: userId, email, nickname, marketingOptIn });
-
-    const welcomeContent = createWelcomeEmail(language);
-    const sent = await sendEmailSafe(email, welcomeContent.subject, welcomeContent.text);
+    const sent = await issueAndSendLoginCode(email, language);
     if (!sent.ok) {
-      const msg = sent.error ?? "";
-      const errorKey: TranslationKey = msg.includes("Too many") || msg.includes("rate limit")
-        ? "Too many requests. Wait a moment before retrying."
-        : msg.includes("Email service")
-          ? "Email service unavailable. Try again later."
-          : "Error sending code. Try again.";
       return apiError({
         code: "EMAIL_SEND_FAILED",
-        message: t(errorKey, language),
+        message: t(sent.errorKey, language),
         status: 500,
       });
     }
 
-    dbUpdateUserLastLogin(email);
-    createAuthSession(req, userId);
-
+    // Same shape for new + existing: do not leak account existence via session or distinct flags.
     return apiSuccess({
       data: {
-        registration: true,
-        user: {
-          id: userId,
-          email,
-          nickname,
-          createdAt: new Date().toISOString(),
-          marketingOptIn,
-          plan: "free" as const,
-        },
+        registration: isNewRegistration,
+        needsVerification: true,
+        debugCode: process.env.NODE_ENV === "development" ? sent.code : undefined,
       },
     });
   },

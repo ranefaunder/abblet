@@ -17,6 +17,7 @@ export type CreditReason =
 
 export type CreditBalanceRow = {
   credit_balance_usd_micros: number;
+  credit_reserved_usd_micros: number;
   credit_period_ym: string | null;
   credit_grant_at: string | null;
   credit_period_anchor_day: number | null;
@@ -29,12 +30,67 @@ export function dbGetCreditBalance(
   return (
     database
       .query<CreditBalanceRow, [string]>(
-        `SELECT credit_balance_usd_micros, credit_period_ym,
+        `SELECT credit_balance_usd_micros,
+                IFNULL(credit_reserved_usd_micros, 0) as credit_reserved_usd_micros,
+                credit_period_ym,
                 credit_grant_at, credit_period_anchor_day
          FROM users WHERE id = ?`,
       )
       .get(userId) ?? null
   );
+}
+
+/** Available = balance − reserved. */
+export function dbAvailableCreditsMicros(userId: string, database: Database = db): number {
+  const row = dbGetCreditBalance(userId, database);
+  if (!row) return 0;
+  return Math.max(0, row.credit_balance_usd_micros - row.credit_reserved_usd_micros);
+}
+
+/**
+ * Atomically reserve `amountMicros` from available balance (does not debit yet).
+ * Returns false if insufficient available credits.
+ */
+export function dbReserveCredits(
+  userId: string,
+  amountMicros: number,
+): { ok: true; availableUsdMicros: number } | { ok: false; reason: "not_found" | "insufficient" } {
+  if (amountMicros <= 0) {
+    const avail = dbAvailableCreditsMicros(userId);
+    return { ok: true, availableUsdMicros: avail };
+  }
+
+  const run = db.transaction(() => {
+    const row = dbGetCreditBalance(userId);
+    if (!row) return { ok: false as const, reason: "not_found" as const };
+    const available = row.credit_balance_usd_micros - row.credit_reserved_usd_micros;
+    if (available < amountMicros) {
+      return { ok: false as const, reason: "insufficient" as const };
+    }
+    const nextReserved = row.credit_reserved_usd_micros + amountMicros;
+    db.query(`UPDATE users SET credit_reserved_usd_micros = ? WHERE id = ?`).run(
+      nextReserved,
+      userId,
+    );
+    return {
+      ok: true as const,
+      availableUsdMicros: row.credit_balance_usd_micros - nextReserved,
+    };
+  });
+  return run();
+}
+
+export function dbReleaseCreditsReserve(
+  userId: string,
+  amountMicros: number,
+): void {
+  if (amountMicros <= 0) return;
+  db.transaction(() => {
+    const row = dbGetCreditBalance(userId);
+    if (!row) return;
+    const next = Math.max(0, row.credit_reserved_usd_micros - amountMicros);
+    db.query(`UPDATE users SET credit_reserved_usd_micros = ? WHERE id = ?`).run(next, userId);
+  })();
 }
 
 function insertLedger(

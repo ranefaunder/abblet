@@ -6,7 +6,7 @@ import { getLang } from "/utils/lang";
 import { isAppCategory, type AppCategory } from "/utils/app-categories";
 import { loadApps } from "/app/stores/appStore";
 import { isLoggedIn, openLoginDialog } from "/app/stores/userStore";
-import { appInstallUrl } from "/utils/app-url";
+import { appInstallUrl, openAppUrl } from "/utils/app-url";
 import { precacheInstalledApp } from "/utils/offline-apps.client";
 
 export type InstallHistoryItem = {
@@ -150,6 +150,36 @@ export function recordAppOpen(slug: string): void {
     headers: { "Content-Type": "application/json" },
     body,
   }).catch(() => {});
+}
+
+/**
+ * Store "Open": for signed-in users, go through `/connect` with a one-time confirm nonce
+ * so Open itself is the connect consent (no separate Connect page). Guests open the
+ * runtime directly; direct app links still show the Connect page on first visit.
+ */
+export async function openFromStore(
+  slug: string,
+  app?: NonNullable<Parameters<typeof openAppUrl>[2]>["app"],
+): Promise<void> {
+  const s = slug.trim();
+  if (!s) return;
+  recordAppOpen(s);
+
+  if (!isLoggedIn()) {
+    window.location.href = openAppUrl(lang(), s, { app });
+    return;
+  }
+
+  const result = await apiFetch<{ url: string }>(`/api/${lang()}/app/prepare-open`, {
+    method: "POST",
+    body: JSON.stringify({ slug: s }),
+  });
+  if (result.success && result.data.url) {
+    window.location.href = result.data.url;
+    return;
+  }
+  // Fallback: open runtime (ensureConnected may show Connect page).
+  window.location.href = openAppUrl(lang(), s, { app });
 }
 
 export async function loadStoreApp(slug: string): Promise<void> {

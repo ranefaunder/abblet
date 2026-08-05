@@ -128,6 +128,8 @@ export const register = async (
 ): Promise<{
   success: boolean;
   registration?: boolean;
+  needsVerification?: boolean;
+  debugCode?: string;
   user?: LoggedInUser;
   existingUser?: boolean;
   error?: string;
@@ -137,6 +139,8 @@ export const register = async (
     const result = await apiFetch<{
       existingUser?: boolean;
       registration?: boolean;
+      needsVerification?: boolean;
+      debugCode?: string;
       user?: StoredUser;
     }>(`/api/${language}/auth/register`, {
       method: "POST",
@@ -150,8 +154,16 @@ export const register = async (
         errorMessage: result.error.message,
       };
     }
-    if (result.data.existingUser) return { success: true, existingUser: true };
-    if (result.data.registration && result.data.user) {
+    // Legacy: server may still return existingUser; treat as needs verification.
+    if (result.data.existingUser || result.data.needsVerification || result.data.registration) {
+      return {
+        success: true,
+        registration: result.data.registration === true,
+        needsVerification: true,
+        debugCode: result.data.debugCode,
+      };
+    }
+    if (result.data.user) {
       const normalized = normalizeStoredUser(result.data.user);
       user.value = normalized;
       saveUserToStorage(normalized);

@@ -4,7 +4,7 @@ import { unwrapMarkdownCodeFence } from "/utils/ai-text";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { isOriginForApp } from "/utils/app-host";
 import { resolveAppFromOrigin } from "/utils/app-runtime.server";
-import { assertHasCredits, debitOpenRouterUsage, usdMicrosToUsd } from "/utils/credits.server";
+import { assertHasCredits, debitOpenRouterUsage, releaseCreditReservation, usdMicrosToUsd } from "/utils/credits.server";
 import { checkRateLimit } from "/utils/rate-limit.server";
 import { parseBearerToken, resolveRuntimeToken } from "/utils/sdk-auth.server";
 import { sdkCorsOptions, withSdkCors } from "/utils/sdk-cors.server";
@@ -72,8 +72,9 @@ export default {
       return withSdkCors(apiError({ code: "RATE_LIMITED", status: 429 }), origin);
     }
 
+    let reservation;
     try {
-      assertHasCredits(userId);
+      reservation = assertHasCredits(userId, "runtime");
     } catch (err) {
       if (err instanceof AiRequestError && err.code === "INSUFFICIENT_CREDITS") {
         return withSdkCors(apiError({ code: "INSUFFICIENT_CREDITS", status: 402 }), origin);
@@ -95,6 +96,7 @@ export default {
         floorKind: "runtime",
         reason: "ai_runtime",
         meta: { appSlug },
+        reservation,
       });
       return withSdkCors(
         apiSuccess({
@@ -107,6 +109,7 @@ export default {
         origin,
       );
     } catch (err) {
+      releaseCreditReservation(reservation);
       if (err instanceof AiRequestError) {
         const status =
           err.code === "RATE_LIMIT_EXCEEDED"

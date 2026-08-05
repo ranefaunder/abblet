@@ -3,7 +3,7 @@ import type { RoutePropsForPath } from "preact-iso";
 import { useEffect, useState } from "preact/hooks";
 import { useLocation, useRoute } from "preact-iso";
 import { t } from "/utils/i18n";
-import { createUrl, openAppUrl, catalogAppUrl, appsUrl, gamesUrl } from "/utils/app-url";
+import { createUrl, catalogAppUrl, appsUrl, gamesUrl } from "/utils/app-url";
 import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import type { AppCategory } from "/utils/app-categories";
@@ -11,7 +11,7 @@ import {
   clearStoreApp,
   loadStore,
   loadStoreApp,
-  recordAppOpen,
+  openFromStore,
   storeApp,
   storeApps,
   storeBusy,
@@ -171,18 +171,17 @@ export default function App(_props: AppRouteProps) {
                   </div>
                   <div class="actions" ui-column="gap-sm">
                     <div class="cta-row" ui-row="gap-sm wrap">
-                      <a
-                        href=${openAppUrl(lang, app.slug, {
-                          app: {
+                      <button
+                        type="button"
+                        ui-button="primary"
+                        onClick=${() =>
+                          void openFromStore(app.slug, {
                             id: app.id,
                             slug: app.slug,
                             visibility: app.visibility,
                             publishedVersionId: app.publishedVersionId,
-                          },
-                        })}
-                        ui-button="primary"
-                        onClick=${() => recordAppOpen(app.slug)}
-                      >${t("Open")}</a>
+                          })}
+                      >${t("Open")}</button>
                       ${app.isOwner
                         ? html`<a href=${createUrl(lang, app.slug)} ui-button>${t("Edit")}</a>`
                         : html`

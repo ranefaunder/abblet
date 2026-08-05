@@ -33,13 +33,18 @@ function parseForwardedAddress(raw: string): string {
   return noZone;
 }
 
-/** Ensimmäinen osoite X-Forwarded-For -ketjusta (pilkuilla erotettu; IPv6 ei sisällä pilkkuja). */
-function firstForwardedClient(forwarded: string): string | null {
-  const first = forwarded.split(",")[0];
-  if (!first) return null;
-  const ip = parseForwardedAddress(first);
+/** Viimeinen (oikeanpuoleisin) osoite X-Forwarded-For -ketjusta — proxy-lisäämä hop. */
+function lastForwardedClient(forwarded: string): string | null {
+  const parts = forwarded.split(",");
+  const last = parts[parts.length - 1];
+  if (!last) return null;
+  const ip = parseForwardedAddress(last);
   if (!ip || ip === "localhost" || ip === "unknown") return null;
   return ip;
+}
+
+function isValidPublicClientIp(ip: string): boolean {
+  return isIPv4(ip) || isIPv6(ip);
 }
 
 function expandIPv6Hextets(ip: string): string[] | null {
@@ -103,14 +108,25 @@ export function anonymizeClientIP(ip: string): string {
 }
 
 /**
- * Lukee asiakkaan IP:n (X-Forwarded-For, luottaa välityspalvelimeen tuotannossa).
+ * Lukee asiakkaan IP:n luotetusta edge-otsakkeesta.
+ * Tuotanto / Cloudflare: `CF-Connecting-IP`.
+ * X-Forwarded-For vain kun `TRUSTED_PROXY=1` — käytetään ketjun viimeistä hoppia
+ * (ei asiakkaan asettamaa vasenta arvoa).
  * Palauttaa anonymisoidun arvon (ei täyttä osoitetta).
  */
 export function getClientIP(req: Request): string {
-  const xForwardedFor = req.headers.get("x-forwarded-for");
-  if (xForwardedFor) {
-    const first = firstForwardedClient(xForwardedFor);
-    if (first) return anonymizeClientIP(first);
+  const cf = req.headers.get("cf-connecting-ip")?.trim();
+  if (cf && isValidPublicClientIp(parseForwardedAddress(cf))) {
+    return anonymizeClientIP(parseForwardedAddress(cf));
+  }
+
+  const trustProxy = process.env.TRUSTED_PROXY === "1";
+  if (trustProxy) {
+    const xForwardedFor = req.headers.get("x-forwarded-for");
+    if (xForwardedFor) {
+      const last = lastForwardedClient(xForwardedFor);
+      if (last) return anonymizeClientIP(last);
+    }
   }
 
   const userAgent = req.headers.get("user-agent") || "";

@@ -15,14 +15,9 @@ export function sdkCorsHeaders(origin: string): HeadersInit {
   };
 }
 
-/** CORS for non-credentialed SDK calls (exchange / ai). */
+/** @deprecated Alias — SDK calls use Bearer tokens, not cookies. */
 export function sdkCredentialCorsHeaders(origin: string): HeadersInit {
-  return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    Vary: "Origin",
-  };
+  return sdkCorsHeaders(origin);
 }
 
 /** Attach SDK CORS headers when Origin is an app runtime host (slug or UUID). */
@@ -35,8 +30,12 @@ export function withSdkCors(response: Response, origin: string | null): Response
   return new Response(response.body, { status: response.status, headers });
 }
 
+/**
+ * Same allowlist as withSdkCors. Host-only cookies are NOT sent to app subdomains,
+ * but same-site fetch from `*.remiix.app` → `remiix.app` still includes the cookie —
+ * platform mutating APIs must check Origin === PLATFORM_ORIGIN (see server.ts).
+ */
 export function withSdkCredentialCors(response: Response, origin: string | null): Response {
-  // Credentials no longer used from app subdomains (host-only cookie). Same allowlist as withSdkCors.
   return withSdkCors(response, origin);
 }
 
@@ -49,11 +48,7 @@ export function sdkCorsOptions(req: BunRequest): Response {
   return new Response(null, { status: 204, headers: sdkCorsHeaders(origin) });
 }
 
-/** OPTIONS preflight for /api/sdk/session|remix (no cookies; kept for compatibility). */
+/** OPTIONS preflight (Bearer; kept for compatibility). */
 export function sdkCredentialCorsOptions(req: BunRequest): Response {
-  const origin = req.headers.get("Origin");
-  if (!origin || !isAppRuntimeCorsOrigin(origin)) {
-    return new Response(null, { status: 204 });
-  }
-  return new Response(null, { status: 204, headers: sdkCredentialCorsHeaders(origin) });
+  return sdkCorsOptions(req);
 }

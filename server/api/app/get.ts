@@ -7,11 +7,13 @@ import { dbCommitAppVersion, resolveAppConfig } from "/server/database/queries/a
 import { generateAppConfig } from "/utils/ai-apps.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
 import { buildAppDetail } from "/utils/app-detail.server";
+import { assertHasCredits, debitOpenRouterUsage, releaseCreditReservation } from "/utils/credits.server";
 import { isDraftConfig } from "/types/app-config-types";
 import type { Language } from "/types/i18n-types";
 import { getLang } from "/utils/lang";
 import { t } from "/utils/i18n";
 import { resolveAppFromRequestHost } from "/utils/app-runtime.server";
+import { checkRateLimit } from "/utils/rate-limit.server";
 
 function viewOptsForReq(req: BunRequest, row: { id: string; slug: string }) {
   const resolved = resolveAppFromRequestHost(req);
@@ -59,29 +61,56 @@ export default {
 
     const viewOpts = viewOptsForReq(req, row);
     const isOwner = user?.id === row.owner_id;
-    // Owner cookie OR UUID capability host (building page without platform session).
-    if (!isOwner && !viewOpts.viaCapabilityIdHost) {
+    // Owner session required for paid draft completion (capability host alone is not enough).
+    if (!isOwner) {
       if (!user) return apiError({ code: "UNAUTHORIZED", status: 401 });
-      return apiError({ code: "FORBIDDEN", status: 403 });
+      if (!viewOpts.viaCapabilityIdHost) {
+        return apiError({ code: "FORBIDDEN", status: 403 });
+      }
+      return apiError({
+        code: "UNAUTHORIZED",
+        message: "Sign in to finish building this app.",
+        status: 401,
+      });
     }
 
     const existing = resolveAppConfig(row, { asOwner: true });
     if (!isDraftConfig(existing)) {
-      const detail = buildAppDetail(row, user?.id ?? null, existing);
+      const detail = buildAppDetail(row, user.id, existing);
       return apiSuccess({ data: { app: detail } });
     }
 
     const language = (getLang(req.url) ?? "en") as Language;
-    const prompt = existing?.prompt ?? row.description;
-    let generated;
+
+    if (!checkRateLimit(user.id, "app_generate", 20, 60)) {
+      return apiError({
+        code: "RATE_LIMIT_EXCEEDED",
+        message: t("Too many requests. Wait a moment before retrying.", language),
+        status: 429,
+      });
+    }
+
+    let reservation;
     try {
-      generated = await generateAppConfig(prompt, language);
+      reservation = assertHasCredits(user.id, "edit");
     } catch (err) {
       const aiError = apiErrorFromAi(err, language);
       if (aiError) return aiError;
       throw err;
     }
+
+    const prompt = existing?.prompt ?? row.description;
+    let generated;
+    try {
+      generated = await generateAppConfig(prompt, language);
+    } catch (err) {
+      releaseCreditReservation(reservation);
+      const aiError = apiErrorFromAi(err, language);
+      if (aiError) return aiError;
+      throw err;
+    }
     if (!generated) {
+      releaseCreditReservation(reservation);
       return apiError({
         code: "GENERATION_FAILED",
         message: t("Could not create app. Try again.", language),
@@ -102,8 +131,17 @@ export default {
       isDraft: false,
     });
 
+    debitOpenRouterUsage({
+      userId: user.id,
+      costUsd: generated.costUsd,
+      floorKind: "edit",
+      reason: "ai_generate",
+      meta: { appId: row.id, slug },
+      reservation,
+    });
+
     const updated = dbGetAppBySlug(slug)!;
-    const detail = buildAppDetail(updated, user?.id ?? null, { ...config, title: updated.title });
+    const detail = buildAppDetail(updated, user.id, { ...config, title: updated.title });
     return apiSuccess({ data: { app: detail } });
   },
 };

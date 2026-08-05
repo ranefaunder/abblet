@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { db } from "/server/database/db"
 
 export type LoginCodeInDatabase = {
@@ -9,21 +10,47 @@ export type LoginCodeInDatabase = {
   created_at: string
 }
 
-export const dbGetLoginCode = (email: string, code: string): LoginCodeInDatabase | null =>
-  db.query<LoginCodeInDatabase, [string, string, string]>(`
-    SELECT * FROM login_codes 
-    WHERE email = ? AND UPPER(code) = ? AND is_used = 0 AND expires_at > ?
-    ORDER BY created_at DESC
-    LIMIT 1
-  `).get(email, code.toUpperCase(), new Date().toISOString()) ?? null
+function codesEqual(a: string, b: string): boolean {
+  const aa = Buffer.from(a.toUpperCase())
+  const bb = Buffer.from(b.toUpperCase())
+  if (aa.length !== bb.length) return false
+  try {
+    return timingSafeEqual(aa, bb)
+  } catch {
+    return false
+  }
+}
 
-export const dbGetUsedLoginCode = (email: string, code: string): LoginCodeInDatabase | null =>
-  db.query<LoginCodeInDatabase, [string, string]>(`
-    SELECT * FROM login_codes 
-    WHERE email = ? AND code = ? AND is_used = 1
+/** Fetch unused non-expired codes for email and compare with timingSafeEqual. */
+export const dbGetLoginCode = (email: string, code: string): LoginCodeInDatabase | null => {
+  const rows = db.query<LoginCodeInDatabase, [string, string]>(`
+    SELECT * FROM login_codes
+    WHERE email = ? AND is_used = 0 AND expires_at > ?
     ORDER BY created_at DESC
-    LIMIT 1
-  `).get(email, code) ?? null
+    LIMIT 5
+  `).all(email, new Date().toISOString())
+
+  const needle = code.trim()
+  for (const row of rows) {
+    if (codesEqual(row.code, needle)) return row
+  }
+  return null
+}
+
+export const dbGetUsedLoginCode = (email: string, code: string): LoginCodeInDatabase | null => {
+  const rows = db.query<LoginCodeInDatabase, [string]>(`
+    SELECT * FROM login_codes
+    WHERE email = ? AND is_used = 1
+    ORDER BY created_at DESC
+    LIMIT 20
+  `).all(email)
+
+  const needle = code.trim()
+  for (const row of rows) {
+    if (codesEqual(row.code, needle)) return row
+  }
+  return null
+}
 
 export const dbGetLatestLoginCode = (email: string): LoginCodeInDatabase | null =>
   db.query<LoginCodeInDatabase, [string, string]>(`
@@ -47,4 +74,3 @@ export const dbDeleteExpiredLoginCodes = () => {
   const now = new Date().toISOString()
   return db.query("DELETE FROM login_codes WHERE expires_at < ?").run(now)
 }
-

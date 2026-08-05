@@ -7,11 +7,20 @@ import {
 import { dbGetUser } from "/server/database/queries/users";
 import type { AuthenticatedUser } from "/types/user-types";
 import { apiError } from "/utils/api.server";
-import { getPlatformHost } from "/utils/app-host";
+import { getPlatformHost, getPlatformOrigin } from "/utils/app-host";
 
 export const SESSION_MAX_AGE_SEC = 180 * 24 * 60 * 60;
 const SESSION_EXTEND_AFTER_MS = 24 * 60 * 60 * 1000;
 export const AUTH_COOKIE_NAME = "appstudo-auth";
+
+function authCookieSecure(): boolean {
+  if (process.env.NODE_ENV === "production") return true;
+  try {
+    return getPlatformOrigin().startsWith("https://");
+  } catch {
+    return false;
+  }
+}
 
 export function shouldExtendSession(expiresAt: string, now = Date.now()): boolean {
   const remainingMs = new Date(expiresAt).getTime() - now;
@@ -43,7 +52,7 @@ function setAuthCookie(req: BunRequest, sessionId: string): void {
     name: AUTH_COOKIE_NAME,
     value: sessionId,
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: authCookieSecure(),
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_MAX_AGE_SEC,

@@ -19,6 +19,7 @@ function setupDb(): Database {
       id TEXT PRIMARY KEY,
       email TEXT,
       credit_balance_usd_micros INTEGER NOT NULL DEFAULT 0,
+      credit_reserved_usd_micros INTEGER NOT NULL DEFAULT 0,
       credit_period_ym TEXT,
       credit_grant_at TEXT,
       credit_period_anchor_day INTEGER

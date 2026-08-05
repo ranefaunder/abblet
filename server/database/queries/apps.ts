@@ -143,7 +143,7 @@ export function dbListStoreApps(opts: {
   }
   if (q) {
     where.push("(a.title LIKE ? OR a.description LIKE ? OR IFNULL(a.tagline, '') LIKE ?)");
-    const like = `%${q.replace(/%/g, "")}%`;
+    const like = `%${q.replace(/[%_]/g, "")}%`;
     params.push(like, like, like);
   }
 
@@ -192,7 +192,7 @@ export function dbListStoreCategories(opts?: {
 
   if (q) {
     where.push("(a.title LIKE ? OR a.description LIKE ? OR IFNULL(a.tagline, '') LIKE ?)");
-    const like = `%${q.replace(/%/g, "")}%`;
+    const like = `%${q.replace(/[%_]/g, "")}%`;
     params.push(like, like, like);
   }
 
@@ -213,7 +213,9 @@ export function dbGetStoreAppBySlug(slug: string, userId: string | null): StoreA
 }
 
 /**
- * Store detail by numeric slug (public) or app UUID (public, or owner draft/private).
+ * Store detail by numeric slug or app UUID. Public apps are visible to everyone;
+ * the owner also sees their own draft/private apps (needed e.g. by the connect
+ * consent page for private apps).
  */
 export function dbGetStoreApp(key: string, userId: string | null): StoreAppDetail | null {
   const byId = isAppIdUuid(key);
@@ -246,7 +248,7 @@ export function dbGetStoreApp(key: string, userId: string | null): StoreAppDetai
             CASE WHEN ? IS NOT NULL AND a.owner_id = ? THEN 1 ELSE 0 END as is_owner
           FROM apps a
           LEFT JOIN users u ON u.id = a.owner_id
-          WHERE a.slug = ? AND a.visibility = 'public' AND a.is_draft = 0
+          WHERE a.slug = ?
           LIMIT 1
         `)
         .get(userId, userId, userId, userId, key) ?? null;

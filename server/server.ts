@@ -1,6 +1,10 @@
 import { initDb } from "./database/db";
-import { isAppOnlyHost, redirectLegacyHost } from "/utils/app-host";
+import { getPlatformOrigin, isAppOnlyHost, redirectLegacyHost } from "/utils/app-host";
 import { apiError } from "/utils/api.server";
+import {
+  applySecurityHeaders,
+  type SecurityHeaderKind,
+} from "/utils/security-headers.server";
 
 import staticRoute from "./routes/static";
 import clientJsRoute from "./routes/client-js";
@@ -48,6 +52,7 @@ import appInstall from "./api/app/install";
 import appInstallHistory from "./api/app/install-history";
 import appOpen from "./api/app/open";
 import appOpenHistory from "./api/app/open-history";
+import appPrepareOpen from "./api/app/prepare-open";
 import appUninstall from "./api/app/uninstall";
 import sdkOpen from "./api/sdk/open";
 import sdkCredits from "./api/sdk/credits";
@@ -90,15 +95,84 @@ function wrapHandler(
   return wrapped;
 }
 
-/** Platform `/api/:lang/*` must not run on app subdomains. */
+function requestOrigin(req: Request): string | null {
+  const origin = req.headers.get("Origin")?.trim();
+  if (origin) return origin.replace(/\/$/, "");
+  const referer = req.headers.get("Referer")?.trim();
+  if (!referer) return null;
+  try {
+    return new URL(referer).origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Platform `/api/:lang/*` must not run on app subdomains.
+ * Mutating methods also require Origin/Referer = PLATFORM_ORIGIN (CSRF:
+ * same-site app subdomains can still send the host-only cookie to apex).
+ */
 function platformApiOnly(handler: RouteHandler | RouteMethods): RouteHandler | RouteMethods {
   return wrapHandler(handler, (req) => {
     const host = req.headers.get("host") ?? "";
     if (isAppOnlyHost(host)) {
       return apiError({ code: "NOT_FOUND", status: 404 });
     }
+    const method = req.method.toUpperCase();
+    if (method === "POST" || method === "PUT" || method === "DELETE" || method === "PATCH") {
+      const expected = getPlatformOrigin();
+      const origin = requestOrigin(req);
+      // Browsers always send Origin on cross-origin and same-origin POST fetch.
+      // Missing Origin+Referer is only allowed for non-browser clients in development.
+      if (origin && origin !== expected) {
+        return apiError({ code: "ORIGIN_DENIED", status: 403 });
+      }
+      if (!origin && process.env.NODE_ENV === "production") {
+        return apiError({ code: "ORIGIN_DENIED", status: 403 });
+      }
+    }
     return null;
   });
+}
+
+function withSecurityHeaderKind(
+  handler: RouteHandler | RouteMethods,
+  kind: SecurityHeaderKind,
+): RouteHandler | RouteMethods {
+  if (typeof handler === "function") {
+    return async (req, ...args) => applySecurityHeaders(await handler(req, ...args), kind);
+  }
+  const wrapped: RouteMethods = {};
+  for (const [method, fn] of Object.entries(handler)) {
+    if (typeof fn !== "function") {
+      wrapped[method] = fn;
+      continue;
+    }
+    wrapped[method] = async (req, ...args) => applySecurityHeaders(await fn(req, ...args), kind);
+  }
+  return wrapped;
+}
+
+function securityKindForPath(path: string): SecurityHeaderKind {
+  if (path.startsWith("/api/")) return "api";
+  if (
+    path.startsWith("/static/") ||
+    path === "/app.js" ||
+    path.endsWith("/module.js") ||
+    path === "/module.js"
+  ) {
+    return "static";
+  }
+  // `/` serves app-runtime HTML on app subdomains (see root.ts); platform redirects otherwise.
+  // App HTML also sets CSP via htmlResponse — baseline headers still applied here.
+  // `/connect/:appId` is a platform redirect endpoint (host-only cookie); the consent
+  // UI itself is the SPA route /:lang/connect/:appId.
+  if (path === "/connect/:appId") return "platform-html";
+  if (path === "/" || path === "/install" || path === "/manifest.webmanifest") {
+    return "app-runtime";
+  }
+  if (path.startsWith("/:lang/app/")) return "app-runtime";
+  return "platform-html";
 }
 
 function withLegacyHostRedirect(
@@ -135,6 +209,7 @@ function wrapRoutes<T extends Record<string, RouteHandler | RouteMethods>>(
   for (const [path, handler] of Object.entries(routes)) {
     let next: RouteHandler | RouteMethods = handler;
     if (opts?.platformApi) next = platformApiOnly(next);
+    next = withSecurityHeaderKind(next, opts?.platformApi ? "api" : securityKindForPath(path));
     (out as Record<string, RouteHandler | RouteMethods>)[path] = withLegacyHostRedirect(next);
   }
   return out;
@@ -155,6 +230,7 @@ const platformApiRoutes = wrapRoutes(
     "/api/:lang/app/install-history": appInstallHistory,
     "/api/:lang/app/open": appOpen,
     "/api/:lang/app/open-history": appOpenHistory,
+    "/api/:lang/app/prepare-open": appPrepareOpen,
     "/api/:lang/app/uninstall": appUninstall,
     "/api/:lang/app/publish": appPublish,
     "/api/:lang/app/unpublish": appUnpublish,

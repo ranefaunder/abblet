@@ -14,7 +14,7 @@ import {
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
 import { getIntentionAiModel, resolveEditAiModel } from "/utils/ai-core.server";
-import { assertHasCredits, debitOpenRouterUsageSteps } from "/utils/credits.server";
+import { assertHasCredits, debitOpenRouterUsageSteps, releaseCreditReservation, type CreditReservation } from "/utils/credits.server";
 import {
   DEFAULT_EDIT_AI_MODEL,
   resolveStoredModelRef,
@@ -199,6 +199,7 @@ async function runEditTurn(opts: {
   usage: AppEditToolUsage[];
   persist: PersistCtx;
   userId: string;
+  reservation: CreditReservation;
 }): Promise<void> {
   const {
     send,
@@ -214,8 +215,11 @@ async function runEditTurn(opts: {
     usage,
     persist,
     userId,
+    reservation,
   } = opts;
 
+  let settled = false;
+  try {
   const fail = (code: string, msg: string, status = 500) =>
     failEditTurn(send, { code, message: msg, status }, persist);
   const failAi = (res: Response) => sendAiError(send, res, language, persist);
@@ -505,7 +509,9 @@ async function runEditTurn(opts: {
     steps: usage,
     floorKind: "edit",
     meta: { appId: row.id, slug },
+    reservation,
   });
+  settled = true;
 
   const updated = dbGetAppBySlug(slug)!;
   send({
@@ -516,6 +522,9 @@ async function runEditTurn(opts: {
       nextPrompt,
     },
   });
+  } finally {
+    if (!settled) releaseCreditReservation(reservation);
+  }
 }
 
 export default {
@@ -558,9 +567,9 @@ export default {
         return apiError({ code: "APP_NOT_READY", status: 409 });
       }
 
-      const clientIP = getClientIP(req);
       const creating = isDraftConfig(current);
-      if (!checkRateLimit(clientIP, creating ? "app_generate" : "app_edit", creating ? 20 : 40, 60)) {
+      const clientIP = getClientIP(req);
+      if (!checkRateLimit(user.id, creating ? "app_generate" : "app_edit", creating ? 20 : 40, 60)) {
         return apiError({
           code: "RATE_LIMIT_EXCEEDED",
           message: t("Too many requests. Wait a moment before retrying.", language),
@@ -568,8 +577,9 @@ export default {
         });
       }
 
+      let reservation;
       try {
-        assertHasCredits(user.id);
+        reservation = assertHasCredits(user.id, "edit");
       } catch (err) {
         const aiError = apiErrorFromAi(err, language);
         if (aiError) return aiError;
@@ -594,8 +604,10 @@ export default {
             usage,
             persist,
             userId: user.id,
+            reservation,
           });
         } catch (err) {
+          releaseCreditReservation(reservation);
           console.error("Edit turn failed:", err);
           failEditTurn(
             send,

@@ -5,12 +5,22 @@ import { redeemGiftForPremium } from "/utils/entitlements.server";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 import type { Language } from "/types/i18n-types";
+import { checkRateLimit } from "/utils/rate-limit.server";
 
 /** POST /api/:lang/billing/redeem-gift — entitle Premium via gift code. */
 export default {
   async POST(req: BunRequest) {
     return withAuth(req, async (user) => {
       const language = (getLang(req.url) ?? "en") as Language;
+
+      if (!checkRateLimit(user.id, "redeem_gift", 10, 60)) {
+        return apiError({
+          code: "RATE_LIMIT_EXCEEDED",
+          message: t("Too many requests. Wait a moment before retrying.", language),
+          status: 429,
+        });
+      }
+
       let body: unknown;
       try {
         body = await req.json();

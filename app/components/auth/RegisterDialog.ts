@@ -50,11 +50,12 @@ export default function RegisterDialog() {
     setSending(false);
     if (result.success) {
       closeDialog();
-      if (result.existingUser) {
-        window.dispatchEvent(new CustomEvent("open-login-dialog", { detail: { email: email.trim() } }));
-      } else if (result.registration) {
-        window.dispatchEvent(new CustomEvent("open-registration-success-dialog"));
-      }
+      // Always verify email via login code before a session exists.
+      window.dispatchEvent(
+        new CustomEvent("open-login-dialog-for-code", {
+          detail: { email: email.trim(), showCodeSentInfo: true },
+        }),
+      );
     } else {
       setEmailError(registerErrorMessage(result.error, result.errorMessage));
     }
