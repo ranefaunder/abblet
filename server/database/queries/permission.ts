@@ -140,7 +140,7 @@ export function dbListPermissionGrants(
 
 /**
  * Remember that the user granted a scope — skips the consent screen next time.
- * `monthlyLimitUsdMicros` applies only on first insert (OR IGNORE).
+ * Re-allow with a new monthly limit updates `monthly_limit_usd_micros` (spend counter kept).
  */
 export function dbCreatePermissionGrant(
   userId: string,
@@ -151,9 +151,11 @@ export function dbCreatePermissionGrant(
   const limit = Math.max(0, Math.floor(monthlyLimitUsdMicros));
   const periodYm = currentPeriodYm();
   db.query(
-    `INSERT OR IGNORE INTO app_connect_grants
+    `INSERT INTO app_connect_grants
        (user_id, app_slug, scope, monthly_limit_usd_micros, period_ym, period_spent_usd_micros)
-     VALUES (?, ?, ?, ?, ?, 0)`,
+     VALUES (?, ?, ?, ?, ?, 0)
+     ON CONFLICT(user_id, app_slug, scope) DO UPDATE SET
+       monthly_limit_usd_micros = excluded.monthly_limit_usd_micros`,
   ).run(userId, appSlug, scope, limit, periodYm);
 }
 

@@ -22,11 +22,15 @@ function parseMonthlyLimitUsd(raw: unknown): number {
   return Math.min(MAX_MONTHLY_LIMIT_USD, Math.max(MIN_MONTHLY_LIMIT_USD, Math.round(n * 100) / 100));
 }
 
+function hasExplicitMonthlyLimit(raw: unknown): boolean {
+  return raw !== undefined && raw !== null && raw !== "";
+}
+
 /**
  * POST /api/:lang/app/prepare-open — Store "Open" / permission Allow.
  * Non-AI apps: direct runtime URL (no permission flow).
  * AI apps: permission-grant URL with optional confirm nonce (Open = allow AI).
- * Body: { slug, monthlyLimitUsd? } — monthly AI budget for first-time grant (default $1).
+ * Body: { slug, monthlyLimitUsd? } — when set (Allow), upserts the monthly AI budget.
  */
 export default {
   async POST(req: BunRequest) {
@@ -46,10 +50,11 @@ export default {
         return apiError({ code: "SLUG_REQUIRED" });
       }
 
-      const monthlyLimitUsd = parseMonthlyLimitUsd(
-        (body as { monthlyLimitUsd?: unknown }).monthlyLimitUsd,
-      );
-      const monthlyLimitUsdMicros = usdToUsdMicros(monthlyLimitUsd) || DEFAULT_AI_MONTHLY_LIMIT_USD_MICROS;
+      const rawMonthlyLimit = (body as { monthlyLimitUsd?: unknown }).monthlyLimitUsd;
+      const setBudget = hasExplicitMonthlyLimit(rawMonthlyLimit);
+      const monthlyLimitUsd = parseMonthlyLimitUsd(rawMonthlyLimit);
+      const monthlyLimitUsdMicros =
+        usdToUsdMicros(monthlyLimitUsd) || DEFAULT_AI_MONTHLY_LIMIT_USD_MICROS;
 
       const row = dbGetAppBySlug(slug);
       if (!row) return apiError({ code: "NOT_FOUND", status: 404 });
@@ -65,7 +70,9 @@ export default {
       }
 
       const base = permissionUrl(slug);
-      if (dbHasPermissionGrant(user.id, slug, "ai")) {
+      // Store Open with an existing grant: skip consent. Allow always passes monthlyLimitUsd
+      // so the chosen budget is written even when a grant already exists.
+      if (dbHasPermissionGrant(user.id, slug, "ai") && !setBudget) {
         return apiSuccess({ data: { url: base } });
       }
 

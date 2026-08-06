@@ -79,12 +79,19 @@ export default function permissionRoute(req: PermissionRequest): Response {
       302,
     );
   }
-  if (!alreadyGranted) {
+  if (nonceResult) {
     dbCreatePermissionGrant(
       user.id,
       appId,
       "ai",
-      nonceResult?.monthlyLimitUsdMicros ?? DEFAULT_AI_MONTHLY_LIMIT_USD_MICROS,
+      nonceResult.monthlyLimitUsdMicros,
+    );
+  } else if (!alreadyGranted) {
+    dbCreatePermissionGrant(
+      user.id,
+      appId,
+      "ai",
+      DEFAULT_AI_MONTHLY_LIMIT_USD_MICROS,
     );
   }
 
