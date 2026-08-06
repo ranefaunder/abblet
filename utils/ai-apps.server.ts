@@ -5,6 +5,7 @@ import { appConfigSchema, type AppConfig, type AppEditMessage } from "/types/app
 import type { Language } from "/types/i18n-types";
 import { AVAILABLE_LANGUAGES } from "/i18n/languages";
 import { APP_CATEGORIES, normalizeAppCategory } from "/utils/app-categories";
+import { mergeAppPermissions } from "/utils/app-permissions";
 
 /** Home-screen label hard limit (must fit under the icon). */
 export const APP_TITLE_MAX_LENGTH = 12;
@@ -38,6 +39,7 @@ const aiAppSchema = appConfigSchema
     title: aiTitleSchema,
     tagline: aiTaglineSchema,
     category: aiCategorySchema,
+    permissions: z.array(z.enum(["ai", "sync"])).default([]),
   });
 
 /** Tools the edit orchestrator can run after intent classification. */
@@ -84,11 +86,14 @@ const aiEditSchema = z.discriminatedUnion("mode", [
     mode: z.literal("patch"),
     summary: z.string().min(1),
     replacements: z.array(codeReplacementSchema).min(1).max(20),
+    /** Updated after the patch: which Remiix permissions the app needs. */
+    permissions: z.array(z.enum(["ai", "sync"])).default([]),
   }),
   z.object({
     mode: z.literal("full"),
     summary: z.string().min(1),
     code: z.string().min(1),
+    permissions: z.array(z.enum(["ai", "sync"])).default([]),
   }),
 ]);
 
@@ -96,6 +101,7 @@ const aiEditSchema = z.discriminatedUnion("mode", [
 const aiEditFullSchema = z.object({
   summary: z.string().min(1),
   code: z.string().min(1),
+  permissions: z.array(z.enum(["ai", "sync"])).default([]),
 });
 
 export function addCost(a: number | null, b: number | null): number | null {
@@ -139,12 +145,18 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
 ## Code rules for "code"
 
 - Must call customElements.define("<tagName>", class extends HTMLElement { ... }) with the exact tagName you chose.
+- After define, mount into #mount (and remove #boot if present):
+  const mount = document.getElementById("mount");
+  document.getElementById("boot")?.remove();
+  if (mount) { mount.replaceChildren(); mount.appendChild(document.createElement("<tagName>")); }
 - Vanilla JavaScript only. NO imports, NO external libraries, NO CDN links.
 - Network: do NOT use fetch, XMLHttpRequest, WebSocket, or any direct HTTP. The ONLY allowed network APIs are the host-injected global Remiix companion (window.Remiix):
   - await Remiix.ai({ prompt: "…" }) — optional system: await Remiix.ai({ prompt: "…", system: "…" })
-  - Remiix.connect() — links the user session (redirect); call only when needed
-  - Remiix.getToken() — optional; usually unnecessary because Remiix.ai handles connect
+  - Remiix.requestPermission() — opens the Remiix permission request (AI); usually unnecessary because Remiix.ai handles it
+  - Remiix.getToken() — optional; usually unnecessary because Remiix.ai handles permissions
   Use Remiix.ai ONLY when the user's idea needs AI (summarize, rewrite, classify, generate text). Most apps need zero AI.
+  When the code calls Remiix.ai, you MUST include "ai" in the JSON permissions array. If the app never calls Remiix.ai, permissions must be [].
+  Do not emit "sync" yet (reserved). Do not call Remiix.requestPermission() from app code unless necessary — the host asks for permission when "ai" is required.
   Example:
   \`\`\`
   btn.addEventListener("click", async () => {
@@ -153,7 +165,7 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
       const text = await Remiix.ai({ prompt: input.value.trim() });
       out.textContent = text;
     } catch (e) {
-      if (e && (e.code === "CONNECT_REQUIRED" || e.code === "CONNECT_CANCELLED")) return;
+      if (e && (e.code === "PERMISSION_REQUIRED" || e.code === "PERMISSION_CANCELLED" || e.code === "CONNECT_REQUIRED" || e.code === "CONNECT_CANCELLED")) return;
       if (e && e.code === "INSUFFICIENT_CREDITS") {
         out.textContent = "AI credit ran out for this month.";
         return;
@@ -274,7 +286,8 @@ Quality bar:
 - List/filter changes update only the list area.
 - Data survives page reload via localStorage (structured state) and OPFS (images/files when used).
 - No console errors on first load with empty state; empty state is friendly.
-- tagName in customElements.define matches the JSON tagName exactly.`;
+- tagName in customElements.define matches the JSON tagName exactly.
+- After define, the element is mounted into #mount (boot removed).`;
 }
 
 export async function generateAppConfig(
@@ -298,6 +311,7 @@ Return one JSON object with:
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
 - tagName: valid custom element name, lowercase with at least one hyphen (e.g. "run-log", "wine-journal")
 - code: complete JavaScript that registers the custom element
+- permissions: array of Remiix runtime permissions. Use ["ai"] if and only if the code calls Remiix.ai(...). Otherwise []. Never invent other values; "sync" is reserved and must not be emitted yet.
 
 ${designGuidelines(langName)}`;
 
@@ -313,6 +327,8 @@ ${designGuidelines(langName)}`;
   // Varmistus: koodissa on oltava annetun tagNamen rekisteröinti.
   if (!generated.code.includes(generated.tagName)) return null;
 
+  const permissions = mergeAppPermissions(generated.permissions, generated.code);
+
   return {
     config: {
       version: 2,
@@ -322,6 +338,7 @@ ${designGuidelines(langName)}`;
       title: generated.title,
       tagline: generated.tagline || undefined,
       category: generated.category,
+      permissions,
     },
     costUsd,
     modelUsed,
@@ -532,9 +549,10 @@ export async function editAppConfig(opts: {
 
   const sharedConstraints = `## Hard constraints
 - Keep the EXACT same custom element tagName: "${current.tagName}". The code must still call customElements.define("${current.tagName}", ...). Do NOT rename it.
+- After define, ensure the element is mounted into #mount (remove #boot if present). Do not rely on the host to create the element.
 - Preserve existing user data compatibility: keep the same localStorage keys and data shape unless the request explicitly requires changing them.
 - Make the smallest change that fully satisfies the request; do not rewrite unrelated parts or regress existing features.
-- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Remiix.ai({ prompt }) / Remiix.connect() only when the request needs AI. Everything inside the Shadow DOM (except the host-host-injected Remiix global).
+- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Remiix.ai({ prompt }) only when the request needs AI (the host requests AI permission). Everything inside the Shadow DOM (except the host-injected Remiix global).
 - Do NOT change the home-screen title, Store description, tagline, category, or launcher icon — those are handled by updateMeta / regenerateIcon.
 
 ${designGuidelines(langName)}`;
@@ -568,6 +586,7 @@ ${reason}
 Return one JSON object with:
 - summary: 1 short sentence in ${langName} describing exactly what you changed (for chat + version history). Max ~100 characters. No fluff.
 - code: the COMPLETE updated JavaScript that registers the custom element (never a diff, never partial code)
+- permissions: ["ai"] if the updated code calls Remiix.ai(...), otherwise []
 
 ${sharedConstraints}`;
 
@@ -598,6 +617,7 @@ Return the complete updated code and a short summary of what you changed.`,
         code: data.code,
         title: clampAppTitle(current.title),
         description: current.description,
+        permissions: mergeAppPermissions(data.permissions, data.code),
       },
       summary: data.summary.trim(),
       costUsd,
@@ -634,6 +654,7 @@ Return:
   - replaceAll: optional; if true, replace every occurrence of old
   - Without replaceAll, old MUST appear exactly once in the file
   - Never use line numbers. Never invent text that is not in the source for old.
+- permissions: ["ai"] if AFTER applying the patch the app still/calls Remiix.ai(...), otherwise []
 
 ## mode: "full" (required for large changes)
 Use when adding substantial features, restructuring, touching many places, or when patch would be fragile.
@@ -641,6 +662,7 @@ Return:
 - mode: "full"
 - summary: 1 short sentence in ${langName} describing exactly what you changed (chat + version history). Max ~100 characters.
 - code: the COMPLETE updated JavaScript source
+- permissions: ["ai"] if the updated code calls Remiix.ai(...), otherwise []
 
 ${sharedConstraints}`;
 
@@ -672,6 +694,7 @@ Choose patch or full and return the JSON for that mode.`,
         code: generated.code,
         title: clampAppTitle(current.title),
         description: current.description,
+        permissions: mergeAppPermissions(generated.permissions, generated.code),
       },
       summary: generated.summary.trim(),
       costUsd: firstCost,
@@ -698,6 +721,7 @@ Choose patch or full and return the JSON for that mode.`,
         code: applied.code,
         title: clampAppTitle(current.title),
         description: current.description,
+        permissions: mergeAppPermissions(generated.permissions, applied.code),
       },
       summary: generated.summary.trim(),
       costUsd: firstCost,

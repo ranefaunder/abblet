@@ -1,8 +1,8 @@
 import type { Database } from "bun:sqlite";
 
 /**
- * Append-only log of app opens for "Recently used".
- * Written when a signed-in user opens an app (platform Open or Patch with connect token).
+ * Append-only anonymous log of app opens for popularity (open_count).
+ * Not attributed to users.
  */
 export default function (db: Database) {
   db.run(`

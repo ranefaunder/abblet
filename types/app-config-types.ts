@@ -3,8 +3,8 @@ import { z } from "zod";
 /**
  * Remiix-app on kokonainen Web Component (custom element).
  * Tekoäly tuottaa `code`-kentässä täyden JS:n, joka rekisteröi elementin
- * `customElements.define(tagName, ...)` -kutsulla. Komponentti hoitaa oman
- * tilansa ja tallennuksensa itse (localStorage / IndexedDB).
+ * `customElements.define(tagName, ...)` -kutsulla ja mounttaa sen `#mount`-elementtiin.
+ * Komponentti hoitaa oman tilansa ja tallennuksensa itse (localStorage / IndexedDB).
  */
 export const appConfigSchema = z.object({
   version: z.literal(2),
@@ -37,6 +37,11 @@ export const appConfigSchema = z.object({
   tagName: z.string().regex(/^[a-z][a-z0-9]*(-[a-z0-9]+)+$/),
   /** Täysi JS, joka rekisteröi custom elementin. Vanilla JS, ei importteja. */
   code: z.string().min(1),
+  /**
+   * Runtime permissions this app needs (user must grant). Empty = no permission request.
+   * `ai` = Remiix.ai; `sync` reserved for Remiix.sync.
+   */
+  permissions: z.array(z.enum(["ai", "sync"])).default([]),
 });
 
 export type AppConfig = z.infer<typeof appConfigSchema>;

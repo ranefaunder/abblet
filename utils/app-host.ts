@@ -177,9 +177,9 @@ export function redirectToPlatformFromRequest(req: { url: string }): Response {
   return Response.redirect(`${getPlatformOrigin()}/${url.search}`, 302);
 }
 
-/** Platform URL that issues a connect code for an app slug. */
-export function connectUrl(slug: string): string {
-  return `${getPlatformOrigin()}/connect/${slug}`;
+/** Platform URL that issues a runtime code after AI permission is granted. */
+export function permissionUrl(slug: string): string {
+  return `${getPlatformOrigin()}/permission/${slug}`;
 }
 
 /**

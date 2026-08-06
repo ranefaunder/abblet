@@ -2,6 +2,7 @@ import { db } from "/server/database/db";
 import type { AppConfig } from "/types/app-config-types";
 import {
   appConfigToVersionFields,
+  permissionsJson,
   versionRowToAppConfig,
   type AppVersionRow,
 } from "/utils/app-config.server";
@@ -50,8 +51,8 @@ export function dbInsertAppVersion(data: {
     `
     INSERT INTO app_versions (
       id, app_id, version_number, status, prompt, description, tagline, category,
-      tag_name, code, created_from_version_id, created_at, summary
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      tag_name, code, required_permissions, created_from_version_id, created_at, summary
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
   ).run(
     data.id,
@@ -64,6 +65,7 @@ export function dbInsertAppVersion(data: {
     data.fields.category,
     data.fields.tagName,
     data.fields.code,
+    permissionsJson(data.fields),
     data.createdFromVersionId ?? null,
     now,
     (data.summary ?? "").trim(),
@@ -107,6 +109,7 @@ export function dbCommitAppVersion(
   const versionNumber = dbNextVersionNumber(appId);
   const fields = appConfigToVersionFields(config);
   const fromId = opts?.fromVersionId ?? null;
+  const permsJson = permissionsJson(fields);
 
   const run = db.transaction(() => {
     dbInsertAppVersion({
@@ -128,6 +131,7 @@ export function dbCommitAppVersion(
             tagline = ?,
             category = ?,
             is_draft = ?,
+            required_permissions = ?,
             updated_at = ?
         WHERE id = ?
       `,
@@ -136,9 +140,15 @@ export function dbCommitAppVersion(
         fields.tagline,
         fields.category,
         fields.status === "ready" && fields.code ? 0 : 1,
+        permsJson,
         now,
         appId,
       );
+    } else {
+      const now = new Date().toISOString();
+      db.query(
+        `UPDATE apps SET required_permissions = ?, updated_at = ? WHERE id = ?`,
+      ).run(permsJson, now, appId);
     }
   });
   run();

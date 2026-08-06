@@ -756,12 +756,6 @@ function ChatPanel({
                 draft.value = (e.target as HTMLTextAreaElement).value;
                 resizeInput();
               }}
-              onKeyDown=${(e: KeyboardEvent) => {
-                if (e.key === "Enter" && e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
-                  e.preventDefault();
-                  if (canSend) (e.currentTarget as HTMLTextAreaElement).form?.requestSubmit();
-                }
-              }}
             ></textarea>
             <div class="composer-bar" ui-row="x-between y-center gap-sm">
               ${typeof editCreditBalanceUsd.value === "number"

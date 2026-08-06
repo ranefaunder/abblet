@@ -13,9 +13,7 @@ import {
   storeError,
   storeLoading,
   storeQuery,
-  openHistory,
   loadStore,
-  loadOpenHistory,
   ensureStoreBrowseScope,
 } from "/app/stores/storeListingStore";
 import AppSlider from "/app/components/AppSlider";
@@ -100,7 +98,6 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
   const apps = storeApps.value;
   const loading = storeLoading.value;
   const category = storeCategory.value;
-  const history = openHistory.value;
   const isDefaultBrowse = !storeQuery.value.trim() && !category;
   const myApps = libraryApps.value.filter(
     (app) => app.owned && app.category !== "Games",
@@ -118,7 +115,6 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
 
   useEffect(() => {
     void loadStore({ category: null, excludeCategory: "Games" });
-    void loadOpenHistory({ excludeCategory: "Games" });
     if (isLoggedIn()) void loadApps();
   }, []);
 
@@ -172,22 +168,6 @@ export default function Apps(_props: RoutePropsForPath<typeof AppsPath>) {
                             title: app.title,
                             iconId: app.iconId,
                             href: ownedAppHref(app, lang),
-                          }))}
-                        />
-                      </section>`
-                    : ""}
-
-                  ${history.length > 0
-                    ? html`
-                      <section ui-column="gap-xs">
-                        <h2 ui-heading="sm">${t("Recently used")}</h2>
-                        <${AppSlider}
-                          label=${t("Recently used")}
-                          items=${history.map((item) => ({
-                            slug: item.slug,
-                            title: item.title,
-                            iconId: item.iconId,
-                            href: appsAppUrl(lang, item.slug),
                           }))}
                         />
                       </section>`

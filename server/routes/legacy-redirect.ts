@@ -41,3 +41,20 @@ export function editSlugToCreate(req: BunRequest<"/:lang/edit/:slug">): Response
 export function accountToMe(req: BunRequest<"/:lang/account" | "/:lang/account/">): Response {
   return redirectLangPath(req, req.params.lang, "/me");
 }
+
+/** /:lang/connect/:appId → /:lang/permission/:appId */
+export function connectToPermission(
+  req: BunRequest<"/:lang/connect/:appId">,
+): Response {
+  const slug = encodeURIComponent(req.params.appId);
+  return redirectLangPath(req, req.params.lang, `/permission/${slug}`);
+}
+
+/** /connect/:appId → /permission/:appId (preserve query) */
+export function connectApexToPermission(
+  req: BunRequest<"/connect/:appId">,
+): Response {
+  const url = new URL(req.url);
+  const slug = encodeURIComponent(req.params.appId);
+  return Response.redirect(`${url.origin}/permission/${slug}${url.search}`, 301);
+}

@@ -10,7 +10,7 @@ Liittyy: [`BRAND.md`](BRAND.md), [`TRADEMARK.md`](TRADEMARK.md).
 
 ## 1. Remiix.sync() — app-tason pilvidata
 
-SDK on jo sama malli: `Remiix.connect()` → Bearer → `/api/sdk/*`. Offline-copy sanoo, että app-data toimii offline — sync täydentää sen pilveen kun käyttäjä on connected.
+SDK on jo sama malli: `Remiix.requestPermission()` (ex-`connect`) → Bearer → `/api/sdk/*`. Offline-copy sanoo, että app-data toimii offline — sync täydentää sen pilveen kun käyttäjä on antanut luvan.
 
 ### API (app runtime)
 

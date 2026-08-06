@@ -4,7 +4,18 @@ import { unwrapMarkdownCodeFence } from "/utils/ai-text";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { isOriginForApp } from "/utils/app-host";
 import { resolveAppFromOrigin } from "/utils/app-runtime.server";
-import { assertHasCredits, debitOpenRouterUsage, releaseCreditReservation, usdMicrosToUsd } from "/utils/credits.server";
+import {
+  dbAddGrantSpend,
+  dbGrantBudgetWouldExceed,
+  dbHasPermissionGrant,
+} from "/server/database/queries/permission";
+import {
+  assertHasCredits,
+  debitOpenRouterUsage,
+  getFloorUsd,
+  releaseCreditReservation,
+  usdToUsdMicros,
+} from "/utils/credits.server";
 import { checkRateLimit } from "/utils/rate-limit.server";
 import { parseBearerToken, resolveRuntimeToken } from "/utils/sdk-auth.server";
 import { sdkCorsOptions, withSdkCors } from "/utils/sdk-cors.server";
@@ -67,6 +78,15 @@ export default {
       return apiError({ code: "ORIGIN_DENIED", status: 403 });
     }
 
+    if (!dbHasPermissionGrant(userId, appSlug, "ai")) {
+      return withSdkCors(apiError({ code: "PERMISSION_REQUIRED", status: 403 }), origin);
+    }
+
+    const floorMicros = usdToUsdMicros(getFloorUsd("runtime"));
+    if (dbGrantBudgetWouldExceed(userId, appSlug, floorMicros, "ai")) {
+      return withSdkCors(apiError({ code: "APP_BUDGET_EXCEEDED", status: 402 }), origin);
+    }
+
     const maxAttempts = process.env.NODE_ENV === "development" ? 300 : 30;
     if (!checkRateLimit(userId, "sdk_ai", maxAttempts, 10)) {
       return withSdkCors(apiError({ code: "RATE_LIMITED", status: 429 }), origin);
@@ -98,12 +118,11 @@ export default {
         meta: { appSlug },
         reservation,
       });
+      dbAddGrantSpend(userId, appSlug, debit.billedUsdMicros, "ai");
       return withSdkCors(
         apiSuccess({
           data: {
             text: normalized,
-            billedUsd: Math.round(debit.billedUsd * 10000) / 10000,
-            balanceUsd: Math.round(usdMicrosToUsd(debit.balanceUsdMicros) * 100) / 100,
           },
         }),
         origin,

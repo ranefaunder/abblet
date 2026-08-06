@@ -48,7 +48,7 @@ export interface StoreAppCard {
   category: string | null;
   iconId: string | null;
   ownerNickname: string | null;
-  /** How many times this app has been opened (app_open_events). */
+  /** How many times this app has been opened (anonymous app_open_events). */
   openCount: number;
   /** How many users have this app in their library (app_installs). */
   installCount: number;
@@ -59,6 +59,8 @@ export interface StoreAppCard {
   isOwner: boolean;
   publishedAt: string | null;
   updatedAt: string;
+  /** Declared runtime permissions (e.g. ["ai"]). */
+  permissions: Array<"ai" | "sync">;
 }
 
 /** Full Store detail payload for /apps/:slug (or /apps/:uuid for owner drafts). */

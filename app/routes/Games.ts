@@ -10,9 +10,7 @@ import {
   storeApps,
   storeError,
   storeLoading,
-  openHistory,
   loadStore,
-  loadOpenHistory,
   ensureStoreBrowseScope,
 } from "/app/stores/storeListingStore";
 import AppSlider from "/app/components/AppSlider";
@@ -62,9 +60,8 @@ function ownedGameHref(app: AppSummary, lang: string): string {
  * Same browse hierarchy as Apps (no category chips — all items are Games):
  * 1. AppCard — featured
  * 2. AppSlider — My Games (owned, if any)
- * 3. AppSlider — recently used
- * 4. AppList — popular (ranked)
- * 5. AppSlider — new drops
+ * 3. AppList — popular (ranked)
+ * 4. AppSlider — new drops
  */
 export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
   ensureStoreBrowseScope("games");
@@ -72,7 +69,6 @@ export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
   const lang = getLang(path ?? "") ?? "en";
   const apps = storeApps.value;
   const loading = storeLoading.value;
-  const history = openHistory.value;
   const myGames = libraryApps.value.filter(
     (app) => app.owned && app.category === "Games",
   );
@@ -85,7 +81,6 @@ export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
 
   useEffect(() => {
     void loadStore({ category: "Games", excludeCategory: null });
-    void loadOpenHistory({ category: "Games" });
     if (isLoggedIn()) void loadApps();
   }, []);
 
@@ -138,22 +133,6 @@ export default function Games(_props: RoutePropsForPath<typeof GamesPath>) {
                           title: app.title,
                           iconId: app.iconId,
                           href: ownedGameHref(app, lang),
-                        }))}
-                      />
-                    </section>`
-                  : ""}
-
-                ${history.length > 0
-                  ? html`
-                    <section ui-column="gap-xs">
-                      <h2 ui-heading="sm">${t("Recently used")}</h2>
-                      <${AppSlider}
-                        label=${t("Recently used")}
-                        items=${history.map((item) => ({
-                          slug: item.slug,
-                          title: item.title,
-                          iconId: item.iconId,
-                          href: gamesAppUrl(lang, item.slug),
                         }))}
                       />
                     </section>`

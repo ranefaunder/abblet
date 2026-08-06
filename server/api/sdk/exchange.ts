@@ -1,11 +1,11 @@
 import type { BunRequest } from "bun";
-import { dbExchangeConnectCode } from "/server/database/queries/connect";
+import { dbExchangePermissionCode } from "/server/database/queries/permission";
 import { apiError, apiSuccess } from "/utils/api.server";
 import { resolveAppFromOrigin } from "/utils/app-runtime.server";
 import { sdkCorsOptions, withSdkCors } from "/utils/sdk-cors.server";
 
 /**
- * POST /api/sdk/exchange — swap one-time connect code for an opaque runtime token.
+ * POST /api/sdk/exchange — swap one-time permission code for an opaque runtime token.
  * Called cross-origin from `{slug|uuid}.{APP_RUNTIME_HOST}` (no cookies).
  */
 export default {
@@ -28,7 +28,7 @@ export default {
       return withSdkCors(apiError({ code: "MISSING_CODE", status: 400 }), origin);
     }
 
-    const result = dbExchangeConnectCode(code, {
+    const result = dbExchangePermissionCode(code, {
       originAllowed: (appSlug) => {
         const resolved = resolveAppFromOrigin(origin);
         return resolved?.row.slug === appSlug;
@@ -53,7 +53,6 @@ export default {
         data: {
           accessToken: result.tokenId,
           expiresAt: result.expiresAt,
-          appSlug: result.appSlug,
         },
       }),
       origin,

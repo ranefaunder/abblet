@@ -1,7 +1,7 @@
 import {
   appOrigin,
   appRuntimeOrigin,
-  connectUrl as platformConnectUrl,
+  permissionUrl as platformPermissionUrl,
   type AppRuntimeRow,
 } from "/utils/app-host";
 import { AVAILABLE_LANGUAGES } from "/i18n/languages";
@@ -73,14 +73,14 @@ export function appRuntimeModulePath(): string {
   return "/module.js";
 }
 
-export function connectUrl(slug: string): string {
-  return platformConnectUrl(slug);
+export function permissionUrl(slug: string): string {
+  return platformPermissionUrl(slug);
 }
 
 /**
  * URL to open a runnable app on its runtime host.
- * Prefer `openFromStore` on Store detail pages (connects signed-in users via /connect).
- * Direct links / guest open use this; remiix-app.js `ensureConnected` handles token.
+ * Prefer `openFromStore` on Store detail pages (permission grant for AI apps via /permission).
+ * Direct links / guest open use this; remiix-app.js `ensurePermissions` handles AI token.
  */
 export function openAppUrl(
   lang: string,

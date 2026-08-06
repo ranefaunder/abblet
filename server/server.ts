@@ -13,6 +13,8 @@ import rootRoute from "./routes/root";
 import redirectRoute from "./routes/redirect";
 import {
   accountToMe,
+  connectApexToPermission,
+  connectToPermission,
   editSlugToCreate,
   editToCreate,
   storeSlugToApps,
@@ -23,11 +25,11 @@ import sitemapXml from "./routes/sitemap-xml";
 import siteWebmanifest from "./routes/site-webmanifest";
 import appManifest from "./routes/app-manifest";
 import { appPage, appRunRedirect, appModule, shortAppModule, appSubdomainModule, appSubdomainInstallPage } from "./routes/app-page";
-import connectRoute from "./routes/connect";
+import permissionRoute from "./routes/permission";
 import sdkExchange from "./api/sdk/exchange";
 import sdkAi from "./api/sdk/ai";
-import sdkSession from "./api/sdk/session";
 import sdkRemix from "./api/sdk/remix";
+import sdkPermissions from "./api/sdk/permissions";
 import credits from "./api/credits";
 import billingStatus from "./api/billing/status";
 import billingRedeemGift from "./api/billing/redeem-gift";
@@ -50,12 +52,8 @@ import appStore from "./api/app/store";
 import appStoreGet from "./api/app/store-get";
 import appInstall from "./api/app/install";
 import appInstallHistory from "./api/app/install-history";
-import appOpen from "./api/app/open";
-import appOpenHistory from "./api/app/open-history";
 import appPrepareOpen from "./api/app/prepare-open";
 import appUninstall from "./api/app/uninstall";
-import sdkOpen from "./api/sdk/open";
-import sdkCredits from "./api/sdk/credits";
 import appPublish from "./api/app/publish";
 import appUnpublish from "./api/app/unpublish";
 import appRemix from "./api/app/remix";
@@ -165,9 +163,9 @@ function securityKindForPath(path: string): SecurityHeaderKind {
   }
   // `/` serves app-runtime HTML on app subdomains (see root.ts); platform redirects otherwise.
   // App HTML also sets CSP via htmlResponse — baseline headers still applied here.
-  // `/connect/:appId` is a platform redirect endpoint (host-only cookie); the consent
-  // UI itself is the SPA route /:lang/connect/:appId.
-  if (path === "/connect/:appId") return "platform-html";
+  // `/permission/:appId` mints the runtime code after AI permission is granted; the
+  // permission UI is the SPA route /:lang/permission/:appId.
+  if (path === "/permission/:appId" || path === "/connect/:appId") return "platform-html";
   if (path === "/" || path === "/install" || path === "/manifest.webmanifest") {
     return "app-runtime";
   }
@@ -228,8 +226,6 @@ const platformApiRoutes = wrapRoutes(
     "/api/:lang/app/store-get": appStoreGet,
     "/api/:lang/app/install": appInstall,
     "/api/:lang/app/install-history": appInstallHistory,
-    "/api/:lang/app/open": appOpen,
-    "/api/:lang/app/open-history": appOpenHistory,
     "/api/:lang/app/prepare-open": appPrepareOpen,
     "/api/:lang/app/uninstall": appUninstall,
     "/api/:lang/app/publish": appPublish,
@@ -267,15 +263,15 @@ const server = Bun.serve({
       "/api/:lang/app/get": appGet,
       "/api/sdk/exchange": sdkExchange,
       "/api/sdk/ai": sdkAi,
-      "/api/sdk/session": sdkSession,
-      "/api/sdk/open": sdkOpen,
-      "/api/sdk/credits": sdkCredits,
       "/api/sdk/remix": sdkRemix,
+      "/api/sdk/permissions": sdkPermissions,
 
       "/static/*": staticRoute,
       "/app.js": clientJsRoute,
       "/module.js": appSubdomainModule,
-      "/connect/:appId": connectRoute,
+      "/permission/:appId": permissionRoute,
+      "/connect/:appId": connectApexToPermission,
+      "/:lang/connect/:appId": connectToPermission,
       "/:appId/module.js": shortAppModule,
       "/:lang/app/:slug/module.js": appModule,
       "/:lang/app/:slug/run.js": appModule,

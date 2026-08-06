@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   appOrigin,
   appRuntimeOrigin,
-  connectUrl,
+  permissionUrl,
   getAppRuntimeHost,
   getAppRuntimeHosts,
   isAppOnlyHost,
@@ -60,8 +60,8 @@ describe("app-host", () => {
   test("appOrigin includes port from PLATFORM_ORIGIN", () => {
     expect(appOrigin("34211")).toBe("http://34211.localhost:8090");
   });
-  test("connectUrl points at platform", () => {
-    expect(connectUrl("34211")).toBe("http://localhost:8090/connect/34211");
+  test("permissionUrl points at platform", () => {
+    expect(permissionUrl("34211")).toBe("http://localhost:8090/permission/34211");
   });
 
   test("isOriginForAppSlug and isOriginForApp", () => {

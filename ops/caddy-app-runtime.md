@@ -53,7 +53,7 @@ respond @cross_site 403
 
 3. **`/api/sdk/*`** uses Bearer runtime tokens + Origin↔appSlug checks (not the platform cookie). `/api/sdk/remix` is Bearer-only.
 
-4. **`/connect/:appId`** requires `confirm=1` (explicit consent page) before minting a connect code.
+4. **`/permission/:appId`** requires a one-time session nonce (from the SPA permission page or Store Open) before minting a runtime code.
 
 ## Recommended CSP split (Caddy)
 

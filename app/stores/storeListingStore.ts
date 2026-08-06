@@ -17,15 +17,6 @@ export type InstallHistoryItem = {
   installedAt: string;
 };
 
-export type OpenHistoryItem = {
-  slug: string;
-  title: string;
-  tagline: string | null;
-  category: string | null;
-  iconId: string | null;
-  openedAt: string;
-};
-
 export const storeApps = signal<StoreAppCard[]>([]);
 export const storeCategories = signal<AppCategory[]>([]);
 export const storeLoading = signal(false);
@@ -43,7 +34,6 @@ export const storeAppError = signal<string | null>(null);
 export const storeBusy = signal(false);
 
 export const installHistory = signal<InstallHistoryItem[]>([]);
-export const openHistory = signal<OpenHistoryItem[]>([]);
 
 function lang(): string {
   return getLang(window.location.pathname) ?? "en";
@@ -57,7 +47,6 @@ export function ensureStoreBrowseScope(scope: StoreBrowseScope): void {
   if (storeBrowseScope.value === scope) return;
   storeBrowseScope.value = scope;
   storeApps.value = [];
-  openHistory.value = [];
   storeQuery.value = "";
   storeCategory.value = scope === "games" ? "Games" : null;
   storeExcludeCategory.value = scope === "games" ? null : "Games";
@@ -117,68 +106,37 @@ export async function loadInstallHistory(): Promise<void> {
   installHistory.value = result.data.apps;
 }
 
-export async function loadOpenHistory(opts?: {
-  category?: AppCategory | null;
-  excludeCategory?: AppCategory | null;
-}): Promise<void> {
-  if (!isLoggedIn()) {
-    openHistory.value = [];
-    return;
-  }
-  const params = new URLSearchParams();
-  if (opts?.category) params.set("category", opts.category);
-  else if (opts?.excludeCategory) params.set("excludeCategory", opts.excludeCategory);
-  const qs = params.toString();
-  const result = await apiFetch<{ apps: OpenHistoryItem[] }>(
-    `/api/${lang()}/app/open-history${qs ? `?${qs}` : ""}`,
-  );
-  if (!result.success) {
-    openHistory.value = [];
-    return;
-  }
-  openHistory.value = result.data.apps;
-}
-
-/** Record an open for the signed-in user (keepalive-friendly for navigation). */
-export function recordAppOpen(slug: string): void {
-  if (!isLoggedIn() || !slug.trim()) return;
-  const body = JSON.stringify({ slug: slug.trim() });
-  void fetch(`/api/${lang()}/app/open`, {
-    method: "POST",
-    credentials: "same-origin",
-    keepalive: true,
-    headers: { "Content-Type": "application/json" },
-    body,
-  }).catch(() => {});
-}
-
 /**
- * Store "Open": for signed-in users, go through `/connect` with a one-time confirm nonce
- * so Open itself is the connect consent (no separate Connect page). Guests open the
- * runtime directly; direct app links still show the Connect page on first visit.
+ * Store "Open": signed-in users go through prepare-open (AI apps → permission grant;
+ * non-AI → direct runtime). Guests open the runtime directly.
  */
 export async function openFromStore(
   slug: string,
   app?: NonNullable<Parameters<typeof openAppUrl>[2]>["app"],
+  opts?: { monthlyLimitUsd?: number },
 ): Promise<void> {
   const s = slug.trim();
   if (!s) return;
-  recordAppOpen(s);
 
   if (!isLoggedIn()) {
     window.location.href = openAppUrl(lang(), s, { app });
     return;
   }
 
+  const body: { slug: string; monthlyLimitUsd?: number } = { slug: s };
+  if (typeof opts?.monthlyLimitUsd === "number" && Number.isFinite(opts.monthlyLimitUsd)) {
+    body.monthlyLimitUsd = opts.monthlyLimitUsd;
+  }
+
   const result = await apiFetch<{ url: string }>(`/api/${lang()}/app/prepare-open`, {
     method: "POST",
-    body: JSON.stringify({ slug: s }),
+    body: JSON.stringify(body),
   });
   if (result.success && result.data.url) {
     window.location.href = result.data.url;
     return;
   }
-  // Fallback: open runtime (ensureConnected may show Connect page).
+  // Fallback: open runtime (ensurePermissions may show the permission page for AI apps).
   window.location.href = openAppUrl(lang(), s, { app });
 }
 

@@ -1,5 +1,5 @@
 import type { BunRequest } from "bun";
-import { dbGetRuntimeToken } from "/server/database/queries/connect";
+import { dbGetRuntimeToken } from "/server/database/queries/permission";
 
 export type ResolvedRuntimeToken = {
   userId: string;

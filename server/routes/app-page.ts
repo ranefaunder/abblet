@@ -3,9 +3,9 @@ import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 import type { Language } from "/i18n/languages";
 import { dbGetAppBySlug, dbLogOpenEvent, isNumericAppSlug } from "/server/database/queries/apps";
 import {
-  CONNECT_CODE_TTL_SEC,
-  dbCreateConnectCode,
-} from "/server/database/queries/connect";
+  PERMISSION_CODE_TTL_SEC,
+  dbCreatePermissionCode,
+} from "/server/database/queries/permission";
 import { getAuthenticatedUser } from "/utils/auth.server";
 import { canViewApp } from "/utils/app-access.server";
 import { escapeHtmlAttribute, escapeHtmlTextContent, serializeJsonForHtmlScript } from "/utils/sanitize.server";
@@ -14,12 +14,10 @@ import { resolveAppConfig } from "/server/database/queries/app-versions";
 import {
   appOrigin,
   appRuntimeOrigin,
-  connectUrl,
   getPlatformOrigin,
   isAppPubliclyRunnable,
 } from "/utils/app-host";
 import { resolveAppFromRequestHost } from "/utils/app-runtime.server";
-import { appRuntimeModulePath } from "/utils/app-url";
 import { appIconMimeType, appIconPngSrc, appIconSrc } from "/utils/app-icon";
 import { applySecurityHeaders } from "/utils/security-headers.server";
 
@@ -40,10 +38,10 @@ type AppAccess =
       lang: Language;
       slug: string;
       title: string;
-      tagName: string;
       iconId: string | null;
-      published: boolean;
       category: string | null;
+      /** Runtime permissions declared for this version (e.g. ["ai"]). */
+      permissions: Array<"ai" | "sync">;
     }
   | { kind: "building"; lang: Language; slug: string; title: string; iconId: string | null }
   | { kind: "error"; status: number };
@@ -123,10 +121,9 @@ function resolveAppAccess(
     lang,
     slug,
     title: row.title,
-    tagName: config.tagName,
     iconId,
-    published: row.visibility === "public" && Boolean(row.published_version_id),
     category: row.category ?? null,
+    permissions: config.permissions ?? [],
   };
 }
 
@@ -147,6 +144,21 @@ function getReadyApp(
   if (!config || isDraftConfig(config)) return { error: 404 as const };
 
   return { lang, slug: row.slug, config };
+}
+
+/** Append mount into #mount so the client does not need tagName in __REMIIX__. */
+function appModuleSource(tagName: string, code: string): string {
+  // tagName is schema-validated ([a-z0-9-]+ with a hyphen).
+  return `${code}
+;(function () {
+  var mount = document.getElementById("mount");
+  var boot = document.getElementById("boot");
+  if (boot) boot.remove();
+  if (!mount || mount.querySelector(${JSON.stringify(tagName)})) return;
+  mount.replaceChildren();
+  mount.appendChild(document.createElement(${JSON.stringify(tagName)}));
+})();
+`;
 }
 
 const PAGE_STYLES = `
@@ -1034,23 +1046,14 @@ function renderAppPage(
     return renderInstallPage(access, { userAgent: opts.userAgent });
   }
 
-  const moduleUrl = appRuntimeModulePath();
   const platformOrigin = getPlatformOrigin();
-  const connectHref = connectUrl(access.slug);
-  const runtimeIcon = appIconPngSrc(access.iconId) ?? appIconSrc(access.iconId);
-  const runtimeIconSvg = appIconSrc(access.iconId);
   const remiixConfig = {
     appSlug: access.slug,
     platformOrigin,
-    connectHref,
-    tagName: access.tagName,
-    moduleUrl,
-    lang: access.lang,
-    published: access.published,
-    title: access.title,
-    iconSrc: runtimeIcon || runtimeIconSvg || null,
-    category: access.category,
+    permissions: access.permissions,
   };
+  const runtimeIcon = appIconPngSrc(access.iconId) ?? appIconSrc(access.iconId);
+  const runtimeIconSvg = appIconSrc(access.iconId);
   const runtimePrecache = [
     "/",
     "/module.js",
@@ -1137,13 +1140,11 @@ function withSearch(origin: string, search = ""): string {
   return `${origin}/${q}`;
 }
 
-/** Best-effort: platform cookie present when redirecting into an app runtime. */
-function maybeLogOpenFromPlatform(req: BunRequest, row: NonNullable<ReturnType<typeof dbGetAppBySlug>>) {
+/** Anonymous open count for public Store apps (no user attribution). */
+function maybeLogAnonymousOpen(row: NonNullable<ReturnType<typeof dbGetAppBySlug>>) {
   if (row.visibility !== "public" || row.is_draft === 1 || !row.published_version_id) return;
-  const user = getAuthenticatedUser(req);
-  if (!user) return;
   try {
-    dbLogOpenEvent(user.id, row.id);
+    dbLogOpenEvent(row.id);
   } catch {
     // ignore logging failures
   }
@@ -1151,7 +1152,7 @@ function maybeLogOpenFromPlatform(req: BunRequest, row: NonNullable<ReturnType<t
 
 /**
  * Redirect to the app runtime. If the user is signed in on the platform, attach a
- * one-time connect `code` so Patch can show credits (cookie is host-only).
+ * one-time permission `code` so the runtime can exchange a Bearer token.
  */
 function redirectToAppRuntime(
   req: BunRequest,
@@ -1163,8 +1164,8 @@ function redirectToAppRuntime(
     const user = getAuthenticatedUser(req);
     if (user) {
       const code = crypto.randomUUID().replace(/-/g, "");
-      const expiresAt = new Date(Date.now() + CONNECT_CODE_TTL_SEC * 1000).toISOString();
-      dbCreateConnectCode({
+      const expiresAt = new Date(Date.now() + PERMISSION_CODE_TTL_SEC * 1000).toISOString();
+      dbCreatePermissionCode({
         code,
         userId: user.id,
         appSlug: row.slug,
@@ -1211,6 +1212,7 @@ export function appSubdomainPage(req: BunRequest): Response {
       302,
     );
   }
+  maybeLogAnonymousOpen(row);
   return renderAppPage(resolveAppAccess(lang, row, req, { viaCapabilityIdHost }));
 }
 
@@ -1251,7 +1253,7 @@ export function appSubdomainModule(req: BunRequest): Response {
   if ("error" in result) {
     return new Response("// Not found", { status: result.error });
   }
-  return new Response(result.config.code, {
+  return new Response(appModuleSource(result.config.tagName, result.config.code), {
     headers: {
       "Content-Type": "text/javascript; charset=utf-8",
       "Cache-Control": "no-store",
@@ -1296,7 +1298,6 @@ export function appPage(req: LangAppRequest): Response {
     if (url.searchParams.get("mode") === "install") {
       return Response.redirect(`${appRuntimeOrigin(row)}/install`, 302);
     }
-    maybeLogOpenFromPlatform(req, row);
     return redirectToAppRuntime(req, row, url.search);
   }
 
@@ -1347,7 +1348,7 @@ export function appModule(req: AppModuleRequest): Response {
     return new Response("// Not found", { status: result.error });
   }
 
-  return new Response(result.config.code, {
+  return new Response(appModuleSource(result.config.tagName, result.config.code), {
     headers: {
       "Content-Type": "text/javascript; charset=utf-8",
       "Cache-Control": "no-store",

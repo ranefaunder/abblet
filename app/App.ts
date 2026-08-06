@@ -23,7 +23,7 @@ import AppPage, { AppPath, GamePath } from "./routes/App";
 import About, { AboutPath } from "./routes/About";
 import Splash, { SplashPath } from "./routes/Splash";
 import Games, { GamesPath } from "./routes/Games";
-import Connect, { ConnectPath } from "./routes/Connect";
+import Permissions, { PermissionsPath } from "./routes/Permissions";
 import NotFound from "./routes/NotFound";
 import { spaRouterScope } from "/utils/app-url";
 import LastPathTracker from "./components/headless/LastPathTracker";
@@ -69,7 +69,7 @@ export default function App() {
             <${Route} path=${AboutPath} component=${withLayout(About, { atmosphere: "about" })} />
             <${Route} path=${MePath} component=${withLayout(Me, { atmosphere: "me" })} />
             <${Route} path=${LoginPath} component=${withLayout(Login, { atmosphere: "splash" })} />
-            <${Route} path=${ConnectPath} component=${withLayout(Connect, { tabBar: false, atmosphere: "splash" })} />
+            <${Route} path=${PermissionsPath} component=${withLayout(Permissions, { tabBar: false, atmosphere: "splash" })} />
             <${Route} path=${CreateSlugPath} component=${withLayout(Create, { atmosphere: "create" })} />
             <${Route} path=${CreatePath} component=${withLayout(Create, { atmosphere: "create" })} />
             <${Route} path=${SplashPath} component=${withLayout(Splash, { tabBar: false, atmosphere: "splash" })} />

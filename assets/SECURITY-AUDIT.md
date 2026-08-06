@@ -19,9 +19,9 @@ Kanava/live-versio (taulukot): `.cursor/projects/Users-rane-faunder-remiix/canva
 | 8–9 | XFF spoof / login bruteforce | **Korjattu** — CF-Connecting-IP; email+IP rate limit |
 | 10 | Credit TOCTOU | **Korjattu** — `credit_reserved_usd_micros` reserve |
 | 11 | Tilien enumerointi | **Korjattu** — yhtenäiset vastaukset |
-| 12 | HTTP-turvaotsikot | **Korjattu** — Bun + Caddy (ks. `ops/caddy-connect.md`) |
+| 12 | HTTP-turvaotsikot | **Korjattu** — Bun + Caddy (ks. `ops/caddy-app-runtime.md`) |
 | 13–18 | Rate/LIKE/connect/innerHTML/… | **Korjattu** |
-| 19 | `connect`-reitin "vahvistus" ei estänyt CSRF:ää (ks. alla) | **Korjattu 2026-08-05** — istuntoon sidottu kertakäyttöinen nonce |
+| 19 | `permission`-reitin CSRF (ent. `connect`) | **Korjattu 2026-08-05** — istuntoon sidottu kertakäyttöinen nonce |
 
 ### Jäljellä oleva riski
 
@@ -30,11 +30,15 @@ Kanava/live-versio (taulukot): `.cursor/projects/Users-rane-faunder-remiix/canva
 - Guest-käyttäjät (`is_guest`) ovat legacy — ei aktiivista luontireittiä.
 - Credit-reservaatio (`credit_reserved_usd_micros`) voi jäädä "jumiin" jos AI-kutsun jälkeinen `dbCreateApp`/ikoni-generointi kaataa poikkeuksen ennen debit/release-kutsua (`remix.ts`, `generate.ts`, `sdk/remix.ts` — `edit.ts` on jo suojattu `finally`-lohkolla). Vaikuttaa vain kyseisen käyttäjän omaan saldoon (ei toisiin käyttäjiin ulottuva hyökkäys), mutta kannattaa siivota samalla `finally`-mallilla jossain vaiheessa.
 
-### #19: `connect`-CSRF-korjaus ei alun perin toiminut
+### #19: `permission`-CSRF-korjaus (ent. `connect`)
 
-Vaiheen 2 korjauksessa `/connect/:appId` sai `confirm=1`-parametrin "vahvistukseksi" ennen koodin myöntämistä. Tämä ei kuitenkaan estänyt mitään: hyökkääjä voi laittaa `confirm=1`:n valmiiksi haitalliseen linkkiin (`https://remiix.app/connect/<oma-app>?confirm=1&return=https://attacker.remiix.app/steal`), jolloin uhrin selain suorittaa koko toiminnon yhdellä klikkauksella täsmälleen kuten alkuperäisessä haavoittuvuudessa — tili yhdistyy hyökkääjän appiin ja koodi valuu hyökkääjän sivulle.
+Vaiheen 2 korjauksessa `/connect/:appId` (nykyisin `/permission/:appId`) sai `confirm=1`-parametrin "vahvistukseksi" ennen koodin myöntämistä. Tämä ei kuitenkaan estänyt mitään: hyökkääjä voi laittaa `confirm=1`:n valmiiksi haitalliseen linkkiin, jolloin uhrin selain suorittaa koko toiminnon yhdellä klikkauksella.
 
-**Korjattu**: vahvistussivu luo nyt arvaamattoman, palvelimen muistissa pidettävän kertakäyttöisen nonce-tokenin, joka on sidottu `userId + appId`-yhdistelmään ja vanhenee 10 minuutissa. Koodi myönnetään vain kun oikea, käyttämätön nonce palautetaan — hyökkääjä ei voi arvata sitä etukäteen. (`server/routes/connect.ts`)
+**Korjattu**: vahvistussivu luo nyt arvaamattoman, palvelimen muistissa pidettävän kertakäyttöisen nonce-tokenin, joka on sidottu `userId + appId`-yhdistelmään ja vanhenee 10 minuutissa. Koodi myönnetään vain kun oikea, käyttämätön nonce palautetaan. (`server/routes/permission.ts`)
+
+**2026-08-05 (permissions):** Luvan pyytäminen ajetaan vain appeille, joiden `required_permissions` sisältää `"ai"`. Grantit ovat scope-kohtaisia (`app_connect_grants.scope`, oletus `ai`). Polku on `/permission/:appId` (SPA `/:lang/permission/:appId`); vanha `/connect` ohjataan uudelleen.
+
+**2026-08-06 (runtime data min):** App-runtime `__REMIIX__` = `{ appSlug, platformOrigin, permissions }`. Module mounttaa itsensä (`#mount`); title/lang/icon DOMista. Open-loki anonyymi. Poistettu credits/session/sdk-open.
 
 Samalla siivottiin pois tarpeeton `return`-parametri (appit elävät aina runtime-juuressa `/`, ei muita polkuja — ks. `server/server.ts` reititystaulu), joten myös se erillinen validointi (`isOriginForApp` return-URL:lle) poistui koodista.
 
@@ -42,7 +46,7 @@ Samalla siivottiin pois tarpeeton `return`-parametri (appit elävät aina runtim
 
 ## Suositeltu Caddy (tuotanto)
 
-Apex käyttää nykyistä `abblet_security_headers`-tyylistä CSP:tä. App-alidomaineille (`*.remiix.app`) suositellaan tiukempaa `connect-src` (vain `'self'` + `https://remiix.app`) — dokumentoitu [`ops/caddy-connect.md`](../ops/caddy-connect.md). Bun asettaa saman app-runtime CSP:n defense-in-depthinä (selain AND-taa useat CSP-headerit).
+Apex käyttää nykyistä `abblet_security_headers`-tyylistä CSP:tä. App-alidomaineille (`*.remiix.app`) suositellaan tiukempaa `connect-src` (vain `'self'` + `https://remiix.app`) — dokumentoitu [`ops/caddy-app-runtime.md`](../ops/caddy-app-runtime.md). Bun asettaa saman app-runtime CSP:n defense-in-depthinä (selain AND-taa useat CSP-headerit).
 
 ---
 

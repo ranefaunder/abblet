@@ -2,9 +2,10 @@ import { db } from "/server/database/db";
 import { dbGetAppVersion, dbInsertAppVersion } from "/server/database/queries/app-versions";
 import type { AppConfig } from "/types/app-config-types";
 import type { AppSummary, AppVisibility, StoreAppCard, StoreAppDetail } from "/types/app-types";
-import { appConfigToVersionFields } from "/utils/app-config.server";
+import { appConfigToVersionFields, permissionsJson } from "/utils/app-config.server";
 import { isAppCategory } from "/utils/app-categories";
 import { isAppIdUuid } from "/utils/app-host";
+import { parseAppPermissions } from "/utils/app-permissions";
 
 export type AppRow = {
   id: string;
@@ -24,6 +25,7 @@ export type AppRow = {
   latest_version_id: string | null;
   published_version_id: string | null;
   next_prompt: string | null;
+  required_permissions?: string;
   owner_nickname?: string | null;
   remix_count?: number;
   install_count?: number;
@@ -70,6 +72,7 @@ function toStoreCard(row: AppRow): StoreAppCard {
     isOwner: row.is_owner === 1,
     publishedAt: row.published_at,
     updatedAt: row.updated_at,
+    permissions: parseAppPermissions(row.required_permissions),
   };
 }
 
@@ -214,8 +217,8 @@ export function dbGetStoreAppBySlug(slug: string, userId: string | null): StoreA
 
 /**
  * Store detail by numeric slug or app UUID. Public apps are visible to everyone;
- * the owner also sees their own draft/private apps (needed e.g. by the connect
- * consent page for private apps).
+ * the owner also sees their own draft/private apps (needed e.g. by the
+ * permission request page for private apps).
  */
 export function dbGetStoreApp(key: string, userId: string | null): StoreAppDetail | null {
   const byId = isAppIdUuid(key);
@@ -291,15 +294,16 @@ export const dbCreateApp = (data: {
   const now = new Date().toISOString();
   const versionId = crypto.randomUUID();
   const fields = appConfigToVersionFields(data.config);
+  const permsJson = permissionsJson(fields);
 
   const run = db.transaction(() => {
     db.query(`
       INSERT INTO apps (
         id, owner_id, title, description, slug, source_app_id,
         is_draft, category, tagline, icon_id, latest_version_id,
-        created_at, updated_at
+        required_permissions, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
     `).run(
       data.id,
       data.ownerId,
@@ -311,6 +315,7 @@ export const dbCreateApp = (data: {
       data.category ?? null,
       data.tagline ?? null,
       data.iconId ?? null,
+      permsJson,
       now,
       now,
     );
@@ -480,18 +485,14 @@ export const dbLogInstallEvent = (
   ).run(crypto.randomUUID(), userId, appId, installedAt);
 };
 
-/** Append-only open log for "Recently used". */
-export const dbLogOpenEvent = (
-  userId: string,
-  appId: string,
-  openedAt = new Date().toISOString(),
-): void => {
+/** Append-only anonymous open log (popularity / open_count). No user_id. */
+export const dbLogOpenEvent = (appId: string, openedAt = new Date().toISOString()): void => {
   db.query(
     `
-    INSERT INTO app_open_events (id, user_id, app_id, opened_at)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO app_open_events (id, app_id, opened_at)
+    VALUES (?, ?, ?)
   `,
-  ).run(crypto.randomUUID(), userId, appId, openedAt);
+  ).run(crypto.randomUUID(), appId, openedAt);
 };
 
 export type InstallHistoryRow = {
@@ -540,75 +541,6 @@ export const dbListInstallHistory = (userId: string, limit = 40): InstallHistory
     tagline: row.tagline,
     iconId: row.icon_id,
     installedAt: row.installed_at,
-  }));
-};
-
-export type OpenHistoryRow = {
-  slug: string;
-  title: string;
-  tagline: string | null;
-  category: string | null;
-  iconId: string | null;
-  openedAt: string;
-};
-
-/** Latest open event per app for a user, newest first. Only apps still in the Store. */
-export const dbListOpenHistory = (
-  userId: string,
-  opts?: { category?: string | null; excludeCategory?: string | null; limit?: number },
-): OpenHistoryRow[] => {
-  const limit = opts?.limit ?? 40;
-  const category = opts?.category ?? null;
-  const excludeCategory = opts?.excludeCategory ?? null;
-
-  const rows = db
-    .query<
-      {
-        slug: string;
-        title: string;
-        tagline: string | null;
-        category: string | null;
-        icon_id: string | null;
-        opened_at: string;
-      },
-      [string, string, string | null, string | null, number]
-    >(
-      `
-      SELECT a.slug, a.title, a.tagline, a.category, a.icon_id, e.opened_at
-      FROM app_open_events e
-      INNER JOIN apps a ON a.id = e.app_id
-      INNER JOIN (
-        SELECT app_id, MAX(opened_at) AS max_at
-        FROM app_open_events
-        WHERE user_id = ?
-        GROUP BY app_id
-      ) latest ON latest.app_id = e.app_id AND latest.max_at = e.opened_at
-      WHERE e.user_id = ?
-        AND a.visibility = 'public'
-        AND a.is_draft = 0
-        AND (? IS NULL OR a.category = ?)
-        AND (? IS NULL OR a.category IS NULL OR a.category != ?)
-      ORDER BY e.opened_at DESC
-      LIMIT ?
-    `,
-    )
-    .all(
-      userId,
-      userId,
-      category,
-      category,
-      excludeCategory,
-      excludeCategory,
-      limit,
-    );
-
-  return rows.map((row) => ({
-    slug: row.slug,
-    title: row.title,
-    tagline: row.tagline,
-    category: row.category,
-    iconId: row.icon_id,
-    openedAt: row.opened_at,
   }));
 };
 
