@@ -40,9 +40,9 @@ const COPY = {
     permissionsEmpty: "No permissions granted",
     permissionAi: "AI",
     permissionSync: "Sync",
-    permissionBudget: "$spent / $limit / mo",
+    permissionBudget: "$spent/$limit/mo",
     revoke: "Revoke",
-    revoking: "Revoking…",
+    revoking: "…",
   },
   fi: {
     loginTitle: "Sallitaanko AI?",
@@ -61,9 +61,9 @@ const COPY = {
     permissionsEmpty: "Ei annettuja lupia",
     permissionAi: "AI",
     permissionSync: "Sync",
-    permissionBudget: "$spent / $limit / kk",
+    permissionBudget: "$spent/$limit/kk",
     revoke: "Poista",
-    revoking: "Poistetaan…",
+    revoking: "…",
   },
 };
 
@@ -645,16 +645,16 @@ function mountRemiixPatch() {
     }
     #remiix-patch .remiix-patch-perms {
       margin: 0;
-      padding: 10px 6px 8px;
+      padding: 8px 6px 6px;
       border-top: 1px solid #ebebeb;
     }
     #remiix-patch .remiix-patch-perms[hidden] {
       display: none;
     }
     #remiix-patch .remiix-patch-perms-heading {
-      margin: 0 0 8px;
+      margin: 0 0 6px;
       padding: 0 4px;
-      font-size: 0.6875rem;
+      font-size: 0.625rem;
       font-weight: 650;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -663,46 +663,62 @@ function mountRemiixPatch() {
     #remiix-patch .remiix-patch-perms-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
     }
     #remiix-patch .remiix-patch-perm {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      padding: 8px 10px;
-      border-radius: 10px;
+      padding: 6px 8px;
+      border-radius: 8px;
       background: #f5f5f5;
       border: 1px solid #ebebeb;
+      min-width: 0;
     }
     #remiix-patch .remiix-patch-perm-meta {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
+      flex-direction: row;
+      align-items: baseline;
+      gap: 0.35rem;
       min-width: 0;
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 0.75rem;
+      line-height: 1.2;
+      font-variant-numeric: tabular-nums;
     }
     #remiix-patch .remiix-patch-perm-name {
-      font-size: 0.8125rem;
-      font-weight: 650;
+      font-weight: 700;
       color: #0a0a0a;
       letter-spacing: -0.02em;
+      flex: none;
     }
     #remiix-patch .remiix-patch-perm-budget {
-      font-size: 0.6875rem;
       color: #737373;
-      font-variant-numeric: tabular-nums;
+      font-weight: 550;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #remiix-patch .remiix-patch-perm-budget::before {
+      content: "·";
+      margin-right: 0.35rem;
+      color: #a3a3a3;
     }
     #remiix-patch .remiix-patch-perm-revoke {
       appearance: none;
       flex: none;
       margin: 0;
-      padding: 0.35rem 0.55rem;
+      padding: 0.3rem 0.5rem;
       border: 1px solid #e5e5e5;
-      border-radius: 8px;
+      border-radius: 7px;
       background: #ffffff;
       color: #525252;
       font: inherit;
-      font-size: 0.6875rem;
+      font-size: 0.625rem;
       font-weight: 650;
       cursor: pointer;
       transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
@@ -909,8 +925,11 @@ function mountRemiixPatch() {
         return `
         <div class="remiix-patch-perm" data-scope="${escapeHtml(scope)}">
           <div class="remiix-patch-perm-meta">
-            <span class="remiix-patch-perm-name">${escapeHtml(scopeLabel(scope))}</span>
-            ${budget ? `<span class="remiix-patch-perm-budget">${escapeHtml(budget)}</span>` : ""}
+            <span class="remiix-patch-perm-name">${escapeHtml(scopeLabel(scope))}</span>${
+              budget
+                ? `<span class="remiix-patch-perm-budget" aria-label="${escapeHtml(budget)}">${escapeHtml(budget)}</span>`
+                : ""
+            }
           </div>
           <button type="button" class="remiix-patch-perm-revoke" data-remiix-revoke="${escapeHtml(scope)}">
             ${escapeHtml(t.revoke)}

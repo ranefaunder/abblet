@@ -374,13 +374,15 @@ export async function classifyEditIntent(opts: {
 Available tools:
 - updateCode: change the app's features, UI, behavior, bugfixes, layout, text inside the app, or anything that requires modifying the Web Component source.
 - updateMeta: change Store / listing metadata without touching the Web Component source — home-screen title (max 12 chars), Store About description paragraph, short tagline (max 40 chars), and/or category. Use for rename, retitle, rewrite description/tagline, change category, or any listing-copy request.
+  Also use updateMeta when the user says this is a game / should be in Games (or the reverse: not a game, move out of Games) — even if they only mention that in passing.
 - regenerateIcon: regenerate the home-screen / launcher icon. Use ONLY for an explicit icon request (e.g. "new icon", "vaihda kuvake", "make the icon blue"). Never invent an icon request.
 
 Rules:
 - Pick ONLY the tools the latest user message clearly needs. Prefer fewer tools.
 - Do NOT select updateCode for pure metadata, pure icon, questions, thanks, or vague chat.
 - Do NOT select regenerateIcon unless the user explicitly asks about the launcher/home-screen icon.
-- Multiple tools are OK when clearly requested together (e.g. updateMeta + new icon).
+- If the user frames the app as a game (or asks to put it in Games), include updateMeta. If they say it is not a game / should leave Games, include updateMeta.
+- Multiple tools are OK when clearly requested together (e.g. updateMeta + new icon, or updateCode + updateMeta when turning something into a game).
 - If nothing actionable (question, greeting, unclear): tools = [] and reply asks a clarifying question or answers briefly.
 - reply: 1-3 short sentences in ${langName}. When tools is empty this is the full chat answer. When tools is non-empty, a brief acknowledgement is enough (the tools will add detail).
 - progress: 1–5 short present-tense status lines in ${langName} shown while work runs.
@@ -403,6 +405,7 @@ Return JSON: { "tools": [...], "reply": "...", "progress": ["...", "..."], "next
 
   const userPrompt = `App title: ${current.title}
 App description: ${current.description}
+Current category: ${current.category ?? "(none)"}
 
 Recent chat:
 ${historyText}
@@ -470,7 +473,8 @@ Return JSON with ALL fields (refresh every field to stay coherent; keep unchange
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
 - summary: 1 short sentence in ${langName} for the chat (what metadata you updated). Max ~100 characters.
 
-Follow the user's request. If they only rename the app, still keep description/tagline/category accurate for the same app. If they rewrite the About text, improve title/tagline/category only when that clearly helps.`;
+Follow the user's request. If they only rename the app, still keep description/tagline/category accurate for the same app. If they rewrite the About text, improve title/tagline/category only when that clearly helps.
+If the user says this is a game / should be a game / put it in Games, set category to Games. If they say it is not a game / leave Games / treat it as a normal app, pick the best non-Games category from the list.`;
 
   const userPrompt = `Current title: ${current.title}
 Current description: ${current.description}
