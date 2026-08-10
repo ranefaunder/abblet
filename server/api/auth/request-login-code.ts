@@ -47,7 +47,7 @@ export default {
 
     const existingUser = dbGetUserByEmail(email);
     // Anti-enumeration: do not reveal whether the account exists.
-    if (!existingUser || (existingUser.is_guest ?? 0) === 1) {
+    if (!existingUser) {
       return apiSuccess({
         data: {
           debugCode: undefined as string | undefined,

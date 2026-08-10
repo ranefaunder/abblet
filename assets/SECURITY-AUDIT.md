@@ -27,7 +27,7 @@ Kanava/live-versio (taulukot): `.cursor/projects/Users-rane-faunder-remiix/canva
 
 - Prompt-injektio voi yhä tuottaa haitallista JS:ää app-originilla; CSP rajoittaa verkkokutsut platformiin + self.
 - Bearer-token on app-JS:n luettavissa (`Remiix.getToken`); exfil ulos estetty CSP:llä, replay curlista Origin-spoofilla mahdollinen TTL:n ajan (token sidottu user+app).
-- Guest-käyttäjät (`is_guest`) ovat legacy — ei aktiivista luontireittiä.
+- Guest-käyttäjät (`is_guest`) poistettu migraatiolla `030_remove_guest_users` — ei enää saraketta eikä rivejä.
 - Credit-reservaatio (`credit_reserved_usd_micros`) voi jäädä "jumiin" jos AI-kutsun jälkeinen `dbCreateApp`/ikoni-generointi kaataa poikkeuksen ennen debit/release-kutsua (`remix.ts`, `generate.ts`, `sdk/remix.ts` — `edit.ts` on jo suojattu `finally`-lohkolla). Vaikuttaa vain kyseisen käyttäjän omaan saldoon (ei toisiin käyttäjiin ulottuva hyökkäys), mutta kannattaa siivota samalla `finally`-mallilla jossain vaiheessa.
 
 ### #19: `permission`-CSRF-korjaus (ent. `connect`)

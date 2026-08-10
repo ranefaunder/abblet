@@ -7,7 +7,6 @@ export type UserInDatabase = {
   last_login?: string;
   nickname?: string | null;
   marketing_opt_in?: number;
-  is_guest?: number;
   credit_balance_usd_micros?: number;
   credit_period_ym?: string | null;
   credit_grant_at?: string | null;
@@ -38,7 +37,7 @@ export const dbCreateUser = (data: {
 }) =>
   db
     .query(
-      "INSERT INTO users (id, email, nickname, marketing_opt_in, is_guest) VALUES (?, ?, ?, ?, 0)",
+      "INSERT INTO users (id, email, nickname, marketing_opt_in) VALUES (?, ?, ?, ?)",
     )
     .run(data.id, data.email, data.nickname, data.marketingOptIn ? 1 : 0);
 

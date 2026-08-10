@@ -104,8 +104,6 @@ export function getAuthenticatedUser(req: BunRequest): AuthenticatedUser | null 
 
     const fullUser = dbGetUser(session.user_id);
     if (!fullUser) return null;
-    // Legacy guest accounts are no longer valid sessions.
-    if ((fullUser.is_guest ?? 0) === 1) return null;
 
     maybeExtendSession(req, sessionId, session.expires_at);
 

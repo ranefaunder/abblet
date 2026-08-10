@@ -63,7 +63,7 @@ export default {
     dbUpdateLoginCodeUsed(loginCode.id);
 
     const existingUser = dbGetUserByEmail(email);
-    if (!existingUser || (existingUser.is_guest ?? 0) === 1) {
+    if (!existingUser) {
       return apiError({
         code: "USER_NOT_FOUND",
         message: t("No account found for this email. Please register first.", language),

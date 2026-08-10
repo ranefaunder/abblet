@@ -13,9 +13,7 @@ type StoredUser = LoggedInUser & {
 };
 
 function normalizeStoredUser(u: StoredUser): LoggedInUser {
-  const { created_at, last_login, isGuest: _guest, ...rest } = u as StoredUser & {
-    isGuest?: boolean;
-  };
+  const { created_at, last_login, ...rest } = u;
   return {
     ...rest,
     createdAt: u.createdAt ?? created_at ?? "",
@@ -29,6 +27,7 @@ const loadUserFromStorage = (): LoggedInUser | null => {
     const stored = localStorage.getItem("appstudo-user");
     if (stored) {
       const u = parseJson<StoredUser & { isGuest?: boolean }>(stored);
+      // Drop leftover guest sessions from the old anonymous login.
       if (u?.isGuest) {
         localStorage.removeItem("appstudo-user");
         return null;
