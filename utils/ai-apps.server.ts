@@ -306,7 +306,7 @@ export async function generateAppConfig(
 
 Return one JSON object with:
 - title: short app name, MAXIMUM 12 characters (including spaces). Must fit under a phone home-screen icon — prefer 1–2 words (e.g. "Budget", "Ostoslista", "Run Log"). Never use the raw user prompt if it is longer than 12 chars; invent a short label instead.
-- description: one short Store About paragraph in ${langName} (about 3–5 sentences, roughly 280–450 characters). Cover what the app does, who it is for, and what makes the experience distinctive. Plain prose only — no bullet points, no marketing slogans.
+- description: Store About text in ${langName}: exactly two short paragraphs (blank line between them), roughly 350–550 characters total. First paragraph: what the app does, who it is for, and what makes the experience distinctive. Second paragraph: one casual note that anyone can Remix it on Remiix to suit themselves — e.g. translate it to their language, or change a detail — by asking. Keep that tip light; the app itself stays the focus. Plain prose only — no bullet points, no marketing slogans.
 - tagline: short Store marketing line in ${langName}, MAXIMUM 40 characters (e.g. "Track spending in seconds")
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
 - tagName: valid custom element name, lowercase with at least one hyphen (e.g. "run-log", "wine-journal")
@@ -465,7 +465,7 @@ export async function updateAppMeta(opts: {
 
 Return JSON with ALL fields (refresh every field to stay coherent; keep unchanged values only when the user asked for a narrow change and the current text still fits):
 - title: short app name, MAXIMUM 12 characters (including spaces). Prefer 1–2 words. Must fit under an icon.
-- description: one short Store About paragraph in ${langName} (about 3–5 sentences, roughly 280–450 characters). Cover what the app does, who it is for, and what makes the experience distinctive. Plain prose only — no bullet points.
+- description: Store About text in ${langName}: exactly two short paragraphs (blank line between them), roughly 350–550 characters total. First paragraph: what the app does, who it is for, and what makes the experience distinctive. Second paragraph: one casual note that anyone can Remix it on Remiix to suit themselves — e.g. translate it to their language, or change a detail — by asking. Keep that tip light; the app itself stays the focus. Plain prose only — no bullet points.
 - tagline: short Store marketing line in ${langName}, MAXIMUM 40 characters
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
 - summary: 1 short sentence in ${langName} for the chat (what metadata you updated). Max ~100 characters.

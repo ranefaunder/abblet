@@ -46,6 +46,15 @@ function formatPublishedAt(iso: string | null, lang: string): string | null {
   }
 }
 
+/** Split Store About on blank lines into paragraphs (single newlines → spaces). */
+function aboutParagraphs(description: string): string[] {
+  return description
+    .trim()
+    .split(/\n\s*\n+/)
+    .map((p) => p.replace(/[ \t]*\n[ \t]*/g, " ").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
 export default function App(_props: AppRouteProps) {
   const { params } = useRoute();
   const { route, path } = useLocation();
@@ -235,7 +244,11 @@ export default function App(_props: AppRouteProps) {
                 ? html`
                   <section class="about" ui-column="gap-sm">
                     <h2 ui-heading="sm">${t("About")}</h2>
-                    <p>${app.description}</p>
+                    <div class="about-body" ui-column="gap-sm">
+                      ${aboutParagraphs(app.description).map(
+                        (para) => html`<p>${para}</p>`,
+                      )}
+                    </div>
                   </section>`
                 : ""}
 
@@ -460,9 +473,12 @@ export default function App(_props: AppRouteProps) {
         margin: 0;
       }
 
-      .about p {
+      .about-body {
+        width: 100%;
+      }
+
+      .about-body p {
         margin: 0;
-        white-space: pre-wrap;
         color: var(--neutral-700);
         line-height: 1.5;
       }
