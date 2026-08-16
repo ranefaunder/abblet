@@ -6,9 +6,9 @@ import { dbAddAppMessage, dbListAppMessages } from "/server/database/queries/app
 import { generateAppConfig } from "/utils/ai-apps.server";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
-import { resolveEditAiModel } from "/utils/ai-core.server";
+import { getPrimaryAiModel } from "/utils/ai-core.server";
 import { assertHasCredits, debitOpenRouterUsage, releaseCreditReservation } from "/utils/credits.server";
-import { DEFAULT_EDIT_AI_MODEL, resolveStoredModelRef } from "/utils/ai-models";
+import { resolveStoredModelRef } from "/utils/ai-models";
 import type { AppDetail } from "/types/app-config-types";
 import type { Language } from "/types/i18n-types";
 import { getLang } from "/utils/lang";
@@ -32,7 +32,6 @@ export default {
     const b = body as { message?: string };
     const language = (getLang(req.url) ?? "en") as Language;
     const message = typeof b.message === "string" ? b.message.trim() : "";
-    const modelKey = DEFAULT_EDIT_AI_MODEL;
 
     if (!message || message.length > 2000) {
       return apiError({
@@ -60,7 +59,8 @@ export default {
         throw err;
       }
 
-      const model = resolveEditAiModel(modelKey);
+      const model = getPrimaryAiModel();
+      const modelKey = model;
       const aiStartedAt = Date.now();
       let generated;
       try {

@@ -1,7 +1,6 @@
 import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
 import { parseJson } from "/utils/json";
-import { DEFAULT_EDIT_AI_MODEL, getEditAiModel, type EditAiModelKey } from "/utils/ai-models";
 
 export type AiResult<T> =
   | { ok: true; data: T }
@@ -15,36 +14,41 @@ export const OPENROUTER_CONFIG = {
   },
 };
 
-const DEFAULT_AI_MODEL = "google/gemini-3-flash-preview";
-
-function envModel(name: string, fallback: string): string {
+function requireEnvModel(name: string): string {
   const value = process.env[name]?.trim();
-  return value || fallback;
+  if (!value) {
+    throw new Error(`${name} is not set — add an OpenRouter model id to .env`);
+  }
+  return value;
 }
 
-/** Edit / create chat default (OpenRouter id). */
+/** Edit / create (OpenRouter id). Required: `AI_MODEL`. */
 export function getPrimaryAiModel(): string {
-  return envModel("AI_MODEL", DEFAULT_AI_MODEL);
+  return requireEnvModel("AI_MODEL");
 }
 
-/** Remiix.ai() in app runtimes. */
+/**
+ * Remiix.ai() in app runtimes.
+ * `RUNTIME_AI_MODEL`, or falls back to `AI_MODEL`.
+ */
 export function getRuntimeAiModel(): string {
-  return envModel("RUNTIME_AI_MODEL", DEFAULT_AI_MODEL);
+  return process.env.RUNTIME_AI_MODEL?.trim() || getPrimaryAiModel();
 }
 
-/** Edit-intent router (classifyEditIntent) — no app source in prompt. */
+/**
+ * Edit-intent router (classifyEditIntent).
+ * `INTENTION_AI_MODEL`, or falls back to `AI_MODEL`.
+ */
 export function getIntentionAiModel(): string {
-  return envModel("INTENTION_AI_MODEL", DEFAULT_AI_MODEL);
+  return process.env.INTENTION_AI_MODEL?.trim() || getPrimaryAiModel();
 }
 
-/** Home-screen icon design (Lucide + palette JSON). */
+/**
+ * Home-screen icon design.
+ * `ICON_AI_MODEL`, or falls back to `AI_MODEL`.
+ */
 export function getIconAiModel(): string {
-  return envModel("ICON_AI_MODEL", DEFAULT_AI_MODEL);
-}
-
-/** Resolve edit-chat model key → OpenRouter model id. */
-export function resolveEditAiModel(key: EditAiModelKey = DEFAULT_EDIT_AI_MODEL): string {
-  return getEditAiModel(key).openRouterId;
+  return process.env.ICON_AI_MODEL?.trim() || getPrimaryAiModel();
 }
 
 export class AiRequestError extends Error {
@@ -73,7 +77,7 @@ export type RequestJsonFromAiInput<T = unknown> = {
   userPrompt: string;
   imageBase64?: string | null;
   schema?: z.ZodType<T>;
-  /** OpenRouter model id; defaults to AI_MODEL / flash. */
+  /** OpenRouter model id; defaults to AI_MODEL. */
   model?: string;
 };
 

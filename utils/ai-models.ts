@@ -98,7 +98,7 @@ export function formatAiModelName(modelRef: string): string {
 
 /** Prefer storing the OpenRouter id that actually answered (handles credit fallback). */
 export function resolveStoredModelRef(opts: {
-  requestedKey: EditAiModelKey;
+  requestedKey: string;
   modelUsed?: string | null;
 }): string {
   if (opts.modelUsed) return opts.modelUsed;

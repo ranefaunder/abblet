@@ -13,13 +13,9 @@ import {
 } from "/utils/ai-apps.server";
 import { generateAppIcon } from "/utils/ai-app-icons.server";
 import { apiErrorFromAi } from "/utils/ai-api.server";
-import { getIntentionAiModel, resolveEditAiModel } from "/utils/ai-core.server";
+import { getIntentionAiModel, getPrimaryAiModel } from "/utils/ai-core.server";
 import { assertHasCredits, debitOpenRouterUsageSteps, releaseCreditReservation, type CreditReservation } from "/utils/credits.server";
-import {
-  DEFAULT_EDIT_AI_MODEL,
-  resolveStoredModelRef,
-  type EditAiModelKey,
-} from "/utils/ai-models";
+import { resolveStoredModelRef } from "/utils/ai-models";
 import {
   isDraftConfig,
   type AppConfig,
@@ -193,7 +189,7 @@ async function runEditTurn(opts: {
   message: string;
   language: Language;
   model: string;
-  modelKey: EditAiModelKey;
+  modelKey: string;
   clientIP: string;
   slug: string;
   usage: AppEditToolUsage[];
@@ -541,8 +537,8 @@ export default {
       const slug = typeof b.slug === "string" ? b.slug.trim() : "";
       const message = typeof b.message === "string" ? b.message.trim() : "";
       const language = (getLang(req.url) ?? "en") as Language;
-      const modelKey = DEFAULT_EDIT_AI_MODEL;
-      const model = resolveEditAiModel(modelKey);
+      const model = getPrimaryAiModel();
+      const modelKey = model;
 
       if (!slug) return apiError({ code: "SLUG_REQUIRED" });
       if (!message || message.length > 2000) {
