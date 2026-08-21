@@ -13,7 +13,7 @@ import { appSubdomainPage } from "/server/routes/app-page";
 const SUPPORTED = new Set<string>(Object.keys(AVAILABLE_LANGUAGES));
 
 function getLangFromCookie(req: BunRequest): Language | null {
-  const cookie = req.cookies?.get("appstudo-language");
+  const cookie = req.cookies?.get("abblet-language") || req.cookies?.get("appstudo-language");
   if (cookie && cookie in AVAILABLE_LANGUAGES) return cookie as Language;
   return null;
 }

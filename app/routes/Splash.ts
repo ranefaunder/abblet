@@ -101,14 +101,14 @@ export default function Splash({ params }: RoutePropsForPath<typeof SplashPath>)
           <div class="brand-block" ui-column="gap-md x-center">
             <img
               class="wordmark"
-              src="/static/images/remiix.svg"
-              alt="Remiix"
+              src="/static/images/abblet.svg"
+              alt="Abblet"
               width="280"
               height="58"
             />
-            <h1 class="slogan">${t("Remix any app to fit you.")}</h1>
+            <h1 class="slogan">${t("Remix any app, or make your own.")}</h1>
             <p class="pitch">
-              ${t("An app store where you can ask Remiix to change any app to fit your needs. If it doesn't exist, you can ask Remiix to make a new one from your own idea.")}
+              ${t("An app store where you can ask Abblet to change any app to fit your needs. If it doesn't exist, you can ask Abblet to make a new one from your own idea.")}
             </p>
           </div>
           <div class="cta">

@@ -1,6 +1,6 @@
 /**
  * Staattisten tiedostojen juuri pyyntö-URL:sta (dev: sama origin kuin sivulla).
- * Tuotanto: CDN (origin pull: https://remiix.app/static).
+ * Tuotanto: CDN (origin pull: https://abblet.com/static).
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 export function resolveStaticRootFromUrl(reqUrl: string): string {
   if (process.env.NODE_ENV === "production") {
-    return "https://remiix.b-cdn.net";
+    return "https://abblet.b-cdn.net";
   }
   return `${new URL(reqUrl).origin}/static`;
 }

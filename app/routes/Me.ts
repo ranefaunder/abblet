@@ -69,7 +69,7 @@ const JOIN_FEATURES = [
   {
     icon: "git-fork",
     title: "Remix any app",
-    body: "Open a Store app and ask Remiix to change it until it fits you.",
+    body: "Open a Store app and ask Abblet to change it until it fits you.",
   },
   {
     icon: "magic-wand",
@@ -376,8 +376,8 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
           ? html`
             <section class="join" ui-column="gap-xl">
               <header class="join-head" ui-column="gap-sm">
-                <p class="join-eyebrow">${t("Your Remiix")}</p>
-                <h2 class="join-title">${t("Make Remiix yours")}</h2>
+                <p class="join-eyebrow">${t("Your Abblet")}</p>
+                <h2 class="join-title">${t("Make Abblet yours")}</h2>
                 <p class="join-lede">
                   ${t("Create a free account to remix apps, build your own with AI, and keep everything in one place.")}
                 </p>
@@ -454,7 +454,7 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                 <section class="panel" ui-column="gap-lg">
                   <header ui-column="gap-xs">
                     <h2 class="panel-title">${t("Account")}</h2>
-                    <p class="panel-lede">${t("Signed in to Remiix with this email.")}</p>
+                    <p class="panel-lede">${t("Signed in to Abblet with this email.")}</p>
                   </header>
 
                   <div ui-column="gap-md">
@@ -473,7 +473,7 @@ export default function Me({ params }: RoutePropsForPath<typeof MePath>) {
                   <label class="pref-row" ui-row="gap-md y-center x-between">
                     <span ui-column="gap-xs">
                       <strong>${t("Product updates")}</strong>
-                      <small>${t("Email me about Remiix updates")}</small>
+                      <small>${t("Email me about Abblet updates")}</small>
                     </span>
                     <input
                       type="checkbox"

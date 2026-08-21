@@ -5,23 +5,23 @@ import type { Language } from "/types/i18n-types";
 export function createWelcomeEmail(language: Language): { subject: string; text: string } {
   const siteUrl = `${getPlatformOrigin()}/${language}/`;
   return {
-    subject: t("Welcome to Remiix!", language),
+    subject: t("Welcome to Abblet!", language),
     text: `${t("Hello,", language)}
 
-${t("Thank you for joining Remiix. Describe what you need and Remiix applies it — your first app in minutes.", language)}
+${t("Thank you for joining Abblet. Describe what you need and Abblet applies it — your first app in minutes.", language)}
 
-${t("Open Remiix:\n$url", { url: siteUrl }, language)}
+${t("Open Abblet:\n$url", { url: siteUrl }, language)}
 
-${t("Best regards\nRane Faunder\nFounder of Remiix", language)}`,
+${t("Best regards\nRane Faunder\nFounder of Abblet", language)}`,
   };
 }
 
 export function createLoginCodeEmail(code: string, language: Language): { subject: string; text: string } {
   return {
-    subject: t("Remiix - Login Code", language),
+    subject: t("Abblet - Login Code", language),
     text: `${t("Hello!", language)}
 
-${t("Use the following code to log in to Remiix:", language)}
+${t("Use the following code to log in to Abblet:", language)}
 
 ${code}
 
@@ -30,7 +30,7 @@ ${t("• Code is valid for 10 minutes", language)}
 ${t("• Code can only be used once", language)}
 ${t("• If you didn't request this code, you can safely ignore this message", language)}
 
-${t("Remiix Team", language)}`,
+${t("Abblet Team", language)}`,
   };
 }
 
@@ -42,7 +42,7 @@ export function createFeedbackNotificationEmail(payload: {
   createdAt: string;
 }): { subject: string; text: string } {
   return {
-    subject: `Remiix feedback #${payload.feedbackId} (${payload.language})`,
+    subject: `Abblet feedback #${payload.feedbackId} (${payload.language})`,
     text: `New feedback (id ${payload.feedbackId})
 
 Message:
@@ -89,7 +89,7 @@ export async function sendEmailSafe(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Remiix <no-reply@faunder.fi>",
+        from: "Abblet <no-reply@faunder.fi>",
         reply_to: "rane@faunder.fi",
         to: [resendTo],
         subject,

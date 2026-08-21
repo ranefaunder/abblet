@@ -13,7 +13,7 @@ type AppAccessRow = {
 
 export type AppViewAccessOpts = {
   /**
-   * Request came from `{apps.id}.remiix.app` (UUID capability host).
+   * Request came from `{apps.id}.abblet.com` (UUID capability host).
    * Knowing the UUID grants view of unpublished/draft builds without login.
    */
   viaCapabilityIdHost?: boolean;

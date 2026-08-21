@@ -1,4 +1,4 @@
-# Remiix — seuraavat vaiheet
+# Abblet — seuraavat vaiheet
 
 Järjestys: **sync ensin**, sitten **Polar**. Sync tekee apista “oikean tuotteen” (data ei katoa); Polar muuttaa sen liiketoiminnaksi.
 
@@ -36,7 +36,7 @@ Vaihtoehto: yksi metodi `Remiix.sync(data?)` — get ilman argia, set argilla. C
 
 1. Migraatio: `app_user_data` (tai vastaava)
 2. `GET/PUT /api/sdk/sync`
-3. `Remiix.sync` companioniin (`static/remiix-app.js`)
+3. `Abblet.sync` companioniin (`static/abblet-app.js`)
 4. Prompt-ohje AI:lle (`utils/ai-apps.server.ts`) — vanilla-apit ilman omaa backendia
 
 ---

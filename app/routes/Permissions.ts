@@ -120,7 +120,7 @@ export default function Permissions({ params }: RoutePropsForPath<typeof Permiss
                         : html`<span>${letter}</span>`}
                     </span>
                     <span class="link-dots" aria-hidden="true"></span>
-                    <span class="tile tile-remiix">R</span>
+                    <span class="tile tile-abblet">A</span>
                   </div>
                   <div ui-column="gap-xs x-center">
                     <h1 ui-heading="lg" class="title">${app.title}</h1>
@@ -221,7 +221,7 @@ export default function Permissions({ params }: RoutePropsForPath<typeof Permiss
         object-fit: cover;
       }
 
-      .tile-remiix {
+      .tile-abblet {
         background: var(--primary-600);
         font-weight: 800;
       }

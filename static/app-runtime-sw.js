@@ -2,13 +2,13 @@
  * Service Worker for a single app origin (`{slug}.{APP_RUNTIME_HOST}`).
  *
  * - Precaches shell on install / PRECACHE (offline fallback)
- * - Network-first for mutable assets (`/`, `/module.js`, remiix-app.js, manifest)
+ * - Network-first for mutable assets (`/`, `/module.js`, abblet-app.js, manifest)
  *   so edits/publishes show up when online; cache only when offline
  * - Cache-first for icons (immutable)
  * - CHECK_UPDATE / APPLY_UPDATE still available for in-session refresh
  * - Never treats `/install` as the app shell
  */
-const CACHE = "remiix-app-runtime-v7";
+const CACHE = "abblet-app-runtime-v1";
 const CORE = ["/", "/module.js", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -36,7 +36,11 @@ self.addEventListener("activate", (event) => {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((k) => k.startsWith("remiix-app-runtime-") && k !== CACHE)
+          .filter(
+            (k) =>
+              (k.startsWith("remiix-app-runtime-") || k.startsWith("abblet-app-runtime-")) &&
+              k !== CACHE,
+          )
           .map((k) => caches.delete(k)),
       );
       await self.clients.claim();
@@ -57,9 +61,9 @@ function shouldHandle(url) {
   if (path === "/manifest.webmanifest") return true;
   if (path.startsWith("/static/app-icons/")) return true;
   if (path.startsWith("/static/favicons/")) return true;
-  if (path === "/static/remiix-app.js") return true;
-  if (path === "/static/images/remiix-icon-light.svg") return true;
-  if (path === "/static/images/remiix.svg") return true;
+  if (path === "/static/abblet-app.js") return true;
+  if (path === "/static/images/abblet-icon-light.svg") return true;
+  if (path === "/static/images/abblet.svg") return true;
   return false;
 }
 
@@ -71,7 +75,7 @@ function isMutableAppAsset(url) {
     path === "" ||
     path === "/module.js" ||
     path === "/manifest.webmanifest" ||
-    path === "/static/remiix-app.js"
+    path === "/static/abblet-app.js"
   );
 }
 

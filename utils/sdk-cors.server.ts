@@ -32,7 +32,7 @@ export function withSdkCors(response: Response, origin: string | null): Response
 
 /**
  * Same allowlist as withSdkCors. Host-only cookies are NOT sent to app subdomains,
- * but same-site fetch from `*.remiix.app` → `remiix.app` still includes the cookie —
+ * but same-site fetch from `*.abblet.com` → `abblet.com` still includes the cookie —
  * platform mutating APIs must check Origin === PLATFORM_ORIGIN (see server.ts).
  */
 export function withSdkCredentialCors(response: Response, origin: string | null): Response {

@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Sama kohde kuin ops/deploy.sh (faunder@faunder.fi, repo apps/remiix)
+# Sama kohde kuin ops/deploy.sh (faunder@faunder.fi, repo apps/abblet)
 REMOTE="faunder@faunder.fi"
-APP="/home/faunder/apps/remiix"
+APP="/home/faunder/apps/abblet"
 REMOTE_DB="${APP}/server/database/app.db"
 LOCAL_DB_DIR="server/database"
 LOCAL_DB="${LOCAL_DB_DIR}/app.db"
 LOCAL_BACKUP_DIR="${LOCAL_DB_DIR}/backup"
 
-echo "📦 Downloading Remiix database"
+echo "📦 Downloading Abblet database"
 mkdir -p "$LOCAL_DB_DIR"
 scp "${REMOTE}:${REMOTE_DB}" "$LOCAL_DB"
 
@@ -31,4 +31,4 @@ rsync -avz --ignore-existing "${REMOTE}:${APP}/static/app-icons/" static/app-ico
   echo "⚠️  Warning: Failed to download app icons"
 }
 
-echo "✅ Remiix database and app icons downloaded."
+echo "✅ Abblet database and app icons downloaded."

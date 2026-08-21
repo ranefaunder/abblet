@@ -1,37 +1,37 @@
 /**
- * Remiix app companion — Patch badge + Remiix.ai / permission API.
- * Loaded as <script type="module" src="/static/remiix-app.js"> on the app page.
- * Expects window.__REMIIX__ = { appSlug, platformOrigin, permissions? }.
+ * Abblet app companion — Patch badge + Abblet.ai / permission API.
+ * Loaded as <script type="module" src="/static/abblet-app.js"> on the app page.
+ * Expects window.__ABBLET__ (legacy: window.__REMIIX__) = { appSlug, platformOrigin, permissions? }.
  * Module self-mounts into #mount; title/lang/icon come from the document.
  */
-const cfg = window.__REMIIX__ || {};
+const cfg = window.__ABBLET__ || window.__REMIIX__ || {};
 const appSlug = cfg.appSlug;
 const platformOrigin = cfg.platformOrigin;
 const lang = document.documentElement.lang || "en";
 const appPermissions = Array.isArray(cfg.permissions) ? cfg.permissions : [];
 const needsAiPermission = appPermissions.includes("ai");
-const appTitle = (document.title || "Remiix").trim() || "Remiix";
+const appTitle = (document.title || "Abblet").trim() || "Abblet";
 const appIconSrc =
   document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute("href") ||
   document.querySelector('link[rel="icon"]')?.getAttribute("href") ||
   null;
 const catalogAppPath = "/" + lang + "/apps/" + encodeURIComponent(appSlug);
 
-const TOKEN_KEY = "remiix.token";
-const TOKEN_EXP_KEY = "remiix.tokenExpiresAt";
+const TOKEN_KEY = "abblet.token";
+const TOKEN_EXP_KEY = "abblet.tokenExpiresAt";
 /** Prevents permission-redirect loops when the user cancels or is not signed in. */
-const PERMISSION_TRIED_KEY = "remiix.permissionTried:" + appSlug;
+const PERMISSION_TRIED_KEY = "abblet.permissionTried:" + appSlug;
 
 const COPY = {
   en: {
     loginTitle: "Allow AI?",
-    loginBody: "This app needs permission to use your Remiix AI credit.",
+    loginBody: "This app needs permission to use your Abblet AI credit.",
     loginCta: "Continue",
     loginCancel: "Cancel",
     offlineTitle: "You're offline",
     offlineBody: "AI needs an internet connection. Your app data still works offline.",
     offlineOk: "OK",
-    patchAria: "Remiix",
+    patchAria: "Abblet",
     install: "Install",
     share: "Share",
     shareCopied: "Link copied",
@@ -46,13 +46,13 @@ const COPY = {
   },
   fi: {
     loginTitle: "Sallitaanko AI?",
-    loginBody: "Tämä appi tarvitsee luvan käyttää Remiix AI-saldoasi.",
+    loginBody: "Tämä appi tarvitsee luvan käyttää Abblet AI-saldoasi.",
     loginCta: "Jatka",
     loginCancel: "Peruuta",
     offlineTitle: "Olet offline",
     offlineBody: "Tekoäly tarvitsee nettiyhteyden. Appisi data toimii silti offline.",
     offlineOk: "OK",
-    patchAria: "Remiix",
+    patchAria: "Abblet",
     install: "Asenna",
     share: "Share",
     shareCopied: "Linkki kopioitu",
@@ -81,12 +81,22 @@ function escapeHtml(s) {
 
 function readStoredToken() {
   try {
-    const token = sessionStorage.getItem(TOKEN_KEY);
-    const expiresAt = sessionStorage.getItem(TOKEN_EXP_KEY);
+    let token = sessionStorage.getItem(TOKEN_KEY);
+    let expiresAt = sessionStorage.getItem(TOKEN_EXP_KEY);
+    // Migrate legacy Remiix session keys
+    if (!token || !expiresAt) {
+      token = sessionStorage.getItem("remiix.token");
+      expiresAt = sessionStorage.getItem("remiix.tokenExpiresAt");
+      if (token && expiresAt) {
+        sessionStorage.setItem(TOKEN_KEY, token);
+        sessionStorage.setItem(TOKEN_EXP_KEY, expiresAt);
+        sessionStorage.removeItem("remiix.token");
+        sessionStorage.removeItem("remiix.tokenExpiresAt");
+      }
+    }
     if (!token || !expiresAt) return null;
     if (Date.parse(expiresAt) <= Date.now()) {
-      sessionStorage.removeItem(TOKEN_KEY);
-      sessionStorage.removeItem(TOKEN_EXP_KEY);
+      clearStoredToken();
       return null;
     }
     return { accessToken: token, expiresAt };
@@ -104,6 +114,9 @@ function clearStoredToken() {
   try {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(TOKEN_EXP_KEY);
+    // Legacy Remiix keys
+    sessionStorage.removeItem("remiix.token");
+    sessionStorage.removeItem("remiix.tokenExpiresAt");
   } catch {
     // ignore
   }
@@ -129,6 +142,7 @@ function markPermissionTried() {
 function clearPermissionTried() {
   try {
     sessionStorage.removeItem(PERMISSION_TRIED_KEY);
+    sessionStorage.removeItem("remiix.permissionTried:" + appSlug);
   } catch {
     // ignore
   }
@@ -136,7 +150,8 @@ function clearPermissionTried() {
 
 function wasPermissionTried() {
   try {
-    return sessionStorage.getItem(PERMISSION_TRIED_KEY) === "1";
+    if (sessionStorage.getItem(PERMISSION_TRIED_KEY) === "1") return true;
+    return sessionStorage.getItem("remiix.permissionTried:" + appSlug) === "1";
   } catch {
     return true;
   }
@@ -172,11 +187,11 @@ function promptForPermission() {
 function confirmPermission() {
   const t = uiCopy();
   return new Promise((resolve) => {
-    const existing = document.getElementById("remiix-login-dialog");
+    const existing = document.getElementById("abblet-login-dialog");
     if (existing) existing.remove();
 
     const dialog = document.createElement("dialog");
-    dialog.id = "remiix-login-dialog";
+    dialog.id = "abblet-login-dialog";
     dialog.setAttribute("closedby", "any");
     dialog.innerHTML = `
       <form method="dialog" style="margin:0;display:flex;flex-direction:column;gap:16px;min-width:min(100%,320px)">
@@ -211,11 +226,11 @@ function confirmPermission() {
 function showOfflineAiNotice() {
   const t = uiCopy();
   return new Promise((resolve) => {
-    const existing = document.getElementById("remiix-offline-dialog");
+    const existing = document.getElementById("abblet-offline-dialog");
     if (existing) existing.remove();
 
     const dialog = document.createElement("dialog");
-    dialog.id = "remiix-offline-dialog";
+    dialog.id = "abblet-offline-dialog";
     dialog.setAttribute("closedby", "any");
     dialog.innerHTML = `
       <form method="dialog" style="margin:0;display:flex;flex-direction:column;gap:16px;min-width:min(100%,320px)">
@@ -247,7 +262,7 @@ function isProbablyOffline() {
   return typeof navigator !== "undefined" && navigator.onLine === false;
 }
 
-window.Remiix = {
+window.Abblet = {
   appSlug,
   platformOrigin,
   requestPermission() {
@@ -333,6 +348,9 @@ window.Remiix = {
   },
 };
 
+/** Legacy alias for older generated apps. */
+window.Remiix = window.Abblet;
+
 const params = new URLSearchParams(location.search);
 const code = params.get("code");
 if (code) {
@@ -373,7 +391,7 @@ try {
   // Module mounts into #mount; clear boot if still present.
   boot?.remove();
 } catch (err) {
-  console.error("[Remiix] Failed to load app module:", err);
+  console.error("[Abblet] Failed to load app module:", err);
   if (boot) {
     boot.textContent = lang === "fi" ? "Lataus epäonnistui — napauta uudelleen" : "Failed to load — tap to retry";
     boot.style.cursor = "pointer";
@@ -381,15 +399,15 @@ try {
   }
 }
 
-mountRemiixPatch();
+mountAbbletPatch();
 
 const PRECACHE_URLS = [
   "/",
   "/module.js",
   "/manifest.webmanifest",
-  "/static/remiix-app.js",
-  "/static/images/remiix-icon-light.svg",
-  "/static/images/remiix.svg",
+  "/static/abblet-app.js",
+  "/static/images/abblet-icon-light.svg",
+  "/static/images/abblet.svg",
 ];
 
 /**
@@ -405,11 +423,17 @@ function isStandaloneDisplay() {
   return window.navigator.standalone === true;
 }
 
-/** Navigated here from the Remiix platform (Store / Open / etc.). */
+/** Navigated here from the Abblet platform (Store / Open / etc.). */
 function cameFromPlatform() {
-  const key = "remiix.fromPlatform:" + appSlug;
+  const key = "abblet.fromPlatform:" + appSlug;
+  const legacyKey = "remiix.fromPlatform:" + appSlug;
   try {
     if (sessionStorage.getItem(key) === "1") return true;
+    if (sessionStorage.getItem(legacyKey) === "1") {
+      sessionStorage.setItem(key, "1");
+      sessionStorage.removeItem(legacyKey);
+      return true;
+    }
     const ref = document.referrer || "";
     if (ref && ref.startsWith(platformOrigin)) {
       sessionStorage.setItem(key, "1");
@@ -423,7 +447,7 @@ function cameFromPlatform() {
 
 /**
  * True only when THIS app is running as its own installed PWA.
- * If the user opened the app from the Remiix PWA/site while still in standalone
+ * If the user opened the app from the Abblet PWA/site while still in standalone
  * chrome, Install should still be offered for this app.
  */
 function isThisAppInstalledPwa() {
@@ -432,9 +456,9 @@ function isThisAppInstalledPwa() {
   return true;
 }
 
-/** Remiix badge — remix, share, about, optional Install. */
-function mountRemiixPatch() {
-  if (document.getElementById("remiix-patch")) return;
+/** Abblet badge — remix, share, about, optional Install. */
+function mountAbbletPatch() {
+  if (document.getElementById("abblet-patch")) return;
 
   const t = uiCopy();
   const storeHref = platformOrigin + catalogAppPath;
@@ -446,74 +470,74 @@ function mountRemiixPatch() {
 
   const appLetter = escapeHtml((appTitle.trim().charAt(0) || "?").toUpperCase());
   const appIconHtml = appIconSrc
-    ? `<img class="remiix-patch-app-icon" src="${escapeHtml(appIconSrc)}" alt="" width="40" height="40" decoding="async" />`
-    : `<span class="remiix-patch-app-letter" aria-hidden="true">${appLetter}</span>`;
+    ? `<img class="abblet-patch-app-icon" src="${escapeHtml(appIconSrc)}" alt="" width="40" height="40" decoding="async" />`
+    : `<span class="abblet-patch-app-letter" aria-hidden="true">${appLetter}</span>`;
 
   const shareIconSvg =
-    '<svg class="remiix-patch-share-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
+    '<svg class="abblet-patch-share-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">' +
     '<path d="M229.66,109.66l-48,48a8,8,0,0,1-11.32-11.32L204.69,112H165a88,88,0,0,0-85.23,66,8,8,0,0,1-15.5-4A103.94,103.94,0,0,1,165,96h39.71L170.34,61.66a8,8,0,0,1,11.32-11.32l48,48A8,8,0,0,1,229.66,109.66ZM192,208H40V88a8,8,0,0,0-16,0V216a8,8,0,0,0,8,8H192a8,8,0,0,0,0-16Z"/>' +
     "</svg>";
 
   const appIdentityHtml = `
       ${appIconHtml}
-      <div class="remiix-patch-app-text">
-        <strong class="remiix-patch-app-name">${escapeHtml(appTitle)}</strong>
+      <div class="abblet-patch-app-text">
+        <strong class="abblet-patch-app-name">${escapeHtml(appTitle)}</strong>
       </div>`;
 
   const menuItems = [];
   menuItems.push(`
-    <div class="remiix-patch-app" data-remiix-app>
-      <a class="remiix-patch-app-link" href="${escapeHtml(storeHref)}" data-remiix-store>
+    <div class="abblet-patch-app" data-abblet-app>
+      <a class="abblet-patch-app-link" href="${escapeHtml(storeHref)}" data-abblet-store>
         ${appIdentityHtml}
       </a>
-      <button type="button" class="remiix-patch-share" data-remiix-share aria-label="${escapeHtml(t.share)}">
+      <button type="button" class="abblet-patch-share" data-abblet-share aria-label="${escapeHtml(t.share)}">
         ${shareIconSvg}
-        <span class="remiix-patch-share-label" data-remiix-share-label>${escapeHtml(t.share)}</span>
+        <span class="abblet-patch-share-label" data-abblet-share-label>${escapeHtml(t.share)}</span>
       </button>
     </div>
   `);
   menuItems.push(`
-    <div class="remiix-patch-actions">
-      <a role="menuitem" class="remiix-patch-action" href="${escapeHtml(createHref)}" data-remiix-remix>${t.remix}</a>
+    <div class="abblet-patch-actions">
+      <a role="menuitem" class="abblet-patch-action" href="${escapeHtml(createHref)}" data-abblet-remix>${t.remix}</a>
       ${
         canOfferInstall
-          ? `<button type="button" role="menuitem" class="remiix-patch-action remiix-patch-primary" data-remiix-install>${t.install}</button>`
+          ? `<button type="button" role="menuitem" class="abblet-patch-action abblet-patch-primary" data-abblet-install>${t.install}</button>`
           : ""
       }
     </div>
-    <div class="remiix-patch-perms" data-remiix-perms hidden>
-      <p class="remiix-patch-perms-heading">${escapeHtml(t.permissions)}</p>
-      <div class="remiix-patch-perms-list" data-remiix-perms-list></div>
+    <div class="abblet-patch-perms" data-abblet-perms hidden>
+      <p class="abblet-patch-perms-heading">${escapeHtml(t.permissions)}</p>
+      <div class="abblet-patch-perms-list" data-abblet-perms-list></div>
     </div>
-    <a class="remiix-patch-footer" role="menuitem" href="${escapeHtml(aboutHref)}" data-remiix-footer aria-label="Remiix">
-      <img class="remiix-patch-wordmark" src="/static/images/remiix.svg" alt="" width="120" height="25" decoding="async" />
+    <a class="abblet-patch-footer" role="menuitem" href="${escapeHtml(aboutHref)}" data-abblet-footer aria-label="Abblet">
+      <img class="abblet-patch-wordmark" src="/static/images/abblet.svg" alt="" width="120" height="25" decoding="async" />
     </a>
   `);
 
   const root = document.createElement("div");
-  root.id = "remiix-patch";
+  root.id = "abblet-patch";
   root.innerHTML = `
-    <button type="button" class="remiix-patch-btn" aria-haspopup="menu" aria-expanded="false" aria-label="${t.patchAria}">
-      <span class="remiix-patch-face">
-        <img class="remiix-patch-mark" src="/static/images/remiix-icon-light.svg" width="52" height="52" alt="" draggable="false" />
-        <span class="remiix-patch-dot" data-remiix-install-dot hidden aria-hidden="true"></span>
+    <button type="button" class="abblet-patch-btn" aria-haspopup="menu" aria-expanded="false" aria-label="${t.patchAria}">
+      <span class="abblet-patch-face">
+        <img class="abblet-patch-mark" src="/static/images/abblet-icon-light.svg" width="52" height="52" alt="" draggable="false" />
+        <span class="abblet-patch-dot" data-abblet-install-dot hidden aria-hidden="true"></span>
       </span>
     </button>
-    <div class="remiix-patch-menu" role="menu" hidden>
+    <div class="abblet-patch-menu" role="menu" hidden>
       ${menuItems.join("")}
     </div>
   `;
 
   const style = document.createElement("style");
   style.textContent = `
-    #remiix-patch {
+    #abblet-patch {
       position: fixed;
       z-index: 2147483646;
       right: calc(16px + env(safe-area-inset-right, 0px));
       bottom: calc(16px + env(safe-area-inset-bottom, 0px));
       font-family: "Geist", -apple-system, "SF Pro Text", system-ui, sans-serif;
     }
-    #remiix-patch .remiix-patch-btn {
+    #abblet-patch .abblet-patch-btn {
       appearance: none;
       margin: 0;
       padding: 0;
@@ -524,14 +548,14 @@ function mountRemiixPatch() {
       border-radius: 22%;
       transition: transform 0.22s ease, filter 0.22s ease;
     }
-    #remiix-patch .remiix-patch-btn:hover {
+    #abblet-patch .abblet-patch-btn:hover {
       transform: scale(1.06) translateY(-1px);
       filter: brightness(1.02);
     }
-    #remiix-patch .remiix-patch-btn:active {
+    #abblet-patch .abblet-patch-btn:active {
       transform: scale(0.98);
     }
-    #remiix-patch .remiix-patch-face {
+    #abblet-patch .abblet-patch-face {
       position: relative;
       display: block;
       width: 52px;
@@ -539,7 +563,7 @@ function mountRemiixPatch() {
       border-radius: 22%;
       box-shadow: 0 10px 28px rgba(15, 20, 25, 0.14);
     }
-    #remiix-patch .remiix-patch-mark {
+    #abblet-patch .abblet-patch-mark {
       display: block;
       width: 52px;
       height: 52px;
@@ -547,7 +571,7 @@ function mountRemiixPatch() {
       pointer-events: none;
       user-select: none;
     }
-    #remiix-patch .remiix-patch-dot {
+    #abblet-patch .abblet-patch-dot {
       position: absolute;
       top: 2px;
       right: 2px;
@@ -556,13 +580,13 @@ function mountRemiixPatch() {
       border-radius: 50%;
       background: #6366f1;
       box-shadow: 0 0 0 2px #ffffff;
-      animation: remiix-patch-dot-pulse 2s ease-in-out infinite;
+      animation: abblet-patch-dot-pulse 2s ease-in-out infinite;
     }
-    #remiix-patch .remiix-patch-dot[hidden] {
+    #abblet-patch .abblet-patch-dot[hidden] {
       display: none;
       animation: none;
     }
-    @keyframes remiix-patch-dot-pulse {
+    @keyframes abblet-patch-dot-pulse {
       0%, 100% {
         transform: scale(1);
         opacity: 1;
@@ -573,11 +597,11 @@ function mountRemiixPatch() {
       }
     }
     @media (prefers-reduced-motion: reduce) {
-      #remiix-patch .remiix-patch-dot {
+      #abblet-patch .abblet-patch-dot {
         animation: none;
       }
     }
-    #remiix-patch .remiix-patch-menu {
+    #abblet-patch .abblet-patch-menu {
       position: absolute;
       right: 0;
       bottom: calc(100% + 10px);
@@ -595,10 +619,10 @@ function mountRemiixPatch() {
       flex-direction: column;
       gap: 0;
     }
-    #remiix-patch .remiix-patch-menu[hidden] {
+    #abblet-patch .abblet-patch-menu[hidden] {
       display: none;
     }
-    #remiix-patch .remiix-patch-actions {
+    #abblet-patch .abblet-patch-actions {
       display: flex;
       flex-direction: column;
       gap: 6px;
@@ -606,7 +630,7 @@ function mountRemiixPatch() {
       padding: 8px 4px 8px;
       border-top: 1px solid #ebebeb;
     }
-    #remiix-patch .remiix-patch-action {
+    #abblet-patch .abblet-patch-action {
       appearance: none;
       display: flex;
       align-items: center;
@@ -629,29 +653,29 @@ function mountRemiixPatch() {
       cursor: pointer;
       transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
     }
-    #remiix-patch .remiix-patch-action:hover {
+    #abblet-patch .abblet-patch-action:hover {
       background: #ececef;
       border-color: #dcdce0;
     }
-    #remiix-patch .remiix-patch-action.remiix-patch-primary {
+    #abblet-patch .abblet-patch-action.abblet-patch-primary {
       border-color: transparent;
       background: #6366f1;
       color: #ffffff;
     }
-    #remiix-patch .remiix-patch-action.remiix-patch-primary:hover {
+    #abblet-patch .abblet-patch-action.abblet-patch-primary:hover {
       background: #4f46e5;
       border-color: transparent;
       filter: none;
     }
-    #remiix-patch .remiix-patch-perms {
+    #abblet-patch .abblet-patch-perms {
       margin: 0;
       padding: 8px 6px 6px;
       border-top: 1px solid #ebebeb;
     }
-    #remiix-patch .remiix-patch-perms[hidden] {
+    #abblet-patch .abblet-patch-perms[hidden] {
       display: none;
     }
-    #remiix-patch .remiix-patch-perms-heading {
+    #abblet-patch .abblet-patch-perms-heading {
       margin: 0 0 6px;
       padding: 0 4px;
       font-size: 0.625rem;
@@ -660,12 +684,12 @@ function mountRemiixPatch() {
       text-transform: uppercase;
       color: #737373;
     }
-    #remiix-patch .remiix-patch-perms-list {
+    #abblet-patch .abblet-patch-perms-list {
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
-    #remiix-patch .remiix-patch-perm {
+    #abblet-patch .abblet-patch-perm {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -676,7 +700,7 @@ function mountRemiixPatch() {
       border: 1px solid #ebebeb;
       min-width: 0;
     }
-    #remiix-patch .remiix-patch-perm-meta {
+    #abblet-patch .abblet-patch-perm-meta {
       display: flex;
       flex-direction: row;
       align-items: baseline;
@@ -690,25 +714,25 @@ function mountRemiixPatch() {
       line-height: 1.2;
       font-variant-numeric: tabular-nums;
     }
-    #remiix-patch .remiix-patch-perm-name {
+    #abblet-patch .abblet-patch-perm-name {
       font-weight: 700;
       color: #0a0a0a;
       letter-spacing: -0.02em;
       flex: none;
     }
-    #remiix-patch .remiix-patch-perm-budget {
+    #abblet-patch .abblet-patch-perm-budget {
       color: #737373;
       font-weight: 550;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    #remiix-patch .remiix-patch-perm-budget::before {
+    #abblet-patch .abblet-patch-perm-budget::before {
       content: "·";
       margin-right: 0.35rem;
       color: #a3a3a3;
     }
-    #remiix-patch .remiix-patch-perm-revoke {
+    #abblet-patch .abblet-patch-perm-revoke {
       appearance: none;
       flex: none;
       margin: 0;
@@ -723,22 +747,22 @@ function mountRemiixPatch() {
       cursor: pointer;
       transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
     }
-    #remiix-patch .remiix-patch-perm-revoke:hover {
+    #abblet-patch .abblet-patch-perm-revoke:hover {
       background: #fafafa;
       border-color: #d4d4d4;
       color: #0a0a0a;
     }
-    #remiix-patch .remiix-patch-perm-revoke:disabled {
+    #abblet-patch .abblet-patch-perm-revoke:disabled {
       opacity: 0.55;
       cursor: wait;
     }
-    #remiix-patch .remiix-patch-perms-empty {
+    #abblet-patch .abblet-patch-perms-empty {
       margin: 0;
       padding: 4px;
       font-size: 0.75rem;
       color: #a3a3a3;
     }
-    #remiix-patch .remiix-patch-footer {
+    #abblet-patch .abblet-patch-footer {
       display: flex;
       flex-direction: row;
       align-items: center;
@@ -754,10 +778,10 @@ function mountRemiixPatch() {
       cursor: pointer;
       transition: background 0.12s ease;
     }
-    #remiix-patch .remiix-patch-footer:hover {
+    #abblet-patch .abblet-patch-footer:hover {
       background: #fafafa;
     }
-    #remiix-patch .remiix-patch-footer .remiix-patch-wordmark {
+    #abblet-patch .abblet-patch-footer .abblet-patch-wordmark {
       display: block;
       flex: none;
       height: 0.8rem;
@@ -766,15 +790,15 @@ function mountRemiixPatch() {
       opacity: 0.45;
       transition: opacity 0.15s ease;
     }
-    #remiix-patch .remiix-patch-footer:hover .remiix-patch-wordmark {
+    #abblet-patch .abblet-patch-footer:hover .abblet-patch-wordmark {
       opacity: 0.75;
     }
-    #remiix-patch .remiix-patch-actions .remiix-patch-action[hidden],
-    #remiix-patch .remiix-patch-menu [data-remiix-install][hidden],
-    #remiix-patch .remiix-patch-menu [data-remiix-remix][hidden] {
+    #abblet-patch .abblet-patch-actions .abblet-patch-action[hidden],
+    #abblet-patch .abblet-patch-menu [data-abblet-install][hidden],
+    #abblet-patch .abblet-patch-menu [data-abblet-remix][hidden] {
       display: none;
     }
-    #remiix-patch .remiix-patch-app {
+    #abblet-patch .abblet-patch-app {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -783,7 +807,7 @@ function mountRemiixPatch() {
       border: none;
       min-width: 0;
     }
-    #remiix-patch .remiix-patch-app-link {
+    #abblet-patch .abblet-patch-app-link {
       flex: 1;
       min-width: 0;
       display: flex;
@@ -798,10 +822,10 @@ function mountRemiixPatch() {
       text-decoration: none;
       cursor: pointer;
     }
-    #remiix-patch .remiix-patch-app-link:hover .remiix-patch-app-name {
+    #abblet-patch .abblet-patch-app-link:hover .abblet-patch-app-name {
       color: #4f46e5;
     }
-    #remiix-patch .remiix-patch-app-icon {
+    #abblet-patch .abblet-patch-app-icon {
       flex: none;
       width: 40px;
       height: 40px;
@@ -809,7 +833,7 @@ function mountRemiixPatch() {
       object-fit: cover;
       background: #f0f0f0;
     }
-    #remiix-patch .remiix-patch-app-letter {
+    #abblet-patch .abblet-patch-app-letter {
       flex: none;
       display: grid;
       place-items: center;
@@ -822,14 +846,14 @@ function mountRemiixPatch() {
       font-weight: 750;
       letter-spacing: -0.03em;
     }
-    #remiix-patch .remiix-patch-app-text {
+    #abblet-patch .abblet-patch-app-text {
       flex: 1;
       min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
-    #remiix-patch .remiix-patch-app-name {
+    #abblet-patch .abblet-patch-app-name {
       margin: 0;
       font-size: 0.9375rem;
       font-weight: 750;
@@ -840,7 +864,7 @@ function mountRemiixPatch() {
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    #remiix-patch .remiix-patch-share {
+    #abblet-patch .abblet-patch-share {
       appearance: none;
       flex: none;
       display: flex;
@@ -859,16 +883,16 @@ function mountRemiixPatch() {
       line-height: 1;
       min-width: 2.75rem;
     }
-    #remiix-patch .remiix-patch-share:hover {
+    #abblet-patch .abblet-patch-share:hover {
       background: #f5f5f5;
       color: #4338ca;
     }
-    #remiix-patch .remiix-patch-share-icon {
+    #abblet-patch .abblet-patch-share-icon {
       display: block;
       width: 1.25rem;
       height: 1.25rem;
     }
-    #remiix-patch .remiix-patch-share-label {
+    #abblet-patch .abblet-patch-share-label {
       font-size: 0.625rem;
       font-weight: 650;
       letter-spacing: -0.01em;
@@ -880,15 +904,15 @@ function mountRemiixPatch() {
   document.head.appendChild(style);
   document.body.appendChild(root);
 
-  const btn = root.querySelector(".remiix-patch-btn");
-  const menu = root.querySelector(".remiix-patch-menu");
-  const installBtn = root.querySelector("[data-remiix-install]");
-  const remixBtn = root.querySelector("[data-remiix-remix]");
-  const shareBtn = root.querySelector("[data-remiix-share]");
-  const shareLabel = root.querySelector("[data-remiix-share-label]");
-  const actionDot = root.querySelector("[data-remiix-install-dot]");
-  const permsSection = root.querySelector("[data-remiix-perms]");
-  const permsList = root.querySelector("[data-remiix-perms-list]");
+  const btn = root.querySelector(".abblet-patch-btn");
+  const menu = root.querySelector(".abblet-patch-menu");
+  const installBtn = root.querySelector("[data-abblet-install]");
+  const remixBtn = root.querySelector("[data-abblet-remix]");
+  const shareBtn = root.querySelector("[data-abblet-share]");
+  const shareLabel = root.querySelector("[data-abblet-share-label]");
+  const actionDot = root.querySelector("[data-abblet-install-dot]");
+  const permsSection = root.querySelector("[data-abblet-perms]");
+  const permsList = root.querySelector("[data-abblet-perms-list]");
   let autoUpdating = false;
   let permsLoading = false;
   let revokeBusy = false;
@@ -923,15 +947,15 @@ function mountRemiixPatch() {
                 .replace("$limit", formatUsd(g.monthlyLimitUsd))
             : "";
         return `
-        <div class="remiix-patch-perm" data-scope="${escapeHtml(scope)}">
-          <div class="remiix-patch-perm-meta">
-            <span class="remiix-patch-perm-name">${escapeHtml(scopeLabel(scope))}</span>${
+        <div class="abblet-patch-perm" data-scope="${escapeHtml(scope)}">
+          <div class="abblet-patch-perm-meta">
+            <span class="abblet-patch-perm-name">${escapeHtml(scopeLabel(scope))}</span>${
               budget
-                ? `<span class="remiix-patch-perm-budget" aria-label="${escapeHtml(budget)}">${escapeHtml(budget)}</span>`
+                ? `<span class="abblet-patch-perm-budget" aria-label="${escapeHtml(budget)}">${escapeHtml(budget)}</span>`
                 : ""
             }
           </div>
-          <button type="button" class="remiix-patch-perm-revoke" data-remiix-revoke="${escapeHtml(scope)}">
+          <button type="button" class="abblet-patch-perm-revoke" data-abblet-revoke="${escapeHtml(scope)}">
             ${escapeHtml(t.revoke)}
           </button>
         </div>`;
@@ -980,8 +1004,8 @@ function mountRemiixPatch() {
     revokeBusy = true;
     const btnEl =
       permsList &&
-      Array.from(permsList.querySelectorAll("[data-remiix-revoke]")).find(
-        (el) => el.getAttribute("data-remiix-revoke") === scope,
+      Array.from(permsList.querySelectorAll("[data-abblet-revoke]")).find(
+        (el) => el.getAttribute("data-abblet-revoke") === scope,
       );
     if (btnEl) {
       btnEl.disabled = true;
@@ -1045,6 +1069,7 @@ function mountRemiixPatch() {
     if (installBtn) installBtn.hidden = true;
     deferredPrompt = null;
     try {
+      sessionStorage.removeItem("abblet.fromPlatform:" + appSlug);
       sessionStorage.removeItem("remiix.fromPlatform:" + appSlug);
     } catch {
       // ignore
@@ -1181,10 +1206,10 @@ function mountRemiixPatch() {
     permsList.addEventListener("click", (e) => {
       const target = e.target;
       if (!(target instanceof Element)) return;
-      const revokeBtn = target.closest("[data-remiix-revoke]");
+      const revokeBtn = target.closest("[data-abblet-revoke]");
       if (!revokeBtn) return;
       e.stopPropagation();
-      const scope = revokeBtn.getAttribute("data-remiix-revoke");
+      const scope = revokeBtn.getAttribute("data-abblet-revoke");
       if (scope) void revokePermission(scope);
     });
   }

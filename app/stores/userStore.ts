@@ -24,12 +24,19 @@ function normalizeStoredUser(u: StoredUser): LoggedInUser {
 const loadUserFromStorage = (): LoggedInUser | null => {
   if (typeof window === "undefined") return null;
   try {
-    const stored = localStorage.getItem("appstudo-user");
+    let stored = localStorage.getItem("abblet-user");
+    if (!stored) {
+      stored = localStorage.getItem("appstudo-user");
+      if (stored) {
+        localStorage.setItem("abblet-user", stored);
+        localStorage.removeItem("appstudo-user");
+      }
+    }
     if (stored) {
       const u = parseJson<StoredUser & { isGuest?: boolean }>(stored);
       // Drop leftover guest sessions from the old anonymous login.
       if (u?.isGuest) {
-        localStorage.removeItem("appstudo-user");
+        localStorage.removeItem("abblet-user");
         return null;
       }
       if (u) return normalizeStoredUser(u);
@@ -44,9 +51,9 @@ const saveUserToStorage = (currentUser: LoggedInUser | null) => {
   if (typeof window === "undefined") return;
   try {
     if (currentUser) {
-      localStorage.setItem("appstudo-user", JSON.stringify(currentUser));
+      localStorage.setItem("abblet-user", JSON.stringify(currentUser));
     } else {
-      localStorage.removeItem("appstudo-user");
+      localStorage.removeItem("abblet-user");
     }
   } catch (error) {
     console.warn("Failed to save user to localStorage:", error);
@@ -108,7 +115,7 @@ export const login = async (
     if (result.data.user) {
       const normalized = normalizeStoredUser(result.data.user);
       user.value = normalized;
-      localStorage.setItem("appstudo-user", JSON.stringify(normalized));
+      localStorage.setItem("abblet-user", JSON.stringify(normalized));
       void loadApps();
       return { success: true };
     }
@@ -208,7 +215,7 @@ export const logout = async () => {
     saveUserToStorage(null);
     clearApps();
     Object.keys(localStorage)
-      .filter((key) => key.startsWith("appstudo-"))
+      .filter((key) => key.startsWith("abblet-") || key.startsWith("appstudo-"))
       .forEach((key) => {
         try {
           localStorage.removeItem(key);
@@ -268,7 +275,7 @@ export const verifyAuthStatus = async (): Promise<boolean> => {
     const result = await apiFetch(`/api/${lang}/user/me`, { method: "GET" });
     if (!result.success && result.status === 401) {
       user.value = null;
-      localStorage.removeItem("appstudo-user");
+      localStorage.removeItem("abblet-user");
       return false;
     }
     return true;

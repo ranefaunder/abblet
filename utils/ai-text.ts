@@ -1,7 +1,7 @@
 /**
  * If the whole reply is a single markdown fenced block, return the inner text.
  * Models often wrap JSON / plain answers in ```json … ``` — apps that
- * JSON.parse(Remiix.ai(…)) then fail even though the payload is valid.
+ * JSON.parse(Abblet.ai(…)) then fail even though the payload is valid.
  */
 export function unwrapMarkdownCodeFence(text: string): string {
   const trimmed = text.trim();

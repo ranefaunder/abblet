@@ -3,20 +3,26 @@ import { AVAILABLE_LANGUAGES } from "/i18n/languages";
 export type Language = keyof typeof AVAILABLE_LANGUAGES;
 
 export const translations = {
-  "Remiix — Apply it.": {
-    fi: "Remiix — Toteuta se.",
+  "Abblet — Apply it.": {
+    fi: "Abblet — Toteuta se.",
   },
-  "Remiix — Remix any app, or make your own.": {
-    fi: "Remiix — Remixaa mikä tahansa app, tai tee oma.",
+  "Abblet — An app store where every app is remixable.": {
+    fi: "Abblet — Appikauppa, jossa jokainen appi on remiksattavissa.",
+  },
+  "An app store where every app is remixable.": {
+    fi: "Appikauppa, jossa jokainen appi on remiksattavissa.",
   },
   "Remix any app, or make your own.": {
     fi: "Remixaa mikä tahansa app, tai tee oma.",
   },
-  "Describe what you need in plain language. Remiix builds your app in minutes — no code required.": {
-    fi: "Kuvaile mitä tarvitset arkikielellä. Remiix rakentaa sovelluksen minuuteissa — ei koodia.",
+  "Abblet — Remix any app, or make your own.": {
+    fi: "Abblet — Remixaa mikä tahansa app, tai tee oma.",
   },
-  "Build personal apps for your needs. Describe what you need — Remiix builds it in minutes.": {
-    fi: "Tee henkilökohtaisia appeja tarpeisiisi. Kuvaile mitä tarvitset — Remiix rakentaa sen minuuteissa.",
+  "Describe what you need in plain language. Abblet builds your app in minutes — no code required.": {
+    fi: "Kuvaile mitä tarvitset arkikielellä. Abblet rakentaa sovelluksen minuuteissa — ei koodia.",
+  },
+  "Build personal apps for your needs. Describe what you need — Abblet builds it in minutes.": {
+    fi: "Tee henkilökohtaisia appeja tarpeisiisi. Kuvaile mitä tarvitset — Abblet rakentaa sen minuuteissa.",
   },
   "Apply It": {
     fi: "Toteuta se",
@@ -147,8 +153,8 @@ export const translations = {
   "Publish": {
     fi: "Julkaise",
   },
-  "Remiix Store": {
-    fi: "Remiix Store",
+  "Abblet Store": {
+    fi: "Abblet Store",
   },
   "Anyone can open it": {
     fi: "Kuka tahansa voi avata sen",
@@ -171,8 +177,8 @@ export const translations = {
   "Publishing keeps the app under Faunder’s copyright and open source (MPL 2.0). You don’t get ownership — only the rights that license gives.": {
     fi: "Julkaisu pitää appin Faunderin tekijänoikeuden ja avoimen lähdekoodin (MPL 2.0) alla. Et saa omistusoikeutta — vain sen lisenssin mukaiset oikeudet.",
   },
-  "Publishing makes your app public in the Remiix Store. Anyone can open it, view its source, and remix it.": {
-    fi: "Julkaiseminen tekee appista julkisen Remiix Storessa. Kuka tahansa voi avata sen, nähdä lähdekoodin ja remixata sen.",
+  "Publishing makes your app public in the Abblet Store. Anyone can open it, view its source, and remix it.": {
+    fi: "Julkaiseminen tekee appista julkisen Abblet Storessa. Kuka tahansa voi avata sen, nähdä lähdekoodin ja remixata sen.",
   },
   "What becomes public": {
     fi: "Mikä julkaistaan",
@@ -247,8 +253,8 @@ export const translations = {
   "I couldn't update the app icon right now. Try again in a moment.": {
     fi: "En saanut app-kuvaketta päivitettyä juuri nyt. Kokeile hetken päästä uudelleen.",
   },
-  "Hey — I'm Remiix.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?": {
-    fi: "Hei — olen Remiix.\n\nRakennan appin siitä mitä kuvailet. Hyvän ensimmäisen version saat, kun kerrot mitä appin pitäisi tehdä ja miten käytät sitä — mitä selkeämmin, sen parempi tulos.\n\nMitä tehdään?",
+  "Hey — I'm Abblet.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?": {
+    fi: "Hei — olen Abblet.\n\nRakennan appin siitä mitä kuvailet. Hyvän ensimmäisen version saat, kun kerrot mitä appin pitäisi tehdä ja miten käytät sitä — mitä selkeämmin, sen parempi tulos.\n\nMitä tehdään?",
   },
   "Sign in to open your apps": {
     fi: "Kirjaudu avataksesi appisi",
@@ -313,8 +319,8 @@ export const translations = {
   "Manage your account and preferences.": {
     fi: "Hallitse tiliäsi ja asetuksiasi.",
   },
-  "Signed in to Remiix with this email.": {
-    fi: "Kirjautuneena Remiixiin tällä sähköpostilla.",
+  "Signed in to Abblet with this email.": {
+    fi: "Kirjautuneena Abbletiin tällä sähköpostilla.",
   },
   "Email": {
     fi: "Sähköposti",
@@ -322,14 +328,14 @@ export const translations = {
   "Preferences": {
     fi: "Viestintä",
   },
-  "Choose what email you want from Remiix.": {
-    fi: "Valitse, millaisia sähköposteja haluat Remiixiltä.",
+  "Choose what email you want from Abblet.": {
+    fi: "Valitse, millaisia sähköposteja haluat Abbletiltä.",
   },
   "Product updates": {
     fi: "Tuotepäivitykset",
   },
-  "Learn what Remiix is and how remixing works.": {
-    fi: "Lue mikä Remiix on ja miten remixaus toimii.",
+  "Learn what Abblet is and how remixing works.": {
+    fi: "Lue mikä Abblet on ja miten remixaus toimii.",
   },
   "Feedback": {
     fi: "Palaute",
@@ -340,8 +346,8 @@ export const translations = {
   "Describe your idea": {
     fi: "Kuvaile ideasi",
   },
-  "Tell Remiix what you need — a packing list, budget tracker, or anything else.": {
-    fi: "Kerro Remiixille mitä tarvitset — pakkauslista, budjettiseuranta tai mikä tahansa muu.",
+  "Tell Abblet what you need — a packing list, budget tracker, or anything else.": {
+    fi: "Kerro Abbletille mitä tarvitset — pakkauslista, budjettiseuranta tai mikä tahansa muu.",
   },
   "Apply it": {
     fi: "Toteuta se",
@@ -349,8 +355,8 @@ export const translations = {
   "Apply it.": {
     fi: "Toteuta se.",
   },
-  "Remiix applies your idea into a working app you can use right away.": {
-    fi: "Remiix toteuttaa ideasi toimivana sovelluksena, jota voit käyttää heti.",
+  "Abblet applies your idea into a working app you can use right away.": {
+    fi: "Abblet toteuttaa ideasi toimivana sovelluksena, jota voit käyttää heti.",
   },
   "Edit anytime": {
     fi: "Muokkaa milloin tahansa",
@@ -370,8 +376,8 @@ export const translations = {
   "Sign in to apply your ideas": {
     fi: "Kirjaudu toteuttaaksesi ideasi",
   },
-  "Remiix is an app store where you can remix any app to fit you — or make a new one. Sign in to continue.": {
-    fi: "Remiix on app store, jossa voit remixata apit itsellesi sopiviksi — tai tehdä uuden. Kirjaudu jatkaaksesi.",
+  "Abblet is an app store where you can remix any app to fit you — or make a new one. Sign in to continue.": {
+    fi: "Abblet on app store, jossa voit remixata apit itsellesi sopiviksi — tai tehdä uuden. Kirjaudu jatkaaksesi.",
   },
   "Apply your ideas as apps": {
     fi: "Toteuta ideasi appeina",
@@ -382,23 +388,23 @@ export const translations = {
   "No apps yet": {
     fi: "Ei vielä appeja",
   },
-  "Welcome to Remiix!": { fi: "Tervetuloa Remiixiin!" },
+  "Welcome to Abblet!": { fi: "Tervetuloa Abbletiin!" },
   "Hello,": { fi: "Hei," },
-  "Thank you for joining Remiix. Describe what you need and Remiix applies it — your first app in minutes.": {
-    fi: "Kiitos liittymisestä Remiixiin. Kuvaile mitä tarvitset — Remiix toteuttaa sen, ensimmäinen app minuuteissa.",
+  "Thank you for joining Abblet. Describe what you need and Abblet applies it — your first app in minutes.": {
+    fi: "Kiitos liittymisestä Abbletiin. Kuvaile mitä tarvitset — Abblet toteuttaa sen, ensimmäinen app minuuteissa.",
   },
-  "Open Remiix:\n$url": { fi: "Avaa Remiix:\n$url" },
-  "Best regards\nRane Faunder\nFounder of Remiix": { fi: "Ystävällisin terveisin\nRane Faunder\nRemiixin perustaja" },
-  "Remiix - Login Code": { fi: "Remiix – kirjautumiskoodi" },
+  "Open Abblet:\n$url": { fi: "Avaa Abblet:\n$url" },
+  "Best regards\nRane Faunder\nFounder of Abblet": { fi: "Ystävällisin terveisin\nRane Faunder\nAbbletin perustaja" },
+  "Abblet - Login Code": { fi: "Abblet – kirjautumiskoodi" },
   "Hello!": { fi: "Hei!" },
-  "Use the following code to log in to Remiix:": { fi: "Käytä seuraavaa koodia kirjautuaksesi Remiixiin:" },
+  "Use the following code to log in to Abblet:": { fi: "Käytä seuraavaa koodia kirjautuaksesi Abbletiin:" },
   "Important:": { fi: "Tärkeää:" },
   "• Code is valid for 10 minutes": { fi: "• Koodi on voimassa 10 minuuttia" },
   "• Code can only be used once": { fi: "• Koodia voi käyttää vain kerran" },
   "• If you didn't request this code, you can safely ignore this message": {
     fi: "• Jos et pyytänyt tätä koodia, voit jättää viestin huomiotta",
   },
-  "Remiix Team": { fi: "Remiix-tiimi" },
+  "Abblet Team": { fi: "Abblet-tiimi" },
   "Email address required": { fi: "Sähköpostiosoite vaaditaan" },
   "Email address is too long": { fi: "Sähköpostiosoite on liian pitkä" },
   "Invalid email address": { fi: "Virheellinen sähköpostiosoite" },
@@ -407,16 +413,16 @@ export const translations = {
   "terms of use": { fi: "käyttöehdot" },
   "Terms of use": { fi: "Käyttöehdot" },
   "You must accept the terms of use to register.": { fi: "Sinun on hyväksyttävä käyttöehdot rekisteröityäksesi." },
-  "Remiix is a service by Faunder for requesting, remixing, and running personal apps. By using Remiix you accept these terms.": {
-    fi: "Remiix on Faunderin palvelu henkilökohtaisten appien pyytämiseen, remixaukseen ja käyttöön. Käyttämällä Remiixiä hyväksyt nämä ehdot.",
+  "Abblet is a service by Faunder for requesting, remixing, and running personal apps. By using Abblet you accept these terms.": {
+    fi: "Abblet on Faunderin palvelu henkilökohtaisten appien pyytämiseen, remixaukseen ja käyttöön. Käyttämällä Abbletiä hyväksyt nämä ehdot.",
   },
   "How apps are made": { fi: "Miten apit syntyvät" },
-  "When you describe an idea or ask for a change, you are requesting Remiix to create or adapt an app. Remiix generates the software. You are a requester and user of that software — not its author.": {
-    fi: "Kun kuvailet idean tai pyydät muutosta, pyydät Remiixiä luomaan tai sovittamaan apin. Remiix tuottaa ohjelmiston. Olet pyytäjä ja käyttäjä — et appin tekijä.",
+  "When you describe an idea or ask for a change, you are requesting Abblet to create or adapt an app. Abblet generates the software. You are a requester and user of that software — not its author.": {
+    fi: "Kun kuvailet idean tai pyydät muutosta, pyydät Abbletiä luomaan tai sovittamaan apin. Abblet tuottaa ohjelmiston. Olet pyytäjä ja käyttäjä — et appin tekijä.",
   },
   "Copyright": { fi: "Tekijänoikeus" },
-  "All apps available through Remiix — including Store apps, remixed apps, and apps created from your requests — are copyrighted by Faunder, the maker of Remiix. Copyright does not transfer to you when you request, remix, install, or run an app.": {
-    fi: "Kaikki Remiixin kautta saatavilla olevat apit — mukaan lukien Storen apit, remixatut apit ja pyynnöstäsi luodut apit — ovat Faunderin (Remiixin tekijän) tekijänoikeuden alaisia. Tekijänoikeus ei siirry sinulle, kun pyydät, remixaat, asennat tai käytät appia.",
+  "All apps available through Abblet — including Store apps, remixed apps, and apps created from your requests — are copyrighted by Faunder, the maker of Abblet. Copyright does not transfer to you when you request, remix, install, or run an app.": {
+    fi: "Kaikki Abbletin kautta saatavilla olevat apit — mukaan lukien Storen apit, remixatut apit ja pyynnöstäsi luodut apit — ovat Faunderin (Abbletin tekijän) tekijänoikeuden alaisia. Tekijänoikeus ei siirry sinulle, kun pyydät, remixaat, asennat tai käytät appia.",
   },
   "Your prompts, ideas, and the personal data you enter into an app remain yours. The app source code and related software materials do not.": {
     fi: "Promptisi, ideasi ja appiin syöttämäsi henkilökohtainen data pysyvät sinun. Appin lähdekoodi ja siihen liittyvä ohjelmistoaineisto eivät.",
@@ -425,12 +431,12 @@ export const translations = {
   "App source code is licensed under the Mozilla Public License 2.0 (MPL 2.0). Under that license you may use, study, modify, and redistribute the licensed source, subject to MPL 2.0’s terms (including sharing modifications to covered files under the same license).": {
     fi: "Appien lähdekoodi lisensoidaan Mozilla Public License 2.0:lla (MPL 2.0). Sen nojalla saat käyttää, tutkia, muokata ja uudelleenjakaa lisensoitua lähdekoodia MPL 2.0:n ehtojen mukaisesti (mukaan lukien katettujen tiedostojen muutosten jakaminen samalla lisenssillä).",
   },
-  "Publishing, remixing, or downloading an app through Remiix does not grant you ownership — only the rights MPL 2.0 provides.": {
-    fi: "Appin julkaiseminen, remixaus tai lataaminen Remiixin kautta ei anna sinulle omistusoikeutta — vain MPL 2.0:n mukaiset oikeudet.",
+  "Publishing, remixing, or downloading an app through Abblet does not grant you ownership — only the rights MPL 2.0 provides.": {
+    fi: "Appin julkaiseminen, remixaus tai lataaminen Abbletin kautta ei anna sinulle omistusoikeutta — vain MPL 2.0:n mukaiset oikeudet.",
   },
   "Acceptable use": { fi: "Hyväksyttävä käyttö" },
-  "Use Remiix for lawful, non-abusive purposes. We may update the service and these terms as the product evolves. Continued use after changes means you accept the updated terms.": {
-    fi: "Käytä Remiixiä lainmukaisiin, ei-väärinkäyttöisiin tarkoituksiin. Voimme päivittää palvelua ja näitä ehtoja tuotteen kehittyessä. Jatkuva käyttö muutosten jälkeen tarkoittaa, että hyväksyt päivitetyt ehdot.",
+  "Use Abblet for lawful, non-abusive purposes. We may update the service and these terms as the product evolves. Continued use after changes means you accept the updated terms.": {
+    fi: "Käytä Abbletiä lainmukaisiin, ei-väärinkäyttöisiin tarkoituksiin. Voimme päivittää palvelua ja näitä ehtoja tuotteen kehittyessä. Jatkuva käyttö muutosten jälkeen tarkoittaa, että hyväksyt päivitetyt ehdot.",
   },
 
   "Too many requests. Wait a moment before retrying.": { fi: "Liian monta pyyntöä. Odota hetki ennen uudelleenyritystä." },
@@ -479,7 +485,7 @@ export const translations = {
     fi: "+$amount AI-saldoa / kk · kerryttää",
   },
   "Tops up to $amount / mo": { fi: "Täyttää $amount / kk" },
-  "Remiix Premium": { fi: "Remiix Premium" },
+  "Abblet Premium": { fi: "Abblet Premium" },
   "Get Premium": { fi: "Hanki Premium" },
   "You're on Premium": { fi: "Sinulla on Premium" },
   "Register free": { fi: "Rekisteröidy ilmaiseksi" },
@@ -487,7 +493,7 @@ export const translations = {
   "You're on Free": { fi: "Käytössä: Free" },
   "Recommended": { fi: "Suositus" },
   "Included with every account": { fi: "Kuuluu jokaiseen tiliin" },
-  "Everything you need to try Remiix.": { fi: "Kaikki mitä tarvitset Remiixin kokeiluun." },
+  "Everything you need to try Abblet.": { fi: "Kaikki mitä tarvitset Abbletin kokeiluun." },
   "Build at your own pace — credit doesn’t expire.": {
     fi: "Rakenna omaan tahtiin — saldo ei vanhene.",
   },
@@ -565,7 +571,7 @@ export const translations = {
   "That gift code is no longer active.": { fi: "Lahjakoodi ei ole enää voimassa." },
   "That gift code has been fully used.": { fi: "Lahjakoodi on käytetty loppuun." },
   "You already redeemed a gift code.": { fi: "Olet jo lunastanut lahjakoodin." },
-  "You already have Remiix Premium.": { fi: "Sinulla on jo Remiix Premium." },
+  "You already have Abblet Premium.": { fi: "Sinulla on jo Abblet Premium." },
   "Account not found.": { fi: "Tiliä ei löydy." },
   "Your AI credit ran out.": { fi: "AI-saldosi loppui." },
   "Get Premium for $5.99/mo in AI credit — or redeem a gift code.": {
@@ -701,8 +707,8 @@ export const translations = {
   },
   "Building…": { fi: "Rakenteilla" },
   "Describe your app": { fi: "Kuvaile appisi" },
-  "Tell Remiix what you need — it builds a working app in minutes.": {
-    fi: "Kerro mitä tarvitset — Remiix rakentaa toimivan appin minuuteissa.",
+  "Tell Abblet what you need — it builds a working app in minutes.": {
+    fi: "Kerro mitä tarvitset — Abblet rakentaa toimivan appin minuuteissa.",
   },
   "Unsaved changes": { fi: "Tallentamattomia muutoksia" },
   "Saved": { fi: "Tallennettu" },
@@ -723,25 +729,25 @@ export const translations = {
   "Could not update app. Try again.": { fi: "Appin päivitys epäonnistui. Yritä uudelleen." },
   "Code must still register <$tag>.": { fi: "Koodin on yhä rekisteröitävä <$tag>." },
   "Applied in minutes": { fi: "Toteutettu minuuteissa" },
-  "Describe your idea and Remiix applies it instantly — no setup, no waiting.": {
-    fi: "Kuvaile ideasi — Remiix toteuttaa sen heti. Ei asennusta, ei odottelua.",
+  "Describe your idea and Abblet applies it instantly — no setup, no waiting.": {
+    fi: "Kuvaile ideasi — Abblet toteuttaa sen heti. Ei asennusta, ei odottelua.",
   },
   "Truly yours": { fi: "Täysin sinun" },
   "Your apps store data right in your browser. No accounts to wire up, no servers to manage.": {
     fi: "Appit tallentavat datan suoraan selaimeesi. Ei tilien kytkentää, ei palvelimien ylläpitoa.",
   },
   "No code required": { fi: "Ei koodia" },
-  "Just describe it in plain language. Remiix applies the rest.": {
-    fi: "Kuvaile arkikielellä. Remiix toteuttaa loput.",
+  "Just describe it in plain language. Abblet applies the rest.": {
+    fi: "Kuvaile arkikielellä. Abblet toteuttaa loput.",
   },
   "Make every idea an app": { fi: "Tee jokaisesta ideasta app" },
   "Describe it, apply it — right where you work.": {
     fi: "Kuvaile, toteuta — juuri siellä missä työskentelet.",
   },
   "Frequently asked questions": { fi: "Usein kysytyt kysymykset" },
-  "What is Remiix?": { fi: "Mikä on Remiix?" },
-  "Remiix lets you apply your ideas as small personal apps. Describe what you need and Remiix builds a working app that runs in your browser and keeps your data on your device.": {
-    fi: "Remiixilla toteutat ideasi pieninä henkilökohtaisina appeina. Kuvaile mitä tarvitset — Remiix rakentaa toimivan appin selaimeesi, data pysyy laitteellasi.",
+  "What is Abblet?": { fi: "Mikä on Abblet?" },
+  "Abblet lets you apply your ideas as small personal apps. Describe what you need and Abblet builds a working app that runs in your browser and keeps your data on your device.": {
+    fi: "Abbletlla toteutat ideasi pieninä henkilökohtaisina appeina. Kuvaile mitä tarvitset — Abblet rakentaa toimivan appin selaimeesi, data pysyy laitteellasi.",
   },
   "What kind of apps can I build?": { fi: "Millaisia appeja voin tehdä?" },
   "Anything small and personal: trackers, journals, calculators, checklists, simple games, or quick one-off tools that make your life easier.": {
@@ -752,8 +758,8 @@ export const translations = {
     fi: "Jokainen app tallentaa datansa paikallisesti selaimeesi. Mitään ei lähetetä palvelimelle — merkintäsi pysyvät yksityisinä.",
   },
   "What will you apply?": { fi: "Mitä toteutat seuraavaksi?" },
-  "Describe your idea and watch Remiix apply it in minutes.": {
-    fi: "Kuvaile ideasi ja katso Remiixin toteuttavan sen minuuteissa.",
+  "Describe your idea and watch Abblet apply it in minutes.": {
+    fi: "Kuvaile ideasi ja katso Abbletin toteuttavan sen minuuteissa.",
   },
   "Apply your first app": {
     fi: "Toteuta ensimmäinen appisi",
@@ -761,13 +767,13 @@ export const translations = {
   "Describe your idea and see your first app in minutes.": {
     fi: "Kuvaile ideasi ja näe ensimmäinen app minuuteissa.",
   },
-  "Email me about Remiix updates": {
-    fi: "Lähetä minulle sähköpostia Remiix-päivityksistä",
+  "Email me about Abblet updates": {
+    fi: "Lähetä minulle sähköpostia Abblet-päivityksistä",
   },
-  "About Remiix": { fi: "Tietoa Remiixista" },
-  "Faunder — maker of Remiix": { fi: "Faunder — Remiixin tekijä" },
-  "Remiix is made by": { fi: "Remiixin on tehnyt" },
-  "Remiix — About": { fi: "Remiix — Tietoa" },
+  "About Abblet": { fi: "Tietoa Abbletista" },
+  "Faunder — maker of Abblet": { fi: "Faunder — Abbletin tekijä" },
+  "Abblet is made by": { fi: "Abbletin on tehnyt" },
+  "Abblet — About": { fi: "Abblet — Tietoa" },
   "Create an app": { fi: "Luo app" },
   "Browse the Store": { fi: "Selaa Storea" },
   "An app store where every app is remixable to fit you.": {
@@ -791,23 +797,23 @@ export const translations = {
   "Browse apps others made, then adapt them until they match how you actually work. No code needed.": {
     fi: "Selaa muiden tekemiä appeja ja sovita ne siihen, miten sinä oikeasti toimit. Ei koodia tarvita.",
   },
-  "Open an app from the Store and describe the changes you want — Remiix remakes it to fit you. Or start from scratch with your own idea. No code needed.": {
-    fi: "Avaa app Storesta ja kuvaile mitä haluat muuttaa — Remiix tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla. Ei koodia tarvita.",
+  "Open an app from the Store and describe the changes you want — Abblet remakes it to fit you. Or start from scratch with your own idea. No code needed.": {
+    fi: "Avaa app Storesta ja kuvaile mitä haluat muuttaa — Abblet tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla. Ei koodia tarvita.",
   },
-  "An app store where you can open any app and describe the changes you want — Remiix remakes it to fit you. Or start from scratch with your own idea. No code needed.": {
-    fi: "App Store, jossa voit avata minkä tahansa appin ja kuvailla mitä haluat muuttaa — Remiix tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla. Ei koodia tarvita.",
+  "An app store where you can open any app and describe the changes you want — Abblet remakes it to fit you. Or start from scratch with your own idea. No code needed.": {
+    fi: "App Store, jossa voit avata minkä tahansa appin ja kuvailla mitä haluat muuttaa — Abblet tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla. Ei koodia tarvita.",
   },
-  "An app store where you can open any app and describe the changes you want — Remiix remakes it to fit you. Or start from scratch with your own idea.": {
-    fi: "App Store, jossa voit avata minkä tahansa appin ja kertoa miten haluat sitä muuttaa — Remiix tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla.",
+  "An app store where you can open any app and describe the changes you want — Abblet remakes it to fit you. Or start from scratch with your own idea.": {
+    fi: "App Store, jossa voit avata minkä tahansa appin ja kertoa miten haluat sitä muuttaa — Abblet tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla.",
   },
-  "An app store where you can open any app and say how you want to change it — Remiix remakes it to fit you. Or start from scratch with your own idea.": {
-    fi: "App Store, jossa voit avata minkä tahansa appin ja kertoa miten haluat sitä muuttaa — Remiix tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla.",
+  "An app store where you can open any app and say how you want to change it — Abblet remakes it to fit you. Or start from scratch with your own idea.": {
+    fi: "App Store, jossa voit avata minkä tahansa appin ja kertoa miten haluat sitä muuttaa — Abblet tekee siitä sinulle sopivan. Tai aloita nollasta omalla idealla.",
   },
   "An app store where you can open any app and say how you want to change it — or ask for a new app from your own idea.": {
     fi: "App Store, jossa voit avata minkä tahansa appin ja kertoa miten haluat sitä muuttaa — tai pyydä uusi app omasta ideastasi.",
   },
-  "An app store where you can ask Remiix to change any app to fit your needs. If it doesn't exist, you can ask Remiix to make a new one from your own idea.": {
-    fi: "App Store, jossa voit pyytää Remiixiä muuttamaan minkä tahansa appin sopivaksi omiin tarpeisiisi. Ellei appia ole, voit pyytää Remiixiä tekemään uuden omasta ideastasi.",
+  "An app store where you can ask Abblet to change any app to fit your needs. If it doesn't exist, you can ask Abblet to make a new one from your own idea.": {
+    fi: "App Store, jossa voit pyytää Abbletiä muuttamaan minkä tahansa appin sopivaksi omiin tarpeisiisi. Ellei appia ole, voit pyytää Abbletiä tekemään uuden omasta ideastasi.",
   },
   "Software that fits — because you shape it.": {
     fi: "Ohjelmisto joka sopii — koska sinä muokkaat sen.",
@@ -822,8 +828,8 @@ export const translations = {
   "Open anything in the Store, then adapt it with a prompt until it matches how you actually work — lists, trackers, tools, and helpers that fit your life.": {
     fi: "Avaa mitä tahansa Storesta ja sovita se promptilla siihen, miten sinä oikeasti toimit — listat, seurannat, työkalut ja apurit omaan elämään.",
   },
-  "Describe what you need in plain language. Remiix builds a working app you can open, install, and keep improving — no code required.": {
-    fi: "Kuvaile tarve arkikielellä. Remiix rakentaa toimivan appin, jonka avaat, asennat ja jota parannat — ilman koodia.",
+  "Describe what you need in plain language. Abblet builds a working app you can open, install, and keep improving — no code required.": {
+    fi: "Kuvaile tarve arkikielellä. Abblet rakentaa toimivan appin, jonka avaat, asennat ja jota parannat — ilman koodia.",
   },
   "Designed for discovery.": { fi: "Tehty löytämiseen." },
   "Explore apps others have published. Remix the ones that almost fit. Or invent something only you would think of.": {
@@ -845,8 +851,8 @@ export const translations = {
     fi: "Remixaa app Storesta, tai aloita omasta ideasta.",
   },
   "Shape it with a prompt": { fi: "Muotoile promptilla" },
-  "Say what you need in everyday words. Remiix builds and updates a real app — ready to open, not a mockup.": {
-    fi: "Sano tarpeesi arkikielellä. Remiix rakentaa ja päivittää oikean appin — avattavaksi, ei mockupiksi.",
+  "Say what you need in everyday words. Abblet builds and updates a real app — ready to open, not a mockup.": {
+    fi: "Sano tarpeesi arkikielellä. Abblet rakentaa ja päivittää oikean appin — avattavaksi, ei mockupiksi.",
   },
   "Install it, live with it, ask for changes anytime. Keep it private or publish it back to the Store.": {
     fi: "Asenna, käytä arjessa, pyydä muutoksia milloin tahansa. Pidä yksityisenä tai julkaise takaisin Storeen.",
@@ -854,21 +860,21 @@ export const translations = {
   "Instead of settling for software that almost fits, make software that does.": {
     fi: "Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.",
   },
-  "What Remiix is": { fi: "Mikä Remiix on" },
-  "Remiix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.": {
-    fi: "Remiix on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi app nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.",
+  "What Abblet is": { fi: "Mikä Abblet on" },
+  "Abblet is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.": {
+    fi: "Abblet on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi app nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.",
   },
-  "Remiix is a place to make small personal apps for your own life — lists, trackers, tools, and little helpers that fit how you actually work.": {
-    fi: "Remiix on paikka tehdä pieniä henkilökohtaisia appeja omaan elämään — listoja, seurantaa, työkaluja ja apureita, jotka sopivat siihen miten sinä oikeasti toimit.",
+  "Abblet is a place to make small personal apps for your own life — lists, trackers, tools, and little helpers that fit how you actually work.": {
+    fi: "Abblet on paikka tehdä pieniä henkilökohtaisia appeja omaan elämään — listoja, seurantaa, työkaluja ja apureita, jotka sopivat siihen miten sinä oikeasti toimit.",
   },
-  "You talk to Remiix like a person. It designs and builds a working app you can open on your phone and keep improving.": {
-    fi: "Puhut Remiixille kuin ihmiselle. Se suunnittelee ja rakentaa toimivan appin, jonka avaat puhelimessa ja jota voit parantaa.",
+  "You talk to Abblet like a person. It designs and builds a working app you can open on your phone and keep improving.": {
+    fi: "Puhut Abbletille kuin ihmiselle. Se suunnittelee ja rakentaa toimivan appin, jonka avaat puhelimessa ja jota voit parantaa.",
   },
   "Describe": { fi: "Kuvaile" },
   "Write what you need in everyday words — a shopping list, habit tracker, workout log, or something only you would invent.": {
     fi: "Kirjoita tarpeesi arkikielellä — ostoslista, tapaseuranta, treenipäiväkirja tai jotain mitä vain sinä keksit.",
   },
-  "Remiix builds": { fi: "Remiix rakentaa" },
+  "Abblet builds": { fi: "Abblet rakentaa" },
   "In minutes you get a finished app with its own look and icon — ready to open, not a mockup.": {
     fi: "Muutamassa minuutissa saat valmiin appin omalla ilmeellä ja kuvakkeella — avattavaksi, ei mockupiksi.",
   },
@@ -877,8 +883,8 @@ export const translations = {
     fi: "Pyydä muutoksia milloin tahansa. Julkaise Storeen jos haluat, tai pidä app yksityisenä.",
   },
   "Who it's for": { fi: "Kenelle se on" },
-  "Remiix is for anyone who wants software that fits their life — without learning to code, waiting on a developer, or forcing a generic app to behave.": {
-    fi: "Remiix on kaikille, jotka haluavat ohjelmiston joka sopii omaan elämään — ilman koodaamista, kehittäjän odottelua tai geneerisen appin väkisin sovittamista.",
+  "Abblet is for anyone who wants software that fits their life — without learning to code, waiting on a developer, or forcing a generic app to behave.": {
+    fi: "Abblet on kaikille, jotka haluavat ohjelmiston joka sopii omaan elämään — ilman koodaamista, kehittäjän odottelua tai geneerisen appin väkisin sovittamista.",
   },
   "Start with one idea": { fi: "Aloita yhdellä idealla" },
   "Your first app can be tiny. The important part is that it's yours.": {
@@ -891,14 +897,14 @@ export const translations = {
   "Make your own apps with AI": {
     fi: "Tee omia appeja tekoälyllä",
   },
-  "Make your own apps with Remiix": {
-    fi: "Tee omia appeja Remiixillä",
+  "Make your own apps with Abblet": {
+    fi: "Tee omia appeja Abbletillä",
   },
   "Your idea. Your app.": {
     fi: "Sinun idea. Sinun app.",
   },
-  "Describe what you need in plain language. Remiix builds a working app in minutes — then you improve it by chatting. No code needed.": {
-    fi: "Kuvaile mitä tarvitset arkikielellä. Remiix rakentaa toimivan appin minuuteissa — ja parannat sitä keskustellen. Ei koodia tarvita.",
+  "Describe what you need in plain language. Abblet builds a working app in minutes — then you improve it by chatting. No code needed.": {
+    fi: "Kuvaile mitä tarvitset arkikielellä. Abblet rakentaa toimivan appin minuuteissa — ja parannat sitä keskustellen. Ei koodia tarvita.",
   },
   "A habit tracker for my morning routine": {
     fi: "Tottumusseuranta aamurutiiniini",
@@ -924,8 +930,8 @@ export const translations = {
   "Chat to change it. Private or published.": {
     fi: "Muuta keskustellen. Yksityinen tai julkinen.",
   },
-  "Remiix builds working apps from plain language. Describe an idea, get an app in minutes, then improve it by chatting — no code.": {
-    fi: "Remiix rakentaa toimivia appeja arkikielestä. Kuvaile idea, saat appin minuuteissa ja parannat sitä keskustellen — ilman koodia.",
+  "Abblet builds working apps from plain language. Describe an idea, get an app in minutes, then improve it by chatting — no code.": {
+    fi: "Abblet rakentaa toimivia appeja arkikielestä. Kuvaile idea, saat appin minuuteissa ja parannat sitä keskustellen — ilman koodia.",
   },
   "Previously installed": { fi: "Aiemmin asennetut" },
   "Recently used": { fi: "Viimeksi käyttämäsi" },
@@ -941,8 +947,8 @@ export const translations = {
   "Your apps, settings, and account.": {
     fi: "Omat appit, asetukset ja tili.",
   },
-  "Choose the language for Remiix.": {
-    fi: "Valitse Remiixin kieli.",
+  "Choose the language for Abblet.": {
+    fi: "Valitse Abbletin kieli.",
   },
   "Sign in to see your apps.": {
     fi: "Kirjaudu nähdäksesi appisi.",
@@ -950,11 +956,11 @@ export const translations = {
   "Sign in to manage your account.": {
     fi: "Kirjaudu hallitaksesi tiliäsi.",
   },
-  "Make Remiix yours": {
-    fi: "Tee Remiixistä omasi",
+  "Make Abblet yours": {
+    fi: "Tee Abbletstä omasi",
   },
-  "Your Remiix": {
-    fi: "Sinun Remiix",
+  "Your Abblet": {
+    fi: "Sinun Abblet",
   },
   "Start free — no card needed.": {
     fi: "Aloita ilmaiseksi — ei korttia tarvita.",
@@ -965,8 +971,8 @@ export const translations = {
   "Remix any app": {
     fi: "Remixaa mikä tahansa app",
   },
-  "Open a Store app and ask Remiix to change it until it fits you.": {
-    fi: "Avaa Store-appi ja pyydä Remiixiä muuttamaan se itsellesi sopivaksi.",
+  "Open a Store app and ask Abblet to change it until it fits you.": {
+    fi: "Avaa Store-appi ja pyydä Abbletiä muuttamaan se itsellesi sopivaksi.",
   },
   "Build with AI": {
     fi: "Rakenna tekoälyllä",

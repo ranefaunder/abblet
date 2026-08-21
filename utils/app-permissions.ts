@@ -34,8 +34,8 @@ export function appNeedsAi(perms: readonly AppPermission[] | string | null | und
 /** Infer permissions from generated source (safety net if the model omits them). */
 export function detectPermissionsFromCode(code: string): AppPermission[] {
   const found: AppPermission[] = [];
-  if (/Remiix\.ai\s*\(/.test(code)) found.push("ai");
-  if (/Remiix\.sync\b/.test(code)) found.push("sync");
+  if (/(?:Abblet|Remiix)\.ai\s*\(/.test(code)) found.push("ai");
+  if (/(?:Abblet|Remiix)\.sync\b/.test(code)) found.push("sync");
   return found;
 }
 

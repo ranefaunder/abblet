@@ -58,7 +58,7 @@ export default function permissionRoute(req: PermissionRequest): Response {
     if (optional) {
       return Response.redirect(returnTo.toString(), 302);
     }
-    const lang = req.cookies?.get("appstudo-language") || "en";
+    const lang = req.cookies?.get("abblet-language") || req.cookies?.get("appstudo-language") || "en";
     const next = `/permission/${encodeURIComponent(appId)}`;
     return Response.redirect(`/${lang}/login?next=${encodeURIComponent(next)}`, 302);
   }
@@ -73,7 +73,7 @@ export default function permissionRoute(req: PermissionRequest): Response {
     : consumePermissionNonce(confirmNonce, user.id, appId);
   const confirmed = alreadyGranted || nonceResult != null;
   if (!confirmed) {
-    const lang = req.cookies?.get("appstudo-language") || "en";
+    const lang = req.cookies?.get("abblet-language") || req.cookies?.get("appstudo-language") || "en";
     return Response.redirect(
       `/${encodeURIComponent(lang)}/permission/${encodeURIComponent(appId)}`,
       302,

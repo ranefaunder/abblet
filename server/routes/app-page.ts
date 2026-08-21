@@ -74,7 +74,7 @@ function resolveRequestLang(req: {
   const paramLang = req.params?.lang;
   if (paramLang && paramLang in AVAILABLE_LANGUAGES) return paramLang as Language;
 
-  const cookie = req.cookies?.get("appstudo-language");
+  const cookie = req.cookies?.get("abblet-language") || req.cookies?.get("appstudo-language");
   if (cookie && cookie in AVAILABLE_LANGUAGES) return cookie as Language;
 
   const header = req.headers.get("Accept-Language");
@@ -146,7 +146,7 @@ function getReadyApp(
   return { lang, slug: row.slug, config };
 }
 
-/** Append mount into #mount so the client does not need tagName in __REMIIX__. */
+/** Append mount into #mount so the client does not need tagName in __ABBLET__. */
 function appModuleSource(tagName: string, code: string): string {
   // tagName is schema-validated ([a-z0-9-]+ with a hyphen).
   return `${code}
@@ -749,7 +749,7 @@ function renderInstallPage(
         var precacheUrls = ${JSON.stringify(precacheUrls)};
         var platformOrigin = ${JSON.stringify(platformOrigin)};
         var appSlug = ${JSON.stringify(access.slug)};
-        var CACHE = "remiix-app-runtime-v7";
+        var CACHE = "abblet-app-runtime-v1";
         var installBtn = document.getElementById("install");
         var openBtn = document.getElementById("open");
         var ledeEl = document.getElementById("lede");
@@ -759,7 +759,7 @@ function renderInstallPage(
         var mainEl = document.querySelector("main.install");
         var deferredPrompt = null;
         var supportsBip = "onbeforeinstallprompt" in window;
-        var fromPlatformKey = "remiix.fromPlatform:" + appSlug;
+        var fromPlatformKey = "abblet.fromPlatform:" + appSlug;
 
         function isIos() {
           return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -1047,7 +1047,7 @@ function renderAppPage(
   }
 
   const platformOrigin = getPlatformOrigin();
-  const remiixConfig = {
+  const abbletConfig = {
     appSlug: access.slug,
     platformOrigin,
     permissions: access.permissions,
@@ -1058,9 +1058,9 @@ function renderAppPage(
     "/",
     "/module.js",
     "/manifest.webmanifest",
-    "/static/remiix-app.js",
-    "/static/images/remiix-icon-light.svg",
-    "/static/images/remiix.svg",
+    "/static/abblet-app.js",
+    "/static/images/abblet-icon-light.svg",
+    "/static/images/abblet.svg",
   ];
   if (runtimeIcon) runtimePrecache.push(runtimeIcon);
   if (runtimeIconSvg && runtimeIconSvg !== runtimeIcon) runtimePrecache.push(runtimeIconSvg);
@@ -1084,7 +1084,7 @@ function renderAppPage(
     <script>
       (function () {
         var urls = ${JSON.stringify(runtimePrecache)};
-        var CACHE = "remiix-app-runtime-v7";
+        var CACHE = "abblet-app-runtime-v1";
         async function warm() {
           try {
             if (navigator.storage && navigator.storage.persist) {
@@ -1113,9 +1113,10 @@ function renderAppPage(
       })();
     </script>
     <script>
-      window.__REMIIX__ = ${serializeJsonForHtmlScript(remiixConfig)};
+      window.__ABBLET__ = ${serializeJsonForHtmlScript(abbletConfig)};
+      window.__REMIIX__ = window.__ABBLET__;
     </script>
-    <script type="module" src="/static/remiix-app.js"></script>
+    <script type="module" src="/static/abblet-app.js"></script>
   </body>
 </html>`;
 

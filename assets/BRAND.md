@@ -1,27 +1,53 @@
-# Remiix brand
+# Abblet brand
 
 ## Slogan
 
+**Meta / title**
+
 ```
-Remiix — Remix any app, or make your own.
+An app store where every app is remixable.
 ```
 
 Finnish:
 
 ```
-Remiix — Remixaa mikä tahansa app tai tee oma.
+Appikauppa, jossa jokainen appi on remiksattavissa.
+```
+
+Title form:
+
+```
+Abblet — An app store where every app is remixable.
+```
+
+Finnish:
+
+```
+Abblet — Appikauppa, jossa jokainen appi on remiksattavissa.
+```
+
+**UI / splash (hero line)**
+
+```
+Remix any app, or make your own.
+```
+
+Finnish:
+
+```
+Remixaa mikä tahansa app, tai tee oma.
 ```
 
 ## Elevator pitch
 
 ```
-Remiix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.
+Abblet is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.
 ```
 
 Finnish:
 
 ```
-Remiix on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi app nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.
+Abblet on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun jo tekemästä appista ja sovita se tarpeisiisi promptilla — tai tee omasta ideastasi uusi app nollasta. Älä tyydy ohjelmistoon, joka melkein sopii: tee ohjelmisto, joka sopii.
 ```
 
 ## Where it belongs
@@ -29,7 +55,7 @@ Remiix on app store, jossa apit eivät ole kiinteitä tuotteita. Aloita jonkun j
 **Slogan**
 
 - Document / tab title and default meta description
-- PWA / webmanifest short description (use the clause after the em dash, or the full line when space allows)
+- PWA / webmanifest short description
 - Front page / marketing hero
 
 **Elevator pitch**
@@ -53,11 +79,11 @@ About / longer marketing lives at `/:lang/about`. Product chrome is the floating
 
 | File | Use |
 |------|-----|
-| [`../static/images/remiix.svg`](../static/images/remiix.svg) | Wordmark (header, About) |
-| [`../static/images/remiix-app-icon.jpg`](../static/images/remiix-app-icon.jpg) | App icon source (favicon + PWA); regenerate rasters: `bun run gen:favicons` |
-| [`../static/favicons/`](../static/favicons/) | Raster favicons / PWA icons from `remiix-app-icon.jpg` |
-| [`../static/images/remiix-icon-dark.svg`](../static/images/remiix-icon-dark.svg) | Monochrome mark (light chrome / inline UI) |
-| [`../static/images/remiix-icon-light.svg`](../static/images/remiix-icon-light.svg) | Monochrome mark (dark chrome; Patch badge) |
+| [`../static/images/abblet.svg`](../static/images/abblet.svg) | Wordmark (header, About) |
+| [`../static/images/abblet-app-icon.jpg`](../static/images/abblet-app-icon.jpg) | App icon source (favicon + PWA); regenerate rasters: `bun run gen:favicons` |
+| [`../static/favicons/`](../static/favicons/) | Raster favicons / PWA icons from `abblet-app-icon.jpg` |
+| [`../static/images/abblet-icon-dark.svg`](../static/images/abblet-icon-dark.svg) | Monochrome mark (light chrome / inline UI) |
+| [`../static/images/abblet-icon-light.svg`](../static/images/abblet-icon-light.svg) | Monochrome mark (dark chrome; Patch badge) |
 | [`rmix.sketch`](rmix.sketch) | Design source (legacy filename) |
 | [`TRADEMARK.md`](TRADEMARK.md) | Alustava tavaramerkkiselvitys |
 | [`ROADMAP.md`](ROADMAP.md) | Seuraavat vaiheet (sync, Polar) |

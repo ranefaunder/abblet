@@ -11,7 +11,7 @@ import { getPlatformHost, getPlatformOrigin } from "/utils/app-host";
 
 export const SESSION_MAX_AGE_SEC = 180 * 24 * 60 * 60;
 const SESSION_EXTEND_AFTER_MS = 24 * 60 * 60 * 1000;
-export const AUTH_COOKIE_NAME = "appstudo-auth";
+export const AUTH_COOKIE_NAME = "abblet-auth";
 
 function authCookieSecure(): boolean {
   if (process.env.NODE_ENV === "production") return true;
@@ -29,7 +29,7 @@ export function shouldExtendSession(expiresAt: string, now = Date.now()): boolea
 
 /**
  * Legacy Domain attribute used when the session cookie was shared with
- * `*.remiix.app`. Kept only so logout can clear old Domain-scoped cookies.
+ * app subdomains. Kept only so logout can clear old Domain-scoped cookies.
  */
 export function legacyAuthCookieDomain(): string | undefined {
   try {
@@ -47,7 +47,7 @@ export function authCookieDomain(): string | undefined {
 }
 
 function setAuthCookie(req: BunRequest, sessionId: string): void {
-  // Host-only: no Domain — cookie stays on remiix.app (platform), not app subdomains.
+  // Host-only: no Domain — cookie stays on abblet.com (platform), not app subdomains.
   req.cookies?.set({
     name: AUTH_COOKIE_NAME,
     value: sessionId,
@@ -59,12 +59,14 @@ function setAuthCookie(req: BunRequest, sessionId: string): void {
   });
 }
 
-/** Clear host-only cookie + legacy Domain-scoped cookie (one-time migration). */
+/** Clear host-only cookie + legacy Domain-scoped / renamed cookies (one-time migration). */
 export function clearAuthCookie(req: BunRequest): void {
   req.cookies?.delete(AUTH_COOKIE_NAME);
+  req.cookies?.delete("appstudo-auth");
   const domain = legacyAuthCookieDomain();
   if (domain) {
     req.cookies?.delete({ name: AUTH_COOKIE_NAME, path: "/", domain });
+    req.cookies?.delete({ name: "appstudo-auth", path: "/", domain });
   }
 }
 
@@ -95,7 +97,9 @@ export function createAuthSession(req: BunRequest, userId: string): void {
 
 export function getAuthenticatedUser(req: BunRequest): AuthenticatedUser | null {
   try {
-    const sessionId = req.cookies?.get(AUTH_COOKIE_NAME);
+    let sessionId = req.cookies?.get(AUTH_COOKIE_NAME);
+    const legacySessionId = !sessionId ? req.cookies?.get("appstudo-auth") : undefined;
+    if (!sessionId && legacySessionId) sessionId = legacySessionId;
     if (!sessionId) return null;
 
     const session = dbGetSession(sessionId);
@@ -106,6 +110,15 @@ export function getAuthenticatedUser(req: BunRequest): AuthenticatedUser | null 
     if (!fullUser) return null;
 
     maybeExtendSession(req, sessionId, session.expires_at);
+    // Migrate renamed cookie once the session is confirmed.
+    if (legacySessionId) {
+      setAuthCookie(req, sessionId);
+      req.cookies?.delete("appstudo-auth");
+      const domain = legacyAuthCookieDomain();
+      if (domain) {
+        req.cookies?.delete({ name: "appstudo-auth", path: "/", domain });
+      }
+    }
 
     return toAuthenticatedUser(fullUser);
   } catch (error) {

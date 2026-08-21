@@ -2,7 +2,7 @@ import type { Database } from "bun:sqlite";
 
 /**
  * Append-only log of Install clicks for "Previously installed".
- * Survives library changes; uninstall UI is not used in Remiix store.
+ * Survives library changes; uninstall UI is not used in Abblet store.
  */
 export default function (db: Database) {
   db.run(`

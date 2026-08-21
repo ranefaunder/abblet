@@ -3,7 +3,7 @@ import { AVAILABLE_LANGUAGES, DEFAULT_LANGUAGE } from "/i18n/languages";
 import { t } from "/utils/i18n";
 import { getLang } from "/utils/lang";
 
-/** PWA icons from remiix-app-icon.jpg (bun run gen:favicons). */
+/** PWA icons from abblet-app-icon.jpg (bun run gen:favicons). */
 const ICONS = [
   {
     src: "/static/favicons/android-chrome-192x192.png",
@@ -40,9 +40,9 @@ export default async function (req: BunRequest): Promise<Response> {
   }
 
   const manifest = {
-    name: "Remiix",
-    short_name: "Remiix",
-    description: t("Remix any app, or make your own.", lang),
+    name: "Abblet",
+    short_name: "Abblet",
+    description: t("An app store where every app is remixable.", lang),
     start_url: `/${lang}/`,
     scope: "/",
     display: "standalone",

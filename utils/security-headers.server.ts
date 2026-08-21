@@ -3,23 +3,23 @@ import { getPlatformOrigin } from "/utils/app-host";
 export type SecurityHeaderKind = "platform-html" | "api" | "app-runtime" | "static";
 
 /**
- * Aligns with Caddy `abblet_security_headers` for remiix.app (CDN + analytics).
+ * Aligns with Caddy `abblet_platform_headers` for abblet.com (CDN + analytics).
  * App-runtime uses a tighter connect-src (platform + self only) so generated
  * apps cannot exfiltrate to arbitrary hosts — Caddy's broader CSP still applies
  * in prod; multiple CSP headers are AND-ed by the browser.
  */
-function remiixCdnOrigins(): string {
-  return "https://remiix.b-cdn.net";
+function abbletCdnOrigins(): string {
+  return "https://abblet.b-cdn.net";
 }
 
 function platformCsp(): string {
-  let platformOrigin = "https://remiix.app";
+  let platformOrigin = "https://abblet.com";
   try {
     platformOrigin = getPlatformOrigin();
   } catch {
     // env may be unset in some scripts
   }
-  const cdn = remiixCdnOrigins();
+  const cdn = abbletCdnOrigins();
   return [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline' https://cloud.umami.is`,
@@ -35,14 +35,14 @@ function platformCsp(): string {
 }
 
 function appRuntimeCsp(): string {
-  let platformOrigin = "https://remiix.app";
+  let platformOrigin = "https://abblet.com";
   try {
     platformOrigin = getPlatformOrigin();
   } catch {
     // ignore
   }
-  const cdn = remiixCdnOrigins();
-  // Tight connect-src: only this app origin + platform API (no *.remiix.app, no evil.tld).
+  const cdn = abbletCdnOrigins();
+  // Tight connect-src: only this app origin + platform API (no *.abblet.com peers, no evil.tld).
   return [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",

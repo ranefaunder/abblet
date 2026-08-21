@@ -29,16 +29,16 @@ function isMarketingPath(pathname: string): boolean {
 function metaCopy(lang: Language, pathname: string): { title: string; description: string } {
   if (isMarketingPath(pathname)) {
     return {
-      title: metaPlainForTitleElement(t("Remiix — Remix any app, or make your own.", lang)),
+      title: metaPlainForTitleElement(t("Abblet — An app store where every app is remixable.", lang)),
       description: metaPlainForHtmlAttribute(
-        t("Remiix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.", lang),
+        t("Abblet is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.", lang),
       ),
     };
   }
   return {
-    title: metaPlainForTitleElement(t("Remiix — Remix any app, or make your own.", lang)),
+    title: metaPlainForTitleElement(t("Abblet — An app store where every app is remixable.", lang)),
     description: metaPlainForHtmlAttribute(
-      t("Remix any app, or make your own.", lang),
+      t("An app store where every app is remixable.", lang),
     ),
   };
 }
@@ -61,7 +61,7 @@ function canonicalOrigin(req: BunRequest): string {
     }
     return platform;
   } catch {
-    return "https://remiix.app";
+    return "https://abblet.com";
   }
 }
 
@@ -72,7 +72,7 @@ export async function getMeta(req: BunRequest): Promise<string> {
   const staticRoot = resolveStaticRootFromUrl(req.url);
   const { title, description } = metaCopy(lang, pathname);
   const ogImage = `${staticRoot}/favicons/android-chrome-512x512.png`;
-  /** Matches remiix-app-icon.jpg field. */
+  /** Matches abblet-app-icon.jpg field. */
   const themeColor = "#0878f8";
 
   return /*html*/ `
@@ -81,7 +81,7 @@ export async function getMeta(req: BunRequest): Promise<string> {
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Remiix" />
+    <meta name="apple-mobile-web-app-title" content="Abblet" />
     <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
     <meta name="color-scheme" content="light" />
     <title>${title}</title>

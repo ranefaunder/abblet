@@ -4,12 +4,12 @@
  * Precaches (via client Cache API + this fetch handler):
  *   /static/app-icons/* launcher icons
  *
- * App shell/module.js are cached on each `{slug|uuid}.remiix.app` origin
+ * App shell/module.js are cached on each `{slug|uuid}.abblet.com` origin
  * (app-runtime-sw.js), not from the platform.
  *
  * Strategy: network-first, fall back to cache when offline.
  */
-const APP_CACHE = "remiix-apps-v1";
+const APP_CACHE = "abblet-apps-v1";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());

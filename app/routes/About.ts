@@ -163,12 +163,12 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
           <div class="hero-copy" ui-column="gap-lg x-start">
             <img
               class="hero-brand"
-              src="/static/images/remiix.svg"
-              alt="Remiix"
+              src="/static/images/abblet.svg"
+              alt="Abblet"
               width="280"
               height="59"
             />
-            <h1 class="hero-title">${t("Remix any app, or make your own.")}</h1>
+            <h1 class="hero-title">${t("An app store where every app is remixable.")}</h1>
             <p class="hero-lede">
               ${t("An app store where every app is remixable to fit you.")}
             </p>
@@ -187,7 +187,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
         <div class="wrap">
           <h2 class="display">${t("Software that fits — because you shape it.")}</h2>
           <p class="lead">
-            ${t("Remiix is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.")}
+            ${t("Abblet is an app store where apps are not fixed products. Start with an app someone has already made and adapt it to your needs with a prompt, or turn your own idea into a new app from scratch. Instead of settling for software that almost fits, make software that does.")}
           </p>
         </div>
       </section>
@@ -201,7 +201,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
               <p class="create-eyebrow">${t("Make your own")}</p>
               <h2 class="create-title">${t("Make your own apps with AI")}</h2>
               <p class="create-lede">
-                ${t("Describe what you need in plain language. Remiix builds a working app in minutes — then you improve it by chatting. No code needed.")}
+                ${t("Describe what you need in plain language. Abblet builds a working app in minutes — then you improve it by chatting. No code needed.")}
               </p>
               <div class="create-cta">
                 <a href=${createUrl(lang)} ui-button="primary">
@@ -285,7 +285,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
               <span class="step-num" aria-hidden="true">2</span>
               <div ui-column="gap-xs">
                 <h3 class="pillar-title">${t("Shape it with a prompt")}</h3>
-                <p class="body">${t("Say what you need in everyday words. Remiix builds and updates a real app — ready to open, not a mockup.")}</p>
+                <p class="body">${t("Say what you need in everyday words. Abblet builds and updates a real app — ready to open, not a mockup.")}</p>
               </div>
             </li>
             <li>
@@ -329,7 +329,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
                   <span class="tier-amount">$0</span>
                   <span class="tier-per">/mo</span>
                 </p>
-                <p class="tier-lede">${t("Everything you need to try Remiix.")}</p>
+                <p class="tier-lede">${t("Everything you need to try Abblet.")}</p>
               </div>
 
               <div class="tier-metric">
@@ -447,7 +447,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
           )}
         </div>
         <div class="wrap" ui-column="gap-lg x-center">
-          <h2 class="closing-title">${t("Remix any app, or make your own.")}</h2>
+          <h2 class="closing-title">${t("An app store where every app is remixable.")}</h2>
           <div class="cta" ui-row="gap-sm wrap y-center x-center">
             <a href=${appsUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
             <a href=${createUrl(lang)} ui-button>
@@ -455,7 +455,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
             </a>
           </div>
           <p class="foot">
-            ${t("Remiix is made by")}
+            ${t("Abblet is made by")}
             ${" "}
             <a href="https://faunder.fi" target="_blank" rel="noopener noreferrer" ui-link>
               Faunder

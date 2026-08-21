@@ -102,7 +102,7 @@ export default function PremiumDialog({
     >
       <header class="prem-header" ui-row="x-between y-start gap-sm">
         <div class="prem-intro" ui-column="gap-sm">
-          <p class="prem-eyebrow">${t("Remiix Premium")}</p>
+          <p class="prem-eyebrow">${t("Abblet Premium")}</p>
           <h2 class="prem-title">${t("Activate Premium")}</h2>
           <p class="prem-lede">
             ${t("Early access — Premium is free for now. Paid billing is coming later, and you won’t be moved to a paid plan automatically.")}

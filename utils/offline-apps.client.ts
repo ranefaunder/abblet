@@ -1,7 +1,7 @@
 import { isClient } from "/utils/env";
 import { appIconPngSrc, appIconSrc } from "/utils/app-icon";
 
-const APP_CACHE = "remiix-apps-v1";
+const APP_CACHE = "abblet-apps-v1";
 
 export type OfflineAppRef = {
   slug: string;
@@ -9,9 +9,9 @@ export type OfflineAppRef = {
 };
 
 /**
- * Assets the platform (remiix.app) can warm for offline.
- * App shell + module.js live on `{slug|uuid}.remiix.app` — only that origin
- * can cache them (see remiix-app.js / install page). Fetching them from the
+ * Assets the platform (abblet.com) can warm for offline.
+ * App shell + module.js live on `{slug|uuid}.abblet.com` — only that origin
+ * can cache them (see abblet-app.js / install page). Fetching them from the
  * platform is cross-origin and useless for the app SW.
  */
 export function offlineAppUrls(app: OfflineAppRef, _lang = "en"): string[] {

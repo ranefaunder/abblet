@@ -36,15 +36,15 @@ export default function Login({ params }: RoutePropsForPath<typeof LoginPath>) {
         <div class="brand-block" ui-column="gap-md x-center">
           <img
             class="wordmark"
-            src="/static/images/remiix.svg"
-            alt="Remiix"
+            src="/static/images/abblet.svg"
+            alt="Abblet"
             width="280"
             height="58"
           />
-          <h1 class="slogan">${t("Remix any app to fit you.")}</h1>
+          <h1 class="slogan">${t("Remix any app, or make your own.")}</h1>
           <p class="pitch">
             ${t(
-              "Remiix is an app store where you can remix any app to fit you — or make a new one. Sign in to continue.",
+              "Abblet is an app store where you can remix any app to fit you — or make a new one. Sign in to continue.",
             )}
           </p>
         </div>

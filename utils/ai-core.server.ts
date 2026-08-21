@@ -28,7 +28,7 @@ export function getPrimaryAiModel(): string {
 }
 
 /**
- * Remiix.ai() in app runtimes.
+ * Abblet.ai() in app runtimes.
  * `RUNTIME_AI_MODEL`, or falls back to `AI_MODEL`.
  */
 export function getRuntimeAiModel(): string {

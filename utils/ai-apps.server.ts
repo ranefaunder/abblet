@@ -86,7 +86,7 @@ const aiEditSchema = z.discriminatedUnion("mode", [
     mode: z.literal("patch"),
     summary: z.string().min(1),
     replacements: z.array(codeReplacementSchema).min(1).max(20),
-    /** Updated after the patch: which Remiix permissions the app needs. */
+    /** Updated after the patch: which Abblet permissions the app needs. */
     permissions: z.array(z.enum(["ai", "sync"])).default([]),
   }),
   z.object({
@@ -150,19 +150,19 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
   document.getElementById("boot")?.remove();
   if (mount) { mount.replaceChildren(); mount.appendChild(document.createElement("<tagName>")); }
 - Vanilla JavaScript only. NO imports, NO external libraries, NO CDN links.
-- Network: do NOT use fetch, XMLHttpRequest, WebSocket, or any direct HTTP. The ONLY allowed network APIs are the host-injected global Remiix companion (window.Remiix):
-  - await Remiix.ai({ prompt: "…" }) — optional system: await Remiix.ai({ prompt: "…", system: "…" })
-  - Remiix.requestPermission() — opens the Remiix permission request (AI); usually unnecessary because Remiix.ai handles it
-  - Remiix.getToken() — optional; usually unnecessary because Remiix.ai handles permissions
-  Use Remiix.ai ONLY when the user's idea needs AI (summarize, rewrite, classify, generate text). Most apps need zero AI.
-  When the code calls Remiix.ai, you MUST include "ai" in the JSON permissions array. If the app never calls Remiix.ai, permissions must be [].
-  Do not emit "sync" yet (reserved). Do not call Remiix.requestPermission() from app code unless necessary — the host asks for permission when "ai" is required.
+- Network: do NOT use fetch, XMLHttpRequest, WebSocket, or any direct HTTP. The ONLY allowed network APIs are the host-injected global Abblet companion (window.Abblet):
+  - await Abblet.ai({ prompt: "…" }) — optional system: await Abblet.ai({ prompt: "…", system: "…" })
+  - Abblet.requestPermission() — opens the Abblet permission request (AI); usually unnecessary because Abblet.ai handles it
+  - Abblet.getToken() — optional; usually unnecessary because Abblet.ai handles permissions
+  Use Abblet.ai ONLY when the user's idea needs AI (summarize, rewrite, classify, generate text). Most apps need zero AI.
+  When the code calls Abblet.ai, you MUST include "ai" in the JSON permissions array. If the app never calls Abblet.ai, permissions must be [].
+  Do not emit "sync" yet (reserved). Do not call Abblet.requestPermission() from app code unless necessary — the host asks for permission when "ai" is required.
   Example:
   \`\`\`
   btn.addEventListener("click", async () => {
     btn.setAttribute("aria-busy", "true");
     try {
-      const text = await Remiix.ai({ prompt: input.value.trim() });
+      const text = await Abblet.ai({ prompt: input.value.trim() });
       out.textContent = text;
     } catch (e) {
       if (e && (e.code === "PERMISSION_REQUIRED" || e.code === "PERMISSION_CANCELLED" || e.code === "CONNECT_REQUIRED" || e.code === "CONNECT_CANCELLED")) return;
@@ -179,17 +179,17 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
   Never alert(). Never send entire localStorage dumps as the prompt — only the text the user needs processed.
 - Use Shadow DOM (this.attachShadow({ mode: "open" })) and put ALL markup and CSS inside the shadow root so styles never leak.
 - The component is fully interactive and complete: it builds its own UI, handles input, and renders results.
-- Persist structured app state (lists, settings, text fields) with localStorage. Key every storage entry with a unique prefix: "appstudo:<tagName>:data". Load in connectedCallback; save after meaningful changes (debounce rapid input saves by ~300ms if needed).
+- Persist structured app state (lists, settings, text fields) with localStorage. Key every storage entry with a unique prefix: "abblet:<tagName>:data". Load in connectedCallback; save after meaningful changes (debounce rapid input saves by ~300ms if needed).
 - When the app stores images, photos, attachments, or other binary files, use the Origin Private File System (OPFS) — NOT localStorage (quota/size) and NOT remote uploads. Pattern:
   1. const root = await navigator.storage.getDirectory();
-  2. const dir = await root.getDirectoryHandle("appstudo-<tagName>", { create: true });
+  2. const dir = await root.getDirectoryHandle("abblet-<tagName>", { create: true });
   3. Write: const handle = await dir.getFileHandle(filename, { create: true }); const writable = await handle.createWritable(); await writable.write(blob); await writable.close();
   4. Read: const file = await (await dir.getFileHandle(filename)).getFile(); then URL.createObjectURL(file) for <img> / download.
   5. Keep only file names / ids in localStorage state; the binary bytes live in OPFS.
   6. Guard with try/catch; if OPFS is unavailable, show a friendly inline error (never alert()).
   7. OPFS is local-only — do not upload binaries; still no raw fetch/XHR.
 - Guard JSON.parse with try/catch; fall back to sensible defaults on corrupt data.
-- Do NOT rely on external CSS, fonts, or global variables except the injected Remiix companion (window.Remiix) when using AI. Everything else self-contained.
+- Do NOT rely on external CSS, fonts, or global variables except the injected Abblet companion (window.Abblet) when using AI. Everything else self-contained.
 
 ## Visual design system — design like a native iOS app (PRIMARY GOAL)
 
@@ -261,7 +261,7 @@ Responsiveness & safe areas:
 - Perfect on iPhone widths (375–430px) first; scales to a centered column on desktop. Only add multi-column layouts on ≥760px if it truly helps.
 - Respect the notch/home indicator: use env(safe-area-inset-*) — sticky headers add padding-top: env(safe-area-inset-top); sticky bottom bars add padding-bottom: max(var(--space), env(safe-area-inset-bottom)).
 - Support Dynamic-Type feel by using rem/relative sizing where reasonable.
-- Light-first (matches Remiix). Optionally add a @media (prefers-color-scheme: dark) block reusing the same token names with iOS dark values (--bg:#000; --surface:#1c1c1e; --text:#fff; --separator:#54545899; keep systemBlue accent).
+- Light-first (matches Abblet). Optionally add a @media (prefers-color-scheme: dark) block reusing the same token names with iOS dark values (--bg:#000; --surface:#1c1c1e; --text:#fff; --separator:#54545899; keep systemBlue accent).
 
 Quality bar:
 - Accessible: <label> tied to inputs, aria-label on icon-only buttons, role="switch" for toggles, visible focus, semantic <button>/<form>.
@@ -302,16 +302,16 @@ export async function generateAppConfig(
 } | null> {
   const langName = AVAILABLE_LANGUAGES[language]?.name ?? "English";
 
-  const systemPrompt = `You build small personal apps for Remiix. Each app is a single, self-contained Web Component (custom element) written in vanilla JavaScript.
+  const systemPrompt = `You build small personal apps for Abblet. Each app is a single, self-contained Web Component (custom element) written in vanilla JavaScript.
 
 Return one JSON object with:
 - title: short app name, MAXIMUM 12 characters (including spaces). Must fit under a phone home-screen icon — prefer 1–2 words (e.g. "Budget", "Ostoslista", "Run Log"). Never use the raw user prompt if it is longer than 12 chars; invent a short label instead.
-- description: Store About text in ${langName}: exactly two short paragraphs (blank line between them), roughly 350–550 characters total. First paragraph: what the app does, who it is for, and what makes the experience distinctive. Second paragraph: one casual note that anyone can Remix it on Remiix to suit themselves — e.g. translate it to their language, or change a detail — by asking. Keep that tip light; the app itself stays the focus. Plain prose only — no bullet points, no marketing slogans.
+- description: Store About text in ${langName}: exactly two short paragraphs (blank line between them), roughly 350–550 characters total. First paragraph: what the app does, who it is for, and what makes the experience distinctive. Second paragraph: one casual note that anyone can Remix it on Abblet to suit themselves — e.g. translate it to their language, or change a detail — by asking. Keep that tip light; the app itself stays the focus. Plain prose only — no bullet points, no marketing slogans.
 - tagline: short Store marketing line in ${langName}, MAXIMUM 40 characters (e.g. "Track spending in seconds")
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
 - tagName: valid custom element name, lowercase with at least one hyphen (e.g. "run-log", "wine-journal")
 - code: complete JavaScript that registers the custom element
-- permissions: array of Remiix runtime permissions. Use ["ai"] if and only if the code calls Remiix.ai(...). Otherwise []. Never invent other values; "sync" is reserved and must not be emitted yet.
+- permissions: array of Abblet runtime permissions. Use ["ai"] if and only if the code calls Abblet.ai(...). Otherwise []. Never invent other values; "sync" is reserved and must not be emitted yet.
 
 ${designGuidelines(langName)}`;
 
@@ -369,7 +369,7 @@ export async function classifyEditIntent(opts: {
   const { current, history, instruction, language, model } = opts;
   const langName = AVAILABLE_LANGUAGES[language]?.name ?? "English";
 
-  const systemPrompt = `You route Remiix app-edit chat messages to tools. You do NOT edit code or icons yourself — you only choose tools, write a short chat reply, status lines for the loading UI, and a suggested next user message.
+  const systemPrompt = `You route Abblet app-edit chat messages to tools. You do NOT edit code or icons yourself — you only choose tools, write a short chat reply, status lines for the loading UI, and a suggested next user message.
 
 Available tools:
 - updateCode: change the app's features, UI, behavior, bugfixes, layout, text inside the app, or anything that requires modifying the Web Component source.
@@ -464,11 +464,11 @@ export async function updateAppMeta(opts: {
   const { current, instruction, language, model } = opts;
   const langName = AVAILABLE_LANGUAGES[language]?.name ?? "English";
 
-  const systemPrompt = `You update Remiix app listing metadata for the phone home screen and Store page. You do NOT change the app's Web Component source.
+  const systemPrompt = `You update Abblet app listing metadata for the phone home screen and Store page. You do NOT change the app's Web Component source.
 
 Return JSON with ALL fields (refresh every field to stay coherent; keep unchanged values only when the user asked for a narrow change and the current text still fits):
 - title: short app name, MAXIMUM 12 characters (including spaces). Prefer 1–2 words. Must fit under an icon.
-- description: Store About text in ${langName}: exactly two short paragraphs (blank line between them), roughly 350–550 characters total. First paragraph: what the app does, who it is for, and what makes the experience distinctive. Second paragraph: one casual note that anyone can Remix it on Remiix to suit themselves — e.g. translate it to their language, or change a detail — by asking. Keep that tip light; the app itself stays the focus. Plain prose only — no bullet points.
+- description: Store About text in ${langName}: exactly two short paragraphs (blank line between them), roughly 350–550 characters total. First paragraph: what the app does, who it is for, and what makes the experience distinctive. Second paragraph: one casual note that anyone can Remix it on Abblet to suit themselves — e.g. translate it to their language, or change a detail — by asking. Keep that tip light; the app itself stays the focus. Plain prose only — no bullet points.
 - tagline: short Store marketing line in ${langName}, MAXIMUM 40 characters
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
 - summary: 1 short sentence in ${langName} for the chat (what metadata you updated). Max ~100 characters.
@@ -556,7 +556,7 @@ export async function editAppConfig(opts: {
 - After define, ensure the element is mounted into #mount (remove #boot if present). Do not rely on the host to create the element.
 - Preserve existing user data compatibility: keep the same localStorage keys and data shape unless the request explicitly requires changing them.
 - Make the smallest change that fully satisfies the request; do not rewrite unrelated parts or regress existing features.
-- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Remiix.ai({ prompt }) only when the request needs AI (the host requests AI permission). Everything inside the Shadow DOM (except the host-injected Remiix global).
+- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Abblet.ai({ prompt }) only when the request needs AI (the host requests AI permission). Everything inside the Shadow DOM (except the host-injected Abblet global).
 - Do NOT change the home-screen title, Store description, tagline, category, or launcher icon — those are handled by updateMeta / regenerateIcon.
 
 ${designGuidelines(langName)}`;
@@ -583,14 +583,14 @@ ${instruction}`;
     modelUsed: string | null;
   } | null> {
     const started = Date.now();
-    const systemPrompt = `You are iterating on an existing Remiix app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
+    const systemPrompt = `You are iterating on an existing Abblet app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
 
 ${reason}
 
 Return one JSON object with:
 - summary: 1 short sentence in ${langName} describing exactly what you changed (for chat + version history). Max ~100 characters. No fluff.
 - code: the COMPLETE updated JavaScript that registers the custom element (never a diff, never partial code)
-- permissions: ["ai"] if the updated code calls Remiix.ai(...), otherwise []
+- permissions: ["ai"] if the updated code calls Abblet.ai(...), otherwise []
 
 ${sharedConstraints}`;
 
@@ -643,7 +643,7 @@ Return the complete updated code and a short summary of what you changed.`,
   }
 
   const patchStarted = Date.now();
-  const systemPrompt = `You are iterating on an existing Remiix app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
+  const systemPrompt = `You are iterating on an existing Abblet app. The app is a single self-contained Web Component (custom element) written in vanilla JavaScript.
 
 You will receive the current full source code and a conversation of change requests. Choose the smallest reliable edit mode:
 
@@ -658,7 +658,7 @@ Return:
   - replaceAll: optional; if true, replace every occurrence of old
   - Without replaceAll, old MUST appear exactly once in the file
   - Never use line numbers. Never invent text that is not in the source for old.
-- permissions: ["ai"] if AFTER applying the patch the app still/calls Remiix.ai(...), otherwise []
+- permissions: ["ai"] if AFTER applying the patch the app still/calls Abblet.ai(...), otherwise []
 
 ## mode: "full" (required for large changes)
 Use when adding substantial features, restructuring, touching many places, or when patch would be fragile.
@@ -666,7 +666,7 @@ Return:
 - mode: "full"
 - summary: 1 short sentence in ${langName} describing exactly what you changed (chat + version history). Max ~100 characters.
 - code: the COMPLETE updated JavaScript source
-- permissions: ["ai"] if the updated code calls Remiix.ai(...), otherwise []
+- permissions: ["ai"] if the updated code calls Abblet.ai(...), otherwise []
 
 ${sharedConstraints}`;
 

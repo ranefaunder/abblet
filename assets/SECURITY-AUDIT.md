@@ -1,4 +1,4 @@
-# Remiix — tietoturva-auditointi (2026-08-04)
+# Abblet — tietoturva-auditointi (2026-08-04)
 
 Staattinen koodikatselmus koko koodikannasta. **Korjaukset toteutettu 2026-08-05** (kolme vaihetta). **Jatkotarkistus 2026-08-05**: löytyi ja korjattiin yksi jäännösaukko (#19).
 
@@ -38,7 +38,7 @@ Vaiheen 2 korjauksessa `/connect/:appId` (nykyisin `/permission/:appId`) sai `co
 
 **2026-08-05 (permissions):** Luvan pyytäminen ajetaan vain appeille, joiden `required_permissions` sisältää `"ai"`. Grantit ovat scope-kohtaisia (`app_connect_grants.scope`, oletus `ai`). Polku on `/permission/:appId` (SPA `/:lang/permission/:appId`); vanha `/connect` ohjataan uudelleen.
 
-**2026-08-06 (runtime data min):** App-runtime `__REMIIX__` = `{ appSlug, platformOrigin, permissions }`. Module mounttaa itsensä (`#mount`); title/lang/icon DOMista. Open-loki anonyymi. Poistettu credits/session/sdk-open.
+**2026-08-06 (runtime data min):** App-runtime `__ABBLET__` = `{ appSlug, platformOrigin, permissions }` (legacy `__REMIIX__` alias). Module mounttaa itsensä (`#mount`); title/lang/icon DOMista. Open-loki anonyymi. Poistettu credits/session/sdk-open.
 
 Samalla siivottiin pois tarpeeton `return`-parametri (appit elävät aina runtime-juuressa `/`, ei muita polkuja — ks. `server/server.ts` reititystaulu), joten myös se erillinen validointi (`isOriginForApp` return-URL:lle) poistui koodista.
 
@@ -46,7 +46,7 @@ Samalla siivottiin pois tarpeeton `return`-parametri (appit elävät aina runtim
 
 ## Suositeltu Caddy (tuotanto)
 
-Apex käyttää nykyistä `abblet_security_headers`-tyylistä CSP:tä. App-alidomaineille (`*.remiix.app`) suositellaan tiukempaa `connect-src` (vain `'self'` + `https://remiix.app`) — dokumentoitu [`ops/caddy-app-runtime.md`](../ops/caddy-app-runtime.md). Bun asettaa saman app-runtime CSP:n defense-in-depthinä (selain AND-taa useat CSP-headerit).
+Apex käyttää `abblet_platform_headers`-tyylistä CSP:tä. App-alidomaineille (`*.abblet.com`) suositellaan tiukempaa `connect-src` (vain `'self'` + `https://abblet.com`) — dokumentoitu [`ops/caddy-app-runtime.md`](../ops/caddy-app-runtime.md). Bun asettaa saman app-runtime CSP:n defense-in-depthinä (selain AND-taa useat CSP-headerit).
 
 ---
 

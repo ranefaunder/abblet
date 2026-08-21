@@ -125,7 +125,7 @@ export default function RegisterDialog() {
             checked=${marketingOptIn}
             onChange=${(e: Event) => setMarketingOptIn((e.target as HTMLInputElement).checked)}
           />
-          <span>${t("Email me about Remiix updates")}</span>
+          <span>${t("Email me about Abblet updates")}</span>
         </label>
         <button type="submit" ui-button="primary block" disabled=${sending} aria-busy=${sending}>
           ${t("Register")}

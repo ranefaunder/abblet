@@ -53,7 +53,7 @@ export default function PublishDialog({
     >
       <header class="pub-header" ui-row="x-between y-start gap-md">
         <div class="pub-intro" ui-column="gap-sm">
-          <p class="pub-eyebrow">${t("Remiix Store")}</p>
+          <p class="pub-eyebrow">${t("Abblet Store")}</p>
           <h2 class="pub-title">${t("Publish to the Store")}</h2>
           <p class="pub-lede">
             ${t("Share what you built so others can use it — and remix it further.")}

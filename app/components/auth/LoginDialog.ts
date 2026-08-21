@@ -5,7 +5,7 @@ import { requestLoginCode, user, logout, isLoggedIn } from "/app/stores/userStor
 import { getLang } from "/utils/lang";
 import { t } from "/utils/i18n";
 
-const STORAGE_KEYS = { email: "appstudo-login-email" } as const;
+const STORAGE_KEYS = { email: "abblet-login-email" } as const;
 
 function requestErrorMessage(code?: string, message?: string): string {
   switch (code) {
@@ -56,8 +56,13 @@ export default function LoginDialog() {
   }
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.email);
-    if (saved) setEmail(saved);
+    const saved =
+      localStorage.getItem(STORAGE_KEYS.email) ?? localStorage.getItem("appstudo-login-email");
+    if (saved) {
+      setEmail(saved);
+      localStorage.setItem(STORAGE_KEYS.email, saved);
+      localStorage.removeItem("appstudo-login-email");
+    }
   }, []);
 
   if (registered) {

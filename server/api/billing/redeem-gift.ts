@@ -46,7 +46,7 @@ export default {
           GIFT_CODE_DISABLED: t("That gift code is no longer active.", language),
           GIFT_CODE_EXHAUSTED: t("That gift code has been fully used.", language),
           GIFT_ALREADY_REDEEMED: t("You already redeemed a gift code.", language),
-          ALREADY_PREMIUM: t("You already have Remiix Premium.", language),
+          ALREADY_PREMIUM: t("You already have Abblet Premium.", language),
           USER_NOT_FOUND: t("Account not found.", language),
         };
         return apiError({

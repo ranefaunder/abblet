@@ -294,4 +294,4 @@ const server = Bun.serve({
   },
 });
 
-console.log(`🚀 Remiix running at http://localhost:${server.port}`);
+console.log(`🚀 Abblet running at http://localhost:${server.port}`);

@@ -42,7 +42,7 @@ export function applyClientLanguage(lang: Language): void {
   if (!isClient) return;
   document.documentElement.lang = lang;
   const secure = location.protocol === "https:" ? "; secure" : "";
-  document.cookie = `appstudo-language=${encodeURIComponent(lang)}; path=/; max-age=${LANGUAGE_COOKIE_MAX_AGE}; samesite=lax${secure}`;
+  document.cookie = `abblet-language=${encodeURIComponent(lang)}; path=/; max-age=${LANGUAGE_COOKIE_MAX_AGE}; samesite=lax${secure}`;
 }
 
 /**

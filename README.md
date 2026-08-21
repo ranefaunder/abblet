@@ -1,8 +1,8 @@
-# Remiix
+# Abblet
 
-**Remix any app, or make your own.** An app store where every app is remixable to fit you.
+**An app store where every app is remixable.**
 
-Remiix is a platform where anyone can remix existing apps or build personal apps from scratch — in minutes, no code required.
+Abblet is a platform where anyone can remix existing apps or build personal apps from scratch — in minutes, no code required.
 
 ## Development
 

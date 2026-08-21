@@ -23,7 +23,7 @@ export default async function (req: BunRequest<"/:lang/"> | BunRequest<"/:lang/*
   }
 
   req.cookies?.set({
-    name: "appstudo-language",
+    name: "abblet-language",
     value: req.params.lang,
     path: "/",
     maxAge: LANGUAGE_COOKIE_MAX_AGE,

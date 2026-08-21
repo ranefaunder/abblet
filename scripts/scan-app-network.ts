@@ -37,4 +37,4 @@ for (const row of rows) {
 }
 
 console.log(`\nScanned ${rows.length} published apps; ${hits} with raw network APIs.`);
-console.log("Note: Remiix.ai / Remiix.requestPermission are expected; CSP blocks non-platform connects.");
+console.log("Note: Abblet.ai / Abblet.requestPermission are expected; CSP blocks non-platform connects.");

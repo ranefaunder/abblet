@@ -20,7 +20,7 @@ export type AppRuntimeLabel =
  * Runtime hosts that serve apps on `{label}.{host}`.
  * `APP_RUNTIME_HOST` may be a single host or a comma-separated list; the first
  * entry is the canonical host used when generating app URLs.
- * e.g. `remiix.app` or `remiix.app,abblet.app` or `localhost`.
+ * e.g. `abblet.com` or `abblet.com,abblet.app` or `localhost`.
  */
 export function getAppRuntimeHosts(): string[] {
   const raw = process.env.APP_RUNTIME_HOST?.trim().toLowerCase() ?? "";
@@ -29,7 +29,7 @@ export function getAppRuntimeHosts(): string[] {
     .map((h) => h.trim())
     .filter(Boolean);
   if (hosts.length === 0) {
-    throw new Error("APP_RUNTIME_HOST is required (e.g. remiix.app or localhost)");
+    throw new Error("APP_RUNTIME_HOST is required (e.g. abblet.com or localhost)");
   }
   return [...new Set(hosts)];
 }
@@ -39,11 +39,11 @@ export function getAppRuntimeHost(): string {
   return getAppRuntimeHosts()[0]!;
 }
 
-/** e.g. `https://remiix.app` or `http://localhost:8090`. */
+/** e.g. `https://abblet.com` or `http://localhost:8090`. */
 export function getPlatformOrigin(): string {
   const origin = process.env.PLATFORM_ORIGIN?.trim() ?? "";
   if (!origin) {
-    throw new Error("PLATFORM_ORIGIN is required (e.g. https://remiix.app or http://localhost:8090)");
+    throw new Error("PLATFORM_ORIGIN is required (e.g. https://abblet.com or http://localhost:8090)");
   }
   return origin.replace(/\/$/, "");
 }
@@ -114,7 +114,7 @@ export function getPlatformHost(): string {
   return stripHostPort(new URL(getPlatformOrigin()).host);
 }
 
-/** True when Host is the platform site (e.g. remiix.app), including www. */
+/** True when Host is the platform site (e.g. abblet.com), including www. */
 export function isPlatformHost(hostHeader: string): boolean {
   const host = stripHostPort(hostHeader);
   const platform = getPlatformHost();
@@ -124,7 +124,7 @@ export function isPlatformHost(hostHeader: string): boolean {
 /**
  * True when Host is a dedicated runtime apex that is not the platform
  * (e.g. abblet.app while platform is abblet.com). When platform and runtime
- * share a host (remiix.app), the apex serves the platform — never redirect-loop.
+ * share a host (abblet.com), the apex serves the platform — never redirect-loop.
  */
 export function shouldBounceRuntimeApexToPlatform(hostHeader: string): boolean {
   const host = stripHostPort(hostHeader);
@@ -145,7 +145,7 @@ export function isAppOnlyHost(hostHeader: string): boolean {
 
 /**
  * Absolute origin for an app label on the canonical runtime host, e.g.
- * `https://34211.remiix.app` or `https://{uuid}.remiix.app`.
+ * `https://34211.abblet.com` or `https://{uuid}.abblet.com`.
  */
 export function appOrigin(label: string): string {
   const runtimeHost = getAppRuntimeHost();
@@ -233,8 +233,6 @@ export function isAppRuntimeOrigin(originHeader: string | null): string | null {
 }
 
 const LEGACY_PLATFORM_HOSTS = new Set([
-  "abblet.com",
-  "www.abblet.com",
   "rmix.app",
   "www.rmix.app",
 ]);
@@ -244,8 +242,8 @@ const LEGACY_RUNTIME_REDIRECTS: Array<{ apex: Set<string>; suffix: string }> = [
 ];
 
 /**
- * Permanent redirects from retired domains:
- * - abblet.com / rmix.app → PLATFORM_ORIGIN (remiix.app)
+ * Permanent redirects from retired domains (remiix.app is handled in Caddy only):
+ * - rmix.app → PLATFORM_ORIGIN
  * - {sub}.abblet.app / {sub}.rmix.app → {sub}.{APP_RUNTIME_HOST}
  * - abblet.app / rmix.app apex → PLATFORM_ORIGIN
  */
@@ -257,7 +255,7 @@ export function redirectLegacyHost(req: { headers: Headers; url: string }): Resp
   const pathSearch = `${url.pathname}${url.search}`;
   const platform = getPlatformOrigin();
 
-  if (LEGACY_PLATFORM_HOSTS.has(host) || host.endsWith(".abblet.com")) {
+  if (LEGACY_PLATFORM_HOSTS.has(host)) {
     return Response.redirect(`${platform}${pathSearch}`, 301);
   }
 

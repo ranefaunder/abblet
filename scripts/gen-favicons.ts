@@ -1,5 +1,5 @@
 /**
- * Regenerate raster favicons / PWA icons from the Remiix app icon.
+ * Regenerate raster favicons / PWA icons from the Abblet app icon.
  * Usage: bun run scripts/gen-favicons.ts
  *
  * Browser tab favicons get iOS-like rounded corners (transparent outside).
@@ -10,7 +10,7 @@ import pngToIco from "png-to-ico";
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 
-const source = readFileSync("static/images/remiix-app-icon.jpg");
+const source = readFileSync("static/images/abblet-app-icon.jpg");
 const outDir = "static/favicons";
 
 /** ~iOS app-icon corner radius as a fraction of size. */

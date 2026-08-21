@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { unwrapMarkdownCodeFence } from "/utils/ai-text";
 
 describe("unwrapMarkdownCodeFence", () => {
-  test("strips json fence like Remiix.ai models return", () => {
+  test("strips json fence like Abblet.ai models return", () => {
     const raw = "```json\n{\n  \"name\": \"Factory Salo\",\n  \"priceAdult\": 13.7\n}\n```";
     expect(unwrapMarkdownCodeFence(raw)).toBe('{\n  "name": "Factory Salo",\n  "priceAdult": 13.7\n}');
   });

@@ -27,7 +27,7 @@ export default function TermsDialog() {
       <div ui-column="gap-md">
         <p>
           ${t(
-            "Remiix is a service by Faunder for requesting, remixing, and running personal apps. By using Remiix you accept these terms.",
+            "Abblet is a service by Faunder for requesting, remixing, and running personal apps. By using Abblet you accept these terms.",
           )}
         </p>
 
@@ -35,7 +35,7 @@ export default function TermsDialog() {
           <h3 ui-heading="sm">${t("How apps are made")}</h3>
           <p>
             ${t(
-              "When you describe an idea or ask for a change, you are requesting Remiix to create or adapt an app. Remiix generates the software. You are a requester and user of that software — not its author.",
+              "When you describe an idea or ask for a change, you are requesting Abblet to create or adapt an app. Abblet generates the software. You are a requester and user of that software — not its author.",
             )}
           </p>
         </div>
@@ -44,7 +44,7 @@ export default function TermsDialog() {
           <h3 ui-heading="sm">${t("Copyright")}</h3>
           <p>
             ${t(
-              "All apps available through Remiix — including Store apps, remixed apps, and apps created from your requests — are copyrighted by Faunder, the maker of Remiix. Copyright does not transfer to you when you request, remix, install, or run an app.",
+              "All apps available through Abblet — including Store apps, remixed apps, and apps created from your requests — are copyrighted by Faunder, the maker of Abblet. Copyright does not transfer to you when you request, remix, install, or run an app.",
             )}
           </p>
           <p>
@@ -67,7 +67,7 @@ export default function TermsDialog() {
           </p>
           <p>
             ${t(
-              "Publishing, remixing, or downloading an app through Remiix does not grant you ownership — only the rights MPL 2.0 provides.",
+              "Publishing, remixing, or downloading an app through Abblet does not grant you ownership — only the rights MPL 2.0 provides.",
             )}
           </p>
         </div>
@@ -76,7 +76,7 @@ export default function TermsDialog() {
           <h3 ui-heading="sm">${t("Acceptable use")}</h3>
           <p>
             ${t(
-              "Use Remiix for lawful, non-abusive purposes. We may update the service and these terms as the product evolves. Continued use after changes means you accept the updated terms.",
+              "Use Abblet for lawful, non-abusive purposes. We may update the service and these terms as the product evolves. Continued use after changes means you accept the updated terms.",
             )}
           </p>
         </div>

@@ -10,8 +10,8 @@ describe("legacyAuthCookieDomain", () => {
   });
 
   test("returns platform host for clearing Domain cookies", () => {
-    process.env.PLATFORM_ORIGIN = "https://remiix.app";
-    expect(legacyAuthCookieDomain()).toBe("remiix.app");
+    process.env.PLATFORM_ORIGIN = "https://abblet.com";
+    expect(legacyAuthCookieDomain()).toBe("abblet.com");
   });
 
   test("unset for localhost", () => {

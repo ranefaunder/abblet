@@ -62,7 +62,7 @@ function toolUsageLabel(tool: AppEditToolUsage["tool"]): string {
 }
 
 const WELCOME_KEY =
-  "Hey — I'm Remiix.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?";
+  "Hey — I'm Abblet.\n\nI'll build an app from what you describe. For a good first version, tell me what it should do and how you'll use it — the clearer you are, the better the result.\n\nWhat should we make?";
 
 /** New app: /:lang/create — existing: /:lang/create/:slug */
 export const CreatePath = "/:lang/create" as const;
@@ -131,7 +131,7 @@ export default function Create(_props: CreateRouteProps) {
         ? t("Create")
         : t("Editor");
   const pageLede = isNew
-    ? t("Tell Remiix what you need — it builds a working app in minutes.")
+    ? t("Tell Abblet what you need — it builds a working app in minutes.")
     : creating
       ? t("Building…")
       : (app?.tagline?.trim() ||
@@ -574,7 +574,7 @@ function ChatPanel({
               <p ui-heading="sm">${creating ? t("Describe your app") : t("Describe a change")}</p>
               <p class="chat-empty-copy">
                 ${creating
-                  ? t("Tell Remiix what you need — it builds a working app in minutes.")
+                  ? t("Tell Abblet what you need — it builds a working app in minutes.")
                   : t("Ask the AI to tweak your app — colors, features, wording, anything.")}
               </p>
             </div>`

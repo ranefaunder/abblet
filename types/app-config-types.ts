@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Remiix-app on kokonainen Web Component (custom element).
+ * Abblet-app on kokonainen Web Component (custom element).
  * Tekoäly tuottaa `code`-kentässä täyden JS:n, joka rekisteröi elementin
  * `customElements.define(tagName, ...)` -kutsulla ja mounttaa sen `#mount`-elementtiin.
  * Komponentti hoitaa oman tilansa ja tallennuksensa itse (localStorage / IndexedDB).
@@ -39,7 +39,7 @@ export const appConfigSchema = z.object({
   code: z.string().min(1),
   /**
    * Runtime permissions this app needs (user must grant). Empty = no permission request.
-   * `ai` = Remiix.ai; `sync` reserved for Remiix.sync.
+   * `ai` = Abblet.ai; `sync` reserved for Abblet.sync.
    */
   permissions: z.array(z.enum(["ai", "sync"])).default([]),
 });
