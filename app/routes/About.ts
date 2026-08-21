@@ -168,9 +168,9 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
               width="280"
               height="59"
             />
-            <h1 class="hero-title">${t("An app store where every app is remixable.")}</h1>
+            <h1 class="hero-title">${t("Remix any app, or make your own.")}</h1>
             <p class="hero-lede">
-              ${t("An app store where every app is remixable to fit you.")}
+              ${t("An app store where every app is remixable.")}
             </p>
             <div class="cta" ui-row="gap-sm wrap y-center">
               <a href=${appsUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
@@ -447,7 +447,7 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
           )}
         </div>
         <div class="wrap" ui-column="gap-lg x-center">
-          <h2 class="closing-title">${t("An app store where every app is remixable.")}</h2>
+          <h2 class="closing-title">${t("Remix any app, or make your own.")}</h2>
           <div class="cta" ui-row="gap-sm wrap y-center x-center">
             <a href=${appsUrl(lang)} ui-button="primary">${t("Browse the Store")}</a>
             <a href=${createUrl(lang)} ui-button>
