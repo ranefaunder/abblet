@@ -1,43 +1,41 @@
 # Abblet — seuraavat vaiheet
 
-Järjestys: **sync ensin**, sitten **Polar**. Sync tekee apista “oikean tuotteen” (data ei katoa); Polar muuttaa sen liiketoiminnaksi.
+Järjestys: **JSON-sync on valmis** → **Polar** → myöhemmin **tiedostojen sync**.
 
 **Valmis:** Premium-entitlement + gift-koodit (`users.plan`, `gift_codes`, `/api/:lang/billing/*`). Polar = provider-vaihto samaan `setUserPlan`-polkuun.
+
+**Valmis:** `Abblet.sync()` — yksi JSON-blob per user × app, last-write-wins `updatedAt`-leimalla (host-cache + palvelin).
 
 Liittyy: [`BRAND.md`](BRAND.md), [`TRADEMARK.md`](TRADEMARK.md).
 
 ---
 
-## 1. Remiix.sync() — app-tason pilvidata
+## 1. Abblet.sync() — app-tason pilvidata ✅
 
-SDK on jo sama malli: `Remiix.requestPermission()` (ex-`connect`) → Bearer → `/api/sdk/*`. Offline-copy sanoo, että app-data toimii offline — sync täydentää sen pilveen kun käyttäjä on antanut luvan.
+SDK: `Abblet.requestPermission()` → Bearer → `/api/sdk/sync`. localStorage offline; sync overlay kun lupa annettu (avauksessa permission-sivu, kuten AI).
 
 ### API (app runtime)
 
 ```js
-await Remiix.sync.get()           // → data | null
-await Remiix.sync.set(data)       // JSON, koko rajoitettu
-// myöhemmin: await Remiix.sync.merge(patch)
+await Abblet.sync()        // → data | null (LWW: uudempi cloud vs host-pending)
+await Abblet.sync(state)   // JSON, max 128 KB, aikaleimattu write
+await Abblet.sync(null)    // tyhjennä blob
 ```
 
-Vaihtoehto: yksi metodi `Remiix.sync(data?)` — get ilman argia, set argilla. Connect-flow sama kuin `Remiix.ai`.
+### Päätökset (v1) — toteutettu
 
-### Päätökset (v1)
-
-| Päätös | Suositus |
+| Päätös | Toteutus |
 |--------|----------|
-| Scope | **user × app** (slug / app id), ei jaettu kaikille |
-| Tallennus | yksi JSON-blob per rivi + `updated_at` (+ koko-raja, esim. 64–256 KB) |
-| Konflikti | last-write-wins; version/etag myöhemmin |
-| Auth | sama runtime token; ilman tokenia → login dialog kuten AI |
-| Offline | localStorage/IndexedDB ensisijainen; sync taustalla kun online |
+| Scope | user × app (slug) |
+| Tallennus | yksi JSON-blob + `updated_at`, 128 KB |
+| Konflikti | last-write-wins `updatedAt` (host-cache + palvelin hylkää vanhemman PUT:in) |
+| Auth | runtime token + `sync`-grant; lupa bootissa |
+| Offline | localStorage ensisijainen; host leimaa pendingin heti |
 
-### Toteutus
+### Jäljellä / ei nyt
 
-1. Migraatio: `app_user_data` (tai vastaava)
-2. `GET/PUT /api/sdk/sync`
-3. `Abblet.sync` companioniin (`static/abblet-app.js`)
-4. Prompt-ohje AI:lle (`utils/ai-apps.server.ts`) — vanilla-apit ilman omaa backendia
+- Kenttätason merge / CRDT — ei suunnitteilla v1:lle
+- **Tiedostojen sync** → erillinen kohta alla
 
 ---
 
@@ -50,7 +48,7 @@ Polar: Checkout + webhooks + Customer Portal (ei korttien säilytystä meillä).
 ### Malli (Polar-PR)
 
 1. Tuote Polarissa — Premium **$5.99/mo** (grant $5.99, 1:1)
-2. Checkout serverillä (OAT), `customer_external_id` / metadata = Remiix `user.id`
+2. Checkout serverillä (OAT), `customer_external_id` / metadata = Abblet `user.id`
 3. Webhookit: `subscription.*`, `order.paid` → sama `setUserPlan(userId, "premium", { source: "polar" })` + `applyPlanGrant` kuin gift
 4. Me-sivulle: “Manage billing” → Polar Customer Session / portal
 5. `BILLING_PROVIDER` tai checkout-endpoint: UI jo valmis gift-redeemille; Polar lisää `{ checkoutUrl }` -polun
@@ -71,4 +69,26 @@ Polar-saldoa ei sekoiteta OpenRouter-debitiin suoraan — oma ledger; Polar vain
 3. Me: maksettu checkout-CTA + portal (gift-redeem säilyy)
 4. Grandfather: `plan=premium` + `plan_source=gift` ilman Polar-tilausta
 
-Pidä Polar **erillisenä PR:nä** syncin jälkeen.
+Pidä Polar **erillisenä PR:nä**.
+
+---
+
+## 3. Tiedostojen sync — myöhemmin (ei vielä)
+
+Nyt kuvat/liitteet elävät vain **OPFS**:ssä (laitteella). JSON-sync ei tunge binäärejä 128 KB blobiin.
+
+### Tavoite
+
+Appi voi synkata tiedostoja (kuvat, liitteet) laitteiden välillä samalla `sync`-luvalla tai erillisellä scopella — metadata JSON:issa, bytet pilvessä / object storagessa.
+
+### Luonnos (kun aika on)
+
+| Päätös | Suunta |
+|--------|--------|
+| API | esim. `Abblet.files.put(name, blob)` / `get` / `list` / `delete` — tai sync-laajennus |
+| Tallennus | object storage + viite appin tilassa (ei base64 JSON:iin) |
+| Koko / kiintiö | per-user × app limiitti; thumbnailit paikallisesti OPFS:ään |
+| Offline | OPFS ensisijainen; upload/download kun online |
+| Lupa | todennäköisesti sama `sync` (data seuraa käyttäjää) — päätetään toteutuksessa |
+
+**Ei aloiteta** ennen kuin Polar on linjassa ja JSON-sync on tuotannossa riittävän pitkään.
