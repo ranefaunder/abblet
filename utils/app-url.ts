@@ -80,7 +80,7 @@ export function permissionUrl(slug: string): string {
 /**
  * URL to open a runnable app on its runtime host.
  * Prefer `openFromStore` on Store detail pages (permission grant for AI apps via /permission).
- * Direct links / guest open use this; abblet-app.js `ensurePermissions` handles AI token.
+ * Direct links / guest open use this; abblet-app.js `ensurePermissions` handles AI/sync token.
  */
 export function openAppUrl(
   lang: string,

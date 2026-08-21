@@ -152,12 +152,16 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
 - Vanilla JavaScript only. NO imports, NO external libraries, NO CDN links.
 - Network: do NOT use fetch, XMLHttpRequest, WebSocket, or any direct HTTP. The ONLY allowed network APIs are the host-injected global Abblet companion (window.Abblet):
   - await Abblet.ai({ prompt: "…" }) — optional system: await Abblet.ai({ prompt: "…", system: "…" })
-  - Abblet.requestPermission() — opens the Abblet permission request (AI); usually unnecessary because Abblet.ai handles it
-  - Abblet.getToken() — optional; usually unnecessary because Abblet.ai handles permissions
+  - await Abblet.sync() — read this user's cloud JSON blob (null if none / offline / no permission)
+  - await Abblet.sync(state) — replace the cloud blob (best-effort; does not throw if offline or the user declines)
+  - await Abblet.sync(null) — clear the cloud blob
+  - Abblet.requestPermission() — opens the Abblet permission request; usually unnecessary because Abblet.ai / Abblet.sync handle it
+  - Abblet.getToken() — optional; usually unnecessary because Abblet.ai / Abblet.sync handle permissions
   Use Abblet.ai ONLY when the user's idea needs AI (summarize, rewrite, classify, generate text). Most apps need zero AI.
-  When the code calls Abblet.ai, you MUST include "ai" in the JSON permissions array. If the app never calls Abblet.ai, permissions must be [].
-  Do not emit "sync" yet (reserved). Do not call Abblet.requestPermission() from app code unless necessary — the host asks for permission when "ai" is required.
-  Example:
+  Use Abblet.sync ONLY when it is essential to the app that data is stored in the Abblet cloud and follows the user across devices, or when losing that data would be a real problem (saving is a core part of the app). Most apps should use localStorage only and must not call Abblet.sync.
+  When the code calls Abblet.ai, you MUST include "ai" in the JSON permissions array. When the code calls Abblet.sync, you MUST include "sync". Both may be present. If the app calls neither, permissions must be [].
+  Do not call Abblet.requestPermission() from app code unless necessary — the host asks for AI and sync permission at app open when those are required.
+  Example (AI):
   \`\`\`
   btn.addEventListener("click", async () => {
     btn.setAttribute("aria-busy", "true");
@@ -180,6 +184,11 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
 - Use Shadow DOM (this.attachShadow({ mode: "open" })) and put ALL markup and CSS inside the shadow root so styles never leak.
 - The component is fully interactive and complete: it builds its own UI, handles input, and renders results.
 - Persist structured app state (lists, settings, text fields) with localStorage. Key every storage entry with a unique prefix: "abblet:<tagName>:data". Load in connectedCallback; save after meaningful changes (debounce rapid input saves by ~300ms if needed).
+- Use Abblet.sync ONLY when cloud + cross-device is essential to the app, or when losing the data would be a real problem because saving it is a core part of the app (a journal, shopping list, log, or notes they will open on phone and laptop). Do NOT add sync just because the app has localStorage, settings, or survives reload — that is what localStorage is for. Calculators, converters, games, one-shot tools, and device-local preferences must NOT call Abblet.sync.
+  When (and only when) sync is justified, overlay it on localStorage. localStorage stays the source of truth for offline / no-permission. Pattern:
+  1. In connectedCallback: load local first, render, then Abblet.sync().then((cloud) => { if (cloud) { this._state = cloud; this.#saveLocal(); this.#renderAll(); } }).catch(() => {})
+  2. On save: write localStorage first, then Abblet.sync(this._state) without awaiting (or .catch(() => {})). Do not block the UI.
+  3. Prefer the cloud blob on load when it is non-null (last-write-wins). Do not invent field-level merge.
 - When the app stores images, photos, attachments, or other binary files, use the Origin Private File System (OPFS) — NOT localStorage (quota/size) and NOT remote uploads. Pattern:
   1. const root = await navigator.storage.getDirectory();
   2. const dir = await root.getDirectoryHandle("abblet-<tagName>", { create: true });
@@ -189,7 +198,7 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
   6. Guard with try/catch; if OPFS is unavailable, show a friendly inline error (never alert()).
   7. OPFS is local-only — do not upload binaries; still no raw fetch/XHR.
 - Guard JSON.parse with try/catch; fall back to sensible defaults on corrupt data.
-- Do NOT rely on external CSS, fonts, or global variables except the injected Abblet companion (window.Abblet) when using AI. Everything else self-contained.
+- Do NOT rely on external CSS, fonts, or global variables except the injected Abblet companion (window.Abblet) when using AI or sync. Everything else self-contained.
 
 ## Visual design system — design like a native iOS app (PRIMARY GOAL)
 
@@ -284,7 +293,7 @@ Quality bar:
 - Touch targets ≥ 44px, body font 17px (inputs ≥16px), no horizontal scroll, content never touches edges, safe areas respected.
 - Typing in an input never rebuilds that input element (focus & caret stay put).
 - List/filter changes update only the list area.
-- Data survives page reload via localStorage (structured state) and OPFS (images/files when used).
+- Data survives page reload via localStorage (structured state) and OPFS (images/files when used). Abblet.sync only if cloud / cross-device persistence is essential, or losing the data would be a real problem; otherwise localStorage alone.
 - No console errors on first load with empty state; empty state is friendly.
 - tagName in customElements.define matches the JSON tagName exactly.
 - After define, the element is mounted into #mount (boot removed).`;
@@ -311,7 +320,7 @@ Return one JSON object with:
 - category: exactly one of: ${APP_CATEGORIES.join(", ")}
 - tagName: valid custom element name, lowercase with at least one hyphen (e.g. "run-log", "wine-journal")
 - code: complete JavaScript that registers the custom element
-- permissions: array of Abblet runtime permissions. Use ["ai"] if and only if the code calls Abblet.ai(...). Otherwise []. Never invent other values; "sync" is reserved and must not be emitted yet.
+- permissions: array of Abblet runtime permissions. Include "ai" if and only if the code calls Abblet.ai(...). Include "sync" if and only if the code calls Abblet.sync. Use [] when neither is called. Never invent other values.
 
 ${designGuidelines(langName)}`;
 
@@ -556,7 +565,7 @@ export async function editAppConfig(opts: {
 - After define, ensure the element is mounted into #mount (remove #boot if present). Do not rely on the host to create the element.
 - Preserve existing user data compatibility: keep the same localStorage keys and data shape unless the request explicitly requires changing them.
 - Make the smallest change that fully satisfies the request; do not rewrite unrelated parts or regress existing features.
-- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Abblet.ai({ prompt }) only when the request needs AI (the host requests AI permission). Everything inside the Shadow DOM (except the host-injected Abblet global).
+- Vanilla JavaScript only. NO imports, NO external libraries, NO CDN. No raw fetch/XHR/WebSocket — use Abblet.ai({ prompt }) only when the request needs AI (the host requests AI permission) and Abblet.sync() / Abblet.sync(state) only when it is essential that data lives in the cloud and moves between devices, or when losing that data would be a real problem because saving is a core part of the app (not merely because the app has localStorage). Do not add sync to an existing app unless the request needs that; keep it if the current code already uses it. Everything inside the Shadow DOM (except the host-injected Abblet global).
 - Do NOT change the home-screen title, Store description, tagline, category, or launcher icon — those are handled by updateMeta / regenerateIcon.
 
 ${designGuidelines(langName)}`;
@@ -590,7 +599,7 @@ ${reason}
 Return one JSON object with:
 - summary: 1 short sentence in ${langName} describing exactly what you changed (for chat + version history). Max ~100 characters. No fluff.
 - code: the COMPLETE updated JavaScript that registers the custom element (never a diff, never partial code)
-- permissions: ["ai"] if the updated code calls Abblet.ai(...), otherwise []
+- permissions: ["ai"] if the updated code calls Abblet.ai(...), ["sync"] if it calls Abblet.sync, or both; otherwise []
 
 ${sharedConstraints}`;
 
@@ -658,7 +667,7 @@ Return:
   - replaceAll: optional; if true, replace every occurrence of old
   - Without replaceAll, old MUST appear exactly once in the file
   - Never use line numbers. Never invent text that is not in the source for old.
-- permissions: ["ai"] if AFTER applying the patch the app still/calls Abblet.ai(...), otherwise []
+- permissions: ["ai"] if AFTER applying the patch the app still/calls Abblet.ai(...), ["sync"] if it calls Abblet.sync, or both; otherwise []
 
 ## mode: "full" (required for large changes)
 Use when adding substantial features, restructuring, touching many places, or when patch would be fragile.
@@ -666,7 +675,7 @@ Return:
 - mode: "full"
 - summary: 1 short sentence in ${langName} describing exactly what you changed (chat + version history). Max ~100 characters.
 - code: the COMPLETE updated JavaScript source
-- permissions: ["ai"] if the updated code calls Abblet.ai(...), otherwise []
+- permissions: ["ai"] if the updated code calls Abblet.ai(...), ["sync"] if it calls Abblet.sync, or both; otherwise []
 
 ${sharedConstraints}`;
 

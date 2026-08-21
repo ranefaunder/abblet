@@ -40,7 +40,7 @@ type AppAccess =
       title: string;
       iconId: string | null;
       category: string | null;
-      /** Runtime permissions declared for this version (e.g. ["ai"]). */
+      /** Runtime permissions declared for this version (e.g. ["ai", "sync"]). */
       permissions: Array<"ai" | "sync">;
     }
   | { kind: "building"; lang: Language; slug: string; title: string; iconId: string | null }

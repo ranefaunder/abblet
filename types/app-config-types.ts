@@ -39,7 +39,7 @@ export const appConfigSchema = z.object({
   code: z.string().min(1),
   /**
    * Runtime permissions this app needs (user must grant). Empty = no permission request.
-   * `ai` = Abblet.ai; `sync` reserved for Abblet.sync.
+   * `ai` = Abblet.ai; `sync` = Abblet.sync cloud blob.
    */
   permissions: z.array(z.enum(["ai", "sync"])).default([]),
 });

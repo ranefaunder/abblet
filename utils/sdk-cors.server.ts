@@ -8,8 +8,8 @@ function isAppRuntimeCorsOrigin(origin: string | null): boolean {
 export function sdkCorsHeaders(origin: string): HeadersInit {
   return {
     "Access-Control-Allow-Origin": origin,
-    // GET/DELETE: permissions; POST: ai / exchange / remix.
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    // GET/DELETE: permissions; GET/PUT: sync; POST: ai / exchange / remix.
+    "Access-Control-Allow-Methods": "GET, PUT, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     Vary: "Origin",
   };

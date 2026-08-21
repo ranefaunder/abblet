@@ -59,7 +59,7 @@ export interface StoreAppCard {
   isOwner: boolean;
   publishedAt: string | null;
   updatedAt: string;
-  /** Declared runtime permissions (e.g. ["ai"]). */
+  /** Declared runtime permissions (e.g. ["ai", "sync"]). */
   permissions: Array<"ai" | "sync">;
 }
 

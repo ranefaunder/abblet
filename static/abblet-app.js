@@ -1,5 +1,5 @@
 /**
- * Abblet app companion — Patch badge + Abblet.ai / permission API.
+ * Abblet app companion — Patch badge + Abblet.ai / Abblet.sync / permission API.
  * Loaded as <script type="module" src="/static/abblet-app.js"> on the app page.
  * Expects window.__ABBLET__ (legacy: window.__REMIIX__) = { appSlug, platformOrigin, permissions? }.
  * Module self-mounts into #mount; title/lang/icon come from the document.
@@ -10,6 +10,8 @@ const platformOrigin = cfg.platformOrigin;
 const lang = document.documentElement.lang || "en";
 const appPermissions = Array.isArray(cfg.permissions) ? cfg.permissions : [];
 const needsAiPermission = appPermissions.includes("ai");
+const needsSyncPermission = appPermissions.includes("sync");
+const needsRuntimePermission = needsAiPermission || needsSyncPermission;
 const appTitle = (document.title || "Abblet").trim() || "Abblet";
 const appIconSrc =
   document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute("href") ||
@@ -21,6 +23,9 @@ const TOKEN_KEY = "abblet.token";
 const TOKEN_EXP_KEY = "abblet.tokenExpiresAt";
 /** Prevents permission-redirect loops when the user cancels or is not signed in. */
 const PERMISSION_TRIED_KEY = "abblet.permissionTried:" + appSlug;
+/** Session guard: already sent to the permission page for a missing sync grant. */
+const SYNC_TRIED_KEY = "abblet.syncTried:" + appSlug;
+const SYNC_MAX_BYTES = 128 * 1024;
 
 const COPY = {
   en: {
@@ -157,14 +162,38 @@ function wasPermissionTried() {
   }
 }
 
+function markSyncTried() {
+  try {
+    sessionStorage.setItem(SYNC_TRIED_KEY, "1");
+  } catch {
+    // ignore
+  }
+}
+
+function clearSyncTried() {
+  try {
+    sessionStorage.removeItem(SYNC_TRIED_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function wasSyncTried() {
+  try {
+    return sessionStorage.getItem(SYNC_TRIED_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
 /**
- * When the app declares the `ai` permission and there is no runtime token,
- * redirect to the permission request page. Non-AI apps skip.
+ * When the app declares `ai` and/or `sync` and there is no runtime token,
+ * redirect to the permission request page.
  * @param {{ force?: boolean }} [opts] — force=true skips the “already tried” guard (after revoke).
  * @returns {boolean} true if a redirect was started
  */
 function ensurePermissions(opts) {
-  if (!needsAiPermission) return false;
+  if (!needsRuntimePermission) return false;
   if (!isProbablyOnline()) return false;
   if (readStoredToken()) {
     clearPermissionTried();
@@ -186,6 +215,8 @@ function promptForPermission() {
 /** Ask to allow AI (sign-in if needed), then open the permission flow. Resolves true if continuing. */
 function confirmPermission() {
   const t = uiCopy();
+  const title = t.loginTitle;
+  const body = t.loginBody;
   return new Promise((resolve) => {
     const existing = document.getElementById("abblet-login-dialog");
     if (existing) existing.remove();
@@ -195,8 +226,8 @@ function confirmPermission() {
     dialog.setAttribute("closedby", "any");
     dialog.innerHTML = `
       <form method="dialog" style="margin:0;display:flex;flex-direction:column;gap:16px;min-width:min(100%,320px)">
-        <h2 style="margin:0;font-size:1.125rem;font-weight:600;line-height:1.3">${t.loginTitle}</h2>
-        <p style="margin:0;font-size:0.9375rem;line-height:1.45;color:#3c3c4399">${t.loginBody}</p>
+        <h2 style="margin:0;font-size:1.125rem;font-weight:600;line-height:1.3">${title}</h2>
+        <p style="margin:0;font-size:0.9375rem;line-height:1.45;color:#3c3c4399">${body}</p>
         <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
           <button value="cancel" type="submit" style="appearance:none;border:none;background:#e5e5ea;color:#000;font:inherit;font-weight:500;padding:10px 16px;border-radius:10px;cursor:pointer">${t.loginCancel}</button>
           <button value="continue" type="submit" style="appearance:none;border:none;background:#007aff;color:#fff;font:inherit;font-weight:500;padding:10px 16px;border-radius:10px;cursor:pointer">${t.loginCta}</button>
@@ -260,6 +291,29 @@ function showOfflineAiNotice() {
 
 function isProbablyOffline() {
   return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+function syncPayloadError(code) {
+  const err = new Error(code);
+  err.code = code;
+  return err;
+}
+
+/** Throws PAYLOAD_TOO_LARGE / INVALID_JSON. `null` is allowed (clears the blob). */
+function assertSyncPayload(data) {
+  if (data === null) return;
+  let payload;
+  try {
+    payload = JSON.stringify(data);
+  } catch {
+    throw syncPayloadError("INVALID_JSON");
+  }
+  if (typeof payload !== "string") {
+    throw syncPayloadError("INVALID_JSON");
+  }
+  if (new TextEncoder().encode(payload).byteLength > SYNC_MAX_BYTES) {
+    throw syncPayloadError("PAYLOAD_TOO_LARGE");
+  }
 }
 
 window.Abblet = {
@@ -346,6 +400,70 @@ window.Abblet = {
     }
     return data.data.text;
   },
+  /**
+   * Cloud blob for this user × app. Overlay on the app's own localStorage.
+   * await Abblet.sync() → data | null
+   * await Abblet.sync(obj) → saved data (or obj if offline / no permission)
+   * await Abblet.sync(null) → clears the cloud blob
+   */
+  async sync(data) {
+    const isGet = arguments.length === 0 || data === undefined;
+    if (!isGet) assertSyncPayload(data);
+
+    const failOpen = () => (isGet ? null : data);
+
+    if (isProbablyOffline()) return failOpen();
+    const token = this.getToken();
+    if (!token) return failOpen();
+
+    const url = platformOrigin + "/api/sdk/sync";
+    const headers = {
+      Authorization: "Bearer " + token,
+    };
+    let res;
+    try {
+      if (isGet) {
+        res = await fetch(url, { method: "GET", headers });
+      } else {
+        headers["Content-Type"] = "application/json";
+        res = await fetch(url, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({ data }),
+        });
+      }
+    } catch {
+      return failOpen();
+    }
+
+    const body = await res.json().catch(() => ({}));
+    const code = body.error?.code;
+    if (
+      res.status === 401 ||
+      code === "TOKEN_EXPIRED" ||
+      code === "UNAUTHORIZED"
+    ) {
+      clearStoredToken();
+      clearPermissionTried();
+      clearSyncTried();
+      return failOpen();
+    }
+    if (res.status === 403 || code === "PERMISSION_REQUIRED") {
+      if (!wasSyncTried()) {
+        markSyncTried();
+        location.href = permissionConsentHref();
+      }
+      return failOpen();
+    }
+    if (code === "PAYLOAD_TOO_LARGE") {
+      throw syncPayloadError("PAYLOAD_TOO_LARGE");
+    }
+    if (!body.success) return failOpen();
+    clearSyncTried();
+    return Object.prototype.hasOwnProperty.call(body.data || {}, "data")
+      ? body.data.data
+      : failOpen();
+  },
 };
 
 /** Legacy alias for older generated apps. */
@@ -367,6 +485,7 @@ if (code) {
     if (data.success && data.data?.accessToken) {
       storeToken(data.data.accessToken, data.data.expiresAt);
       clearPermissionTried();
+      clearSyncTried();
     }
   } catch {
     // Permission code exchange failed — app still loads without token.
@@ -379,7 +498,7 @@ if (ensurePermissions()) {
 }
 
 window.addEventListener("online", () => {
-  if (!needsAiPermission) return;
+  if (!needsRuntimePermission) return;
   if (readStoredToken()) return;
   clearPermissionTried();
   if (ensurePermissions()) return;
@@ -1030,9 +1149,13 @@ function mountAbbletPatch() {
       }
       clearStoredToken();
       clearPermissionTried();
+      clearSyncTried();
       renderPermissionGrants(data.data?.grants);
       closeMenu();
-      if (needsAiPermission) {
+      if (
+        (scope === "ai" && needsAiPermission) ||
+        (scope === "sync" && needsSyncPermission)
+      ) {
         promptForPermission();
       }
     } catch {

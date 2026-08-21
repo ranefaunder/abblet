@@ -9,7 +9,7 @@ import {
 } from "/server/database/queries/permission";
 import { mintPermissionNonce } from "/utils/permission-nonce.server";
 import { appRuntimeOrigin, permissionUrl } from "/utils/app-host";
-import { appNeedsAi } from "/utils/app-permissions";
+import { appNeedsAi, appNeedsSync } from "/utils/app-permissions";
 import { usdToUsdMicros } from "/utils/credits.server";
 
 const MIN_MONTHLY_LIMIT_USD = 0.1;
@@ -28,9 +28,11 @@ function hasExplicitMonthlyLimit(raw: unknown): boolean {
 
 /**
  * POST /api/:lang/app/prepare-open — Store "Open" / permission Allow.
- * Non-AI apps: direct runtime URL (no permission flow).
- * AI apps: permission-grant URL with optional confirm nonce (Open = allow AI).
- * Body: { slug, monthlyLimitUsd? } — when set (Allow), upserts the monthly AI budget.
+ * No permissions: direct runtime URL. Apps that declare `ai` and/or `sync`:
+ * permission-grant URL with optional confirm nonce (Open / Allow = grant
+ * declared scopes).
+ * Body: { slug, monthlyLimitUsd? } — when set (Allow), writes the monthly AI
+ * budget and grants declared scopes (AI and/or sync).
  */
 export default {
   async POST(req: BunRequest) {
@@ -65,14 +67,22 @@ export default {
         return apiError({ code: "NOT_FOUND", status: 404 });
       }
 
-      if (!appNeedsAi(row.required_permissions)) {
+      const needsAi = appNeedsAi(row.required_permissions);
+      const needsSync = appNeedsSync(row.required_permissions);
+
+      if (!needsAi && !needsSync) {
         return apiSuccess({ data: { url: `${appRuntimeOrigin(row)}/` } });
       }
 
       const base = permissionUrl(slug);
+
+      const blockingGranted = needsAi
+        ? dbHasPermissionGrant(user.id, slug, "ai")
+        : dbHasPermissionGrant(user.id, slug, "sync");
+
       // Store Open with an existing grant: skip consent. Allow always passes monthlyLimitUsd
       // so the chosen budget is written even when a grant already exists.
-      if (dbHasPermissionGrant(user.id, slug, "ai") && !setBudget) {
+      if (blockingGranted && !setBudget) {
         return apiSuccess({ data: { url: base } });
       }
 

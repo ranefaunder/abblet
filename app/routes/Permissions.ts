@@ -7,7 +7,7 @@ import { appIconSrc } from "/utils/app-icon";
 import { previewGradient, draftLetter } from "/utils/app-preview";
 import { getCurrentUser, isLoggedIn } from "/app/stores/userStore";
 import { openAppUrl } from "/utils/app-url";
-import { appNeedsAi } from "/utils/app-permissions";
+import { appNeedsAi, appNeedsAnyPermission, appNeedsSync } from "/utils/app-permissions";
 import {
   clearStoreApp,
   loadStoreApp,
@@ -17,13 +17,13 @@ import {
   storeAppLoading,
 } from "/app/stores/storeListingStore";
 
-/** SPA path for the AI permission request UI. */
+/** SPA path for the permission request UI (AI and/or sync). */
 export const PermissionsPath = "/:lang/permission/:appId" as const;
 
 /**
- * Permission request page (SPA). Shown when an app declares the `ai` permission
- * and the user has not granted it yet. “Allow AI” goes through prepare-open so the
- * click itself is the grant (one-time nonce → runtime token).
+ * Permission request page (SPA). Shown when an app declares `ai` and/or `sync`
+ * and the user has not granted those scopes yet. Allow goes through
+ * prepare-open so the click itself is the grant (one-time nonce → runtime token).
  */
 export default function Permissions({ params }: RoutePropsForPath<typeof PermissionsPath>) {
   const { route } = useLocation();
@@ -50,7 +50,7 @@ export default function Permissions({ params }: RoutePropsForPath<typeof Permiss
 
   useEffect(() => {
     if (!app || loading) return;
-    if (!appNeedsAi(app.permissions)) {
+    if (!appNeedsAnyPermission(app.permissions)) {
       window.location.href = openAppUrl(lang, appId, {
         app: {
           id: app.id,
@@ -103,7 +103,7 @@ export default function Permissions({ params }: RoutePropsForPath<typeof Permiss
             <div ui-column="gap-md x-center" class="state">
               <p>${storeAppError.value ?? t("App not found")}</p>
             </div>`
-          : !appNeedsAi(app.permissions)
+          : !appNeedsAnyPermission(app.permissions)
             ? html`
             <div ui-column="gap-md x-center" class="state">
               <i ui-icon="spinner lg"></i>
@@ -124,12 +124,20 @@ export default function Permissions({ params }: RoutePropsForPath<typeof Permiss
                   </div>
                   <div ui-column="gap-xs x-center">
                     <h1 ui-heading="lg" class="title">${app.title}</h1>
-                    <p class="lede">${t("wants permission to use AI")}</p>
+                    <p class="lede">${
+                      appNeedsAi(app.permissions) && appNeedsSync(app.permissions)
+                        ? t("wants permission to use AI and sync data")
+                        : appNeedsSync(app.permissions)
+                          ? t("wants permission to sync data")
+                          : t("wants permission to use AI")
+                    }</p>
                     ${user ? html`<p class="email">${user.email}</p>` : ""}
                   </div>
                 </header>
 
                 <div class="panel" ui-column="gap-md">
+                  ${appNeedsAi(app.permissions)
+                    ? html`
                   <div ui-row="gap-sm y-start" class="perm-row">
                     <i class="perm-icon" ui-icon="wallet" aria-hidden="true"></i>
                     <p class="perm-copy">${t("Use your AI credit for its AI features")}</p>
@@ -153,7 +161,15 @@ export default function Permissions({ params }: RoutePropsForPath<typeof Permiss
                       />
                       <span class="budget-suffix" aria-hidden="true">${periodLabel}</span>
                     </div>
-                  </div>
+                  </div>`
+                    : ""}
+                  ${appNeedsSync(app.permissions)
+                    ? html`
+                  <div ui-row="gap-sm y-start" class="perm-row">
+                    <i class="perm-icon" ui-icon="arrows-clockwise" aria-hidden="true"></i>
+                    <p class="perm-copy">${t("Keep this app's data in your Abblet cloud")}</p>
+                  </div>`
+                    : ""}
                 </div>
 
                 <div class="actions" ui-column="gap-sm">
@@ -163,7 +179,13 @@ export default function Permissions({ params }: RoutePropsForPath<typeof Permiss
                     disabled=${busy}
                     aria-busy=${busy}
                     onClick=${() => void onAllow()}
-                  >${t("Allow AI")}</button>
+                  >${
+                    appNeedsAi(app.permissions) && appNeedsSync(app.permissions)
+                      ? t("Allow")
+                      : appNeedsSync(app.permissions)
+                        ? t("Allow Sync")
+                        : t("Allow AI")
+                  }</button>
                   <a href=${cancelHref} ui-button="tertiary block">${t("Not now")}</a>
                 </div>
 

@@ -26,9 +26,46 @@ export function serializeAppPermissions(perms: readonly AppPermission[]): string
   return JSON.stringify([...new Set(perms)]);
 }
 
+function permissionList(
+  perms: readonly AppPermission[] | string | null | undefined,
+): AppPermission[] {
+  return typeof perms === "string" || perms == null ? parseAppPermissions(perms) : [...perms];
+}
+
 export function appNeedsAi(perms: readonly AppPermission[] | string | null | undefined): boolean {
-  const list = typeof perms === "string" || perms == null ? parseAppPermissions(perms) : perms;
-  return list.includes("ai");
+  return permissionList(perms).includes("ai");
+}
+
+export function appNeedsSync(perms: readonly AppPermission[] | string | null | undefined): boolean {
+  return permissionList(perms).includes("sync");
+}
+
+export function appNeedsAnyPermission(
+  perms: readonly AppPermission[] | string | null | undefined,
+): boolean {
+  const list = permissionList(perms);
+  return list.includes("ai") || list.includes("sync");
+}
+
+/**
+ * Whether `/permission/:appId` should mint a grant, show consent, or pass through
+ * to the runtime (all declared scopes already granted).
+ */
+export type PermissionConsentAction = "pass" | "consent" | "grant";
+
+export function permissionConsentAction(opts: {
+  declared: readonly AppPermission[] | string | null | undefined;
+  granted: readonly string[];
+  hasConfirmNonce: boolean;
+}): PermissionConsentAction {
+  const declared = permissionList(opts.declared);
+  if (declared.length === 0) return "pass";
+  if (opts.hasConfirmNonce) return "grant";
+  const granted = new Set(opts.granted);
+  for (const scope of declared) {
+    if (!granted.has(scope)) return "consent";
+  }
+  return "pass";
 }
 
 /** Infer permissions from generated source (safety net if the model omits them). */

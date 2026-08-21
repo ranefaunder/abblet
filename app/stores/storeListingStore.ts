@@ -107,8 +107,8 @@ export async function loadInstallHistory(): Promise<void> {
 }
 
 /**
- * Store "Open": signed-in users go through prepare-open (AI apps → permission grant;
- * non-AI → direct runtime). Guests open the runtime directly.
+ * Store "Open": signed-in users go through prepare-open (apps with `ai` and/or
+ * `sync` → permission grant; no permissions → direct runtime). Guests open the runtime directly.
  */
 export async function openFromStore(
   slug: string,

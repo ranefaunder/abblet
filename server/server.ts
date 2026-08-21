@@ -30,6 +30,7 @@ import sdkExchange from "./api/sdk/exchange";
 import sdkAi from "./api/sdk/ai";
 import sdkRemix from "./api/sdk/remix";
 import sdkPermissions from "./api/sdk/permissions";
+import sdkSync from "./api/sdk/sync";
 import credits from "./api/credits";
 import billingStatus from "./api/billing/status";
 import billingRedeemGift from "./api/billing/redeem-gift";
@@ -163,7 +164,7 @@ function securityKindForPath(path: string): SecurityHeaderKind {
   }
   // `/` serves app-runtime HTML on app subdomains (see root.ts); platform redirects otherwise.
   // App HTML also sets CSP via htmlResponse — baseline headers still applied here.
-  // `/permission/:appId` mints the runtime code after AI permission is granted; the
+  // `/permission/:appId` mints the runtime code after permission is granted; the
   // permission UI is the SPA route /:lang/permission/:appId.
   if (path === "/permission/:appId" || path === "/connect/:appId") return "platform-html";
   if (path === "/" || path === "/install" || path === "/manifest.webmanifest") {
@@ -265,6 +266,7 @@ const server = Bun.serve({
       "/api/sdk/ai": sdkAi,
       "/api/sdk/remix": sdkRemix,
       "/api/sdk/permissions": sdkPermissions,
+      "/api/sdk/sync": sdkSync,
 
       "/static/*": staticRoute,
       "/app.js": clientJsRoute,
