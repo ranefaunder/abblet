@@ -299,6 +299,33 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
         </div>
       </section>
 
+      <section class="band muted">
+        <div class="wrap" ui-column="gap-xl">
+          <div ui-column="gap-md">
+            <h2 class="display">${t("Your data follows you. AI only when asked.")}</h2>
+            <p class="lead">
+              ${t("An app can save your data so it’s waiting on every device you use. It can also write or summarize for you. Nothing happens without your permission.")}
+            </p>
+          </div>
+          <div class="capabilities">
+            <article class="capability" ui-column="gap-sm">
+              <i class="capability-icon" ui-icon="arrows-clockwise lg" aria-hidden="true"></i>
+              <h3 class="pillar-title">${t("On every device")}</h3>
+              <p class="body">
+                ${t("Add to your shopping list on the bus, then check it on your laptop at home. Change phones and your lists, journals, and notes are still there.")}
+              </p>
+            </article>
+            <article class="capability" ui-column="gap-sm">
+              <i class="capability-icon" ui-icon="magic-wand lg" aria-hidden="true"></i>
+              <h3 class="pillar-title">${t("AI")}</h3>
+              <p class="body">
+                ${t("Ask an app to write a draft, tidy up your text, or sum up a long note. You allow AI per app, and set how much credit it may use each month.")}
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section class="pricing" id="plans">
         <div class="pricing-inner">
           <header class="pricing-head">
@@ -962,6 +989,28 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
         color: var(--neutral-950);
       }
 
+      .capabilities {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .capability {
+        padding: 1.25rem 1.2rem 1.3rem;
+        border-radius: 1.1rem;
+        background: var(--white);
+        border: 1px solid var(--neutral-200);
+      }
+
+      .capability .body {
+        max-width: none;
+      }
+
+      .capability-icon {
+        color: var(--primary-600);
+        width: 1.75rem;
+        height: 1.75rem;
+      }
+
       .steps {
         margin: 0;
         padding: 0;
@@ -1469,6 +1518,11 @@ export default function About(_props: RoutePropsForPath<typeof AboutPath>) {
 
         .create-demo-stage {
           transform: rotate(2deg);
+        }
+
+        .capabilities {
+          grid-template-columns: 1fr 1fr;
+          gap: 1.25rem;
         }
       }
 

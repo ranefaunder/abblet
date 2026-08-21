@@ -316,6 +316,59 @@ function assertSyncPayload(data) {
   }
 }
 
+/** Host-side last-write-wins cache (survives offline / out-of-order PUTs). */
+const SYNC_LWW_KEY = "abblet.sync.lww:" + appSlug;
+
+function parseSyncStampMs(iso) {
+  if (typeof iso !== "string" || !iso) return 0;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function readSyncLww() {
+  try {
+    const raw = localStorage.getItem(SYNC_LWW_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.updatedAt !== "string") return null;
+    return { data: parsed.data, updatedAt: parsed.updatedAt };
+  } catch {
+    return null;
+  }
+}
+
+function writeSyncLww(entry) {
+  try {
+    if (!entry || entry.data === undefined) {
+      localStorage.removeItem(SYNC_LWW_KEY);
+      return;
+    }
+    localStorage.setItem(
+      SYNC_LWW_KEY,
+      JSON.stringify({ data: entry.data, updatedAt: entry.updatedAt }),
+    );
+  } catch {
+    // Quota / private mode — sync still attempts the network path.
+  }
+}
+
+function clearSyncLww() {
+  writeSyncLww(null);
+}
+
+/** Monotonic ISO stamp so rapid local saves never share a millisecond. */
+function nextSyncStamp(cache) {
+  const now = Date.now();
+  const prev = cache ? parseSyncStampMs(cache.updatedAt) : 0;
+  return new Date(Math.max(now, prev + 1)).toISOString();
+}
+
+function pickNewerSync(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  return parseSyncStampMs(a.updatedAt) >= parseSyncStampMs(b.updatedAt) ? a : b;
+}
+
 window.Abblet = {
   appSlug,
   platformOrigin,
@@ -402,6 +455,8 @@ window.Abblet = {
   },
   /**
    * Cloud blob for this user × app. Overlay on the app's own localStorage.
+   * Host keeps an updatedAt stamp (last-write-wins): an older cloud blob never
+   * replaces a newer local pending write, and older PUTs are ignored by the server.
    * await Abblet.sync() → data | null
    * await Abblet.sync(obj) → saved data (or obj if offline / no permission)
    * await Abblet.sync(null) → clears the cloud blob
@@ -410,30 +465,147 @@ window.Abblet = {
     const isGet = arguments.length === 0 || data === undefined;
     if (!isGet) assertSyncPayload(data);
 
-    const failOpen = () => (isGet ? null : data);
+    const cache = readSyncLww();
 
-    if (isProbablyOffline()) return failOpen();
-    const token = this.getToken();
-    if (!token) return failOpen();
+    if (isGet) {
+      const token = this.getToken();
+      if (isProbablyOffline() || !token) {
+        return cache ? cache.data : null;
+      }
 
-    const url = platformOrigin + "/api/sdk/sync";
-    const headers = {
-      Authorization: "Bearer " + token,
-    };
-    let res;
-    try {
-      if (isGet) {
-        res = await fetch(url, { method: "GET", headers });
-      } else {
-        headers["Content-Type"] = "application/json";
+      const url = platformOrigin + "/api/sdk/sync";
+      let res;
+      try {
+        res = await fetch(url, {
+          method: "GET",
+          headers: { Authorization: "Bearer " + token },
+        });
+      } catch {
+        return cache ? cache.data : null;
+      }
+
+      const body = await res.json().catch(() => ({}));
+      const code = body.error?.code;
+      if (
+        res.status === 401 ||
+        code === "TOKEN_EXPIRED" ||
+        code === "UNAUTHORIZED"
+      ) {
+        clearStoredToken();
+        clearPermissionTried();
+        clearSyncTried();
+        return cache ? cache.data : null;
+      }
+      if (res.status === 403 || code === "PERMISSION_REQUIRED") {
+        if (!wasSyncTried()) {
+          markSyncTried();
+          location.href = permissionConsentHref();
+        }
+        return cache ? cache.data : null;
+      }
+      if (!body.success) return cache ? cache.data : null;
+      clearSyncTried();
+
+      const cloudData = Object.prototype.hasOwnProperty.call(body.data || {}, "data")
+        ? body.data.data
+        : null;
+      const cloudUpdatedAt =
+        typeof body.data?.updatedAt === "string" ? body.data.updatedAt : null;
+      const cloud =
+        cloudData !== null && cloudData !== undefined && cloudUpdatedAt
+          ? { data: cloudData, updatedAt: cloudUpdatedAt }
+          : cloudData !== null && cloudData !== undefined
+            ? { data: cloudData, updatedAt: "1970-01-01T00:00:00.000Z" }
+            : null;
+
+      const winner = pickNewerSync(cloud, cache);
+      if (!winner) return null;
+      writeSyncLww(winner);
+
+      // Local pending is newer — push so other devices catch up.
+      if (
+        cache &&
+        winner === cache &&
+        (!cloud || parseSyncStampMs(cache.updatedAt) > parseSyncStampMs(cloud.updatedAt))
+      ) {
+        try {
+          await fetch(url, {
+            method: "PUT",
+            headers: {
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ data: cache.data, updatedAt: cache.updatedAt }),
+          });
+        } catch {
+          // Keep returning the newer local blob.
+        }
+      }
+
+      return winner.data;
+    }
+
+    // Write / clear
+    if (data === null) {
+      clearSyncLww();
+      const token = this.getToken();
+      if (isProbablyOffline() || !token) return null;
+      const url = platformOrigin + "/api/sdk/sync";
+      let res;
+      try {
         res = await fetch(url, {
           method: "PUT",
-          headers,
-          body: JSON.stringify({ data }),
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ data: null }),
         });
+      } catch {
+        return null;
       }
+      const body = await res.json().catch(() => ({}));
+      const code = body.error?.code;
+      if (
+        res.status === 401 ||
+        code === "TOKEN_EXPIRED" ||
+        code === "UNAUTHORIZED"
+      ) {
+        clearStoredToken();
+        clearPermissionTried();
+        clearSyncTried();
+        return null;
+      }
+      if (res.status === 403 || code === "PERMISSION_REQUIRED") {
+        if (!wasSyncTried()) {
+          markSyncTried();
+          location.href = permissionConsentHref();
+        }
+        return null;
+      }
+      if (body.success) clearSyncTried();
+      return null;
+    }
+
+    const stamp = nextSyncStamp(cache);
+    writeSyncLww({ data, updatedAt: stamp });
+
+    const token = this.getToken();
+    if (isProbablyOffline() || !token) return data;
+
+    const url = platformOrigin + "/api/sdk/sync";
+    let res;
+    try {
+      res = await fetch(url, {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ data, updatedAt: stamp }),
+      });
     } catch {
-      return failOpen();
+      return data;
     }
 
     const body = await res.json().catch(() => ({}));
@@ -446,23 +618,31 @@ window.Abblet = {
       clearStoredToken();
       clearPermissionTried();
       clearSyncTried();
-      return failOpen();
+      return data;
     }
     if (res.status === 403 || code === "PERMISSION_REQUIRED") {
       if (!wasSyncTried()) {
         markSyncTried();
         location.href = permissionConsentHref();
       }
-      return failOpen();
+      return data;
     }
     if (code === "PAYLOAD_TOO_LARGE") {
       throw syncPayloadError("PAYLOAD_TOO_LARGE");
     }
-    if (!body.success) return failOpen();
+    if (!body.success) return data;
     clearSyncTried();
-    return Object.prototype.hasOwnProperty.call(body.data || {}, "data")
+
+    const serverUpdatedAt =
+      typeof body.data?.updatedAt === "string" ? body.data.updatedAt : stamp;
+    const serverData = Object.prototype.hasOwnProperty.call(body.data || {}, "data")
       ? body.data.data
-      : failOpen();
+      : data;
+    // Server may return a newer row (our PUT lost LWW) — keep that winner.
+    const serverEntry = { data: serverData, updatedAt: serverUpdatedAt };
+    const winner = pickNewerSync(serverEntry, { data, updatedAt: stamp });
+    writeSyncLww(winner);
+    return winner.data;
   },
 };
 

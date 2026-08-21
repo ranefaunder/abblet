@@ -152,8 +152,8 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
 - Vanilla JavaScript only. NO imports, NO external libraries, NO CDN links.
 - Network: do NOT use fetch, XMLHttpRequest, WebSocket, or any direct HTTP. The ONLY allowed network APIs are the host-injected global Abblet companion (window.Abblet):
   - await Abblet.ai({ prompt: "…" }) — optional system: await Abblet.ai({ prompt: "…", system: "…" })
-  - await Abblet.sync() — read this user's cloud JSON blob (null if none / offline / no permission)
-  - await Abblet.sync(state) — replace the cloud blob (best-effort; does not throw if offline or the user declines)
+  - await Abblet.sync() — read this user's cloud JSON blob (null if none / offline / no permission). The host applies last-write-wins by updatedAt (a newer local pending write is not replaced by an older cloud blob).
+  - await Abblet.sync(state) — replace the cloud blob with a timestamped write (best-effort; does not throw if offline or the user declines). Older out-of-order writes lose to newer ones.
   - await Abblet.sync(null) — clear the cloud blob
   - Abblet.requestPermission() — opens the Abblet permission request; usually unnecessary because Abblet.ai / Abblet.sync handle it
   - Abblet.getToken() — optional; usually unnecessary because Abblet.ai / Abblet.sync handle permissions
@@ -187,8 +187,8 @@ The app must feel instant and stable while typing — no cursor jumps, no lost f
 - Use Abblet.sync ONLY when cloud + cross-device is essential to the app, or when losing the data would be a real problem because saving it is a core part of the app (a journal, shopping list, log, or notes they will open on phone and laptop). Do NOT add sync just because the app has localStorage, settings, or survives reload — that is what localStorage is for. Calculators, converters, games, one-shot tools, and device-local preferences must NOT call Abblet.sync.
   When (and only when) sync is justified, overlay it on localStorage. localStorage stays the source of truth for offline / no-permission. Pattern:
   1. In connectedCallback: load local first, render, then Abblet.sync().then((cloud) => { if (cloud) { this._state = cloud; this.#saveLocal(); this.#renderAll(); } }).catch(() => {})
-  2. On save: write localStorage first, then Abblet.sync(this._state) without awaiting (or .catch(() => {})). Do not block the UI.
-  3. Prefer the cloud blob on load when it is non-null (last-write-wins). Do not invent field-level merge.
+  2. On save: write localStorage first, then Abblet.sync(this._state) without awaiting (or .catch(() => {})). Do not block the UI. Always call sync(state) after local saves so the host can stamp updatedAt.
+  3. Trust the host for conflicts: Abblet.sync() returns the newer of cloud vs pending local (last-write-wins by updatedAt). Do not invent field-level merge.
 - When the app stores images, photos, attachments, or other binary files, use the Origin Private File System (OPFS) — NOT localStorage (quota/size) and NOT remote uploads. Pattern:
   1. const root = await navigator.storage.getDirectory();
   2. const dir = await root.getDirectoryHandle("abblet-<tagName>", { create: true });

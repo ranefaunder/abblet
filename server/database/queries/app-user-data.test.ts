@@ -66,9 +66,43 @@ describe("app_user_data queries", () => {
     const again = dbUpsertAppUserData("u1", "12345", '{"n":2}', database);
     expect(dbGetAppUserData("u1", "12345", database)?.payload).toBe('{"n":2}');
     expect(again.updated_at >= saved.updated_at).toBe(true);
+    expect(again.wrote).toBe(true);
 
     dbDeleteAppUserData("u1", "12345", database);
     expect(dbGetAppUserData("u1", "12345", database)).toBeNull();
+  });
+
+  test("last-write-wins: older updatedAt does not overwrite newer", () => {
+    const first = dbUpsertAppUserData(
+      "u1",
+      "12345",
+      '{"v":1}',
+      database,
+      "2026-01-02T00:00:00.000Z",
+    );
+    expect(first.wrote).toBe(true);
+    expect(first.updated_at).toBe("2026-01-02T00:00:00.000Z");
+
+    const stale = dbUpsertAppUserData(
+      "u1",
+      "12345",
+      '{"v":0}',
+      database,
+      "2026-01-01T00:00:00.000Z",
+    );
+    expect(stale.wrote).toBe(false);
+    expect(stale.payload).toBe('{"v":1}');
+    expect(dbGetAppUserData("u1", "12345", database)?.payload).toBe('{"v":1}');
+
+    const newer = dbUpsertAppUserData(
+      "u1",
+      "12345",
+      '{"v":2}',
+      database,
+      "2026-01-03T00:00:00.000Z",
+    );
+    expect(newer.wrote).toBe(true);
+    expect(dbGetAppUserData("u1", "12345", database)?.payload).toBe('{"v":2}');
   });
 
   test("scopes blobs per user × app", () => {

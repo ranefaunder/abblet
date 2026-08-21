@@ -55,13 +55,35 @@ export function dbGetAppUserData(
   );
 }
 
+function normalizeUpdatedAt(raw: string | null | undefined): string | null {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const ms = Date.parse(raw);
+  if (!Number.isFinite(ms)) return null;
+  return new Date(ms).toISOString();
+}
+
+/**
+ * Replace the blob. Optional `updatedAt` (ISO) enables last-write-wins:
+ * an older stamp does not overwrite a newer row (returns existing, wrote=false).
+ */
 export function dbUpsertAppUserData(
   userId: string,
   appSlug: string,
   payload: string,
   database: Database = db,
-): AppUserDataRow {
-  const updatedAt = new Date().toISOString();
+  updatedAt?: string | null,
+): AppUserDataRow & { wrote: boolean } {
+  const existing = dbGetAppUserData(userId, appSlug, database);
+  const candidateAt =
+    normalizeUpdatedAt(updatedAt) ?? new Date().toISOString();
+
+  if (
+    existing &&
+    Date.parse(existing.updated_at) >= Date.parse(candidateAt)
+  ) {
+    return { ...existing, wrote: false };
+  }
+
   database
     .query(
       `INSERT INTO app_user_data (user_id, app_slug, payload, updated_at)
@@ -70,12 +92,13 @@ export function dbUpsertAppUserData(
          payload = excluded.payload,
          updated_at = excluded.updated_at`,
     )
-    .run(userId, appSlug, payload, updatedAt);
+    .run(userId, appSlug, payload, candidateAt);
   return {
     user_id: userId,
     app_slug: appSlug,
     payload,
-    updated_at: updatedAt,
+    updated_at: candidateAt,
+    wrote: true,
   };
 }
 

@@ -49,8 +49,9 @@ function rateLimitExceeded(
 }
 
 /**
- * GET /api/sdk/sync — read this user × app JSON blob.
- * PUT /api/sdk/sync — replace (`{ data }`) or clear (`{ data: null }`) the blob.
+ * GET /api/sdk/sync — read this user × app JSON blob (+ updatedAt).
+ * PUT /api/sdk/sync — replace (`{ data, updatedAt? }`) or clear (`{ data: null }`).
+ * Optional `updatedAt` is last-write-wins: older stamps do not overwrite newer rows.
  * Bearer runtime token + `sync` grant required.
  */
 export default {
@@ -93,9 +94,9 @@ export default {
       return withSdkCors(apiError({ code: "RATE_LIMITED", status: 429 }), caller.origin);
     }
 
-    let body: { data?: unknown };
+    let body: { data?: unknown; updatedAt?: unknown };
     try {
-      body = (await req.json()) as { data?: unknown };
+      body = (await req.json()) as { data?: unknown; updatedAt?: unknown };
     } catch {
       return withSdkCors(apiError({ code: "INVALID_JSON", status: 400 }), caller.origin);
     }
@@ -107,7 +108,7 @@ export default {
     if (body.data === null) {
       dbDeleteAppUserData(caller.userId, caller.appSlug);
       return withSdkCors(
-        apiSuccess({ data: { data: null, updatedAt: null } }),
+        apiSuccess({ data: { data: null, updatedAt: null, wrote: true } }),
         caller.origin,
       );
     }
@@ -118,12 +119,21 @@ export default {
       return withSdkCors(apiError({ code, status: 400 }), caller.origin);
     }
 
-    const row = dbUpsertAppUserData(caller.userId, caller.appSlug, serialized.payload);
+    const clientUpdatedAt =
+      typeof body.updatedAt === "string" ? body.updatedAt : null;
+    const row = dbUpsertAppUserData(
+      caller.userId,
+      caller.appSlug,
+      serialized.payload,
+      undefined,
+      clientUpdatedAt,
+    );
     return withSdkCors(
       apiSuccess({
         data: {
           data: parseAppUserDataPayload(row.payload),
           updatedAt: row.updated_at,
+          wrote: row.wrote,
         },
       }),
       caller.origin,
