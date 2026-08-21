@@ -126,7 +126,7 @@ export default function Permissions({ params }: RoutePropsForPath<typeof Permiss
                     <h1 ui-heading="lg" class="title">${app.title}</h1>
                     <p class="lede">${
                       appNeedsAi(app.permissions) && appNeedsSync(app.permissions)
-                        ? t("wants permission to use AI and sync data")
+                        ? t("wants permission to sync data and use AI")
                         : appNeedsSync(app.permissions)
                           ? t("wants permission to sync data")
                           : t("wants permission to use AI")
@@ -135,39 +135,43 @@ export default function Permissions({ params }: RoutePropsForPath<typeof Permiss
                   </div>
                 </header>
 
-                <div class="panel" ui-column="gap-md">
-                  ${appNeedsAi(app.permissions)
+                <div ui-column="gap-sm">
+                  ${appNeedsSync(app.permissions)
                     ? html`
-                  <div ui-row="gap-sm y-start" class="perm-row">
-                    <i class="perm-icon" ui-icon="wallet" aria-hidden="true"></i>
-                    <p class="perm-copy">${t("Use your AI credit for its AI features")}</p>
-                  </div>
-
-                  <div ui-field class="budget-field">
-                    <label for="ai-monthly-limit">${t("Monthly AI credit limit for this app")}</label>
-                    <div class="budget-input">
-                      <span class="budget-prefix" aria-hidden="true">$</span>
-                      <input
-                        type="number"
-                        id="ai-monthly-limit"
-                        name="monthlyLimit"
-                        inputmode="decimal"
-                        min="0.10"
-                        max="100"
-                        step="0.10"
-                        value=${monthlyLimit}
-                        onInput=${(e: Event) =>
-                          setMonthlyLimit((e.currentTarget as HTMLInputElement).value)}
-                      />
-                      <span class="budget-suffix" aria-hidden="true">${periodLabel}</span>
+                  <div class="panel">
+                    <div ui-row="gap-sm y-start" class="perm-row">
+                      <i class="perm-icon" ui-icon="arrows-clockwise" aria-hidden="true"></i>
+                      <p class="perm-copy">${t("Keep this app's data in your Abblet cloud")}</p>
                     </div>
                   </div>`
                     : ""}
-                  ${appNeedsSync(app.permissions)
+                  ${appNeedsAi(app.permissions)
                     ? html`
-                  <div ui-row="gap-sm y-start" class="perm-row">
-                    <i class="perm-icon" ui-icon="arrows-clockwise" aria-hidden="true"></i>
-                    <p class="perm-copy">${t("Keep this app's data in your Abblet cloud")}</p>
+                  <div class="panel" ui-column="gap-md">
+                    <div ui-row="gap-sm y-start" class="perm-row">
+                      <i class="perm-icon" ui-icon="wallet" aria-hidden="true"></i>
+                      <p class="perm-copy">${t("Use your AI credit for its AI features")}</p>
+                    </div>
+
+                    <div ui-field class="budget-field">
+                      <label for="ai-monthly-limit">${t("Monthly AI credit limit for this app")}</label>
+                      <div class="budget-input">
+                        <span class="budget-prefix" aria-hidden="true">$</span>
+                        <input
+                          type="number"
+                          id="ai-monthly-limit"
+                          name="monthlyLimit"
+                          inputmode="decimal"
+                          min="0.10"
+                          max="100"
+                          step="0.10"
+                          value=${monthlyLimit}
+                          onInput=${(e: Event) =>
+                            setMonthlyLimit((e.currentTarget as HTMLInputElement).value)}
+                        />
+                        <span class="budget-suffix" aria-hidden="true">${periodLabel}</span>
+                      </div>
+                    </div>
                   </div>`
                     : ""}
                 </div>

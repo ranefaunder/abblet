@@ -4109,19 +4109,19 @@ export const translations = {
     pt: "pede permissão para sincronizar dados",
     nl: "wil toestemming om data te synchroniseren"
   },
-  "wants permission to use AI and sync data": {
-    fi: "pyytää lupaa käyttää tekoälyä ja synkronoida tiedot",
-    sv: "vill ha behörighet att använda AI och synka data",
-    zh: "请求使用 AI 并同步数据的权限",
-    es: "quiere permiso para usar AI y sincronizar datos",
-    ja: "AI の使用とデータの同期許可を求めています",
-    de: "möchte die Erlaubnis, AI zu nutzen und Daten zu synchronisieren",
-    fr: "demande l’autorisation d’utiliser l’AI et de synchroniser les données",
-    hi: "AI का उपयोग और डेटा सिंक करने की अनुमति चाहता है",
-    ko: "AI 사용 및 데이터 동기화 권한을 요청합니다",
-    it: "chiede il permesso di usare l’AI e sincronizzare i dati",
-    pt: "pede permissão para usar AI e sincronizar dados",
-    nl: "wil toestemming om AI te gebruiken en data te synchroniseren"
+  "wants permission to sync data and use AI": {
+    fi: "pyytää lupaa synkronoida tiedot ja käyttää tekoälyä",
+    sv: "vill ha behörighet att synka data och använda AI",
+    zh: "请求同步数据并使用 AI 的权限",
+    es: "quiere permiso para sincronizar datos y usar AI",
+    ja: "データの同期と AI の使用許可を求めています",
+    de: "möchte die Erlaubnis, Daten zu synchronisieren und AI zu nutzen",
+    fr: "demande l’autorisation de synchroniser les données et d’utiliser l’AI",
+    hi: "डेटा सिंक करने और AI का उपयोग करने की अनुमति चाहता है",
+    ko: "데이터 동기화 및 AI 사용 권한을 요청합니다",
+    it: "chiede il permesso di sincronizzare i dati e usare l’AI",
+    pt: "pede permissão para sincronizar dados e usar AI",
+    nl: "wil toestemming om data te synchroniseren en AI te gebruiken"
   },
   "Keep this app's data in your Abblet cloud": {
     fi: "Säilytä tämän apin tiedot Abblet-pilvessäsi",
